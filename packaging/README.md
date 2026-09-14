@@ -31,7 +31,7 @@ Pour republier les fichiers d'une version : onglet **Actions › Release › Run
 
 ### Démo en ligne (https://easy-ci.netlify.app)
 
-Le site ([rodolphe37/easy-ci-web](https://github.com/rodolphe37/easy-ci-web)) embarque dans sa démo la dernière version publiée. Après la GitHub Release, le job **Mettre à jour la démo en ligne** appelle un *build hook* Netlify pour redéployer le site. Mise en place, une seule fois :
+Le site embarque dans sa démo la dernière version publiée. Après la GitHub Release, le job **Mettre à jour la démo en ligne** appelle un *build hook* Netlify pour redéployer le site. Mise en place, une seule fois :
 
 1. Netlify › site easy-ci › **Site configuration › Build & deploy › Continuous deployment › Build hooks › Add build hook** (nom : `Easy CI release`, branche : `main`), puis copier l'URL générée.
 2. Dépôt easy-ci sur GitHub › **Settings › Secrets and variables › Actions › New repository secret** : nom `NETLIFY_BUILD_HOOK`, valeur : l'URL du hook.

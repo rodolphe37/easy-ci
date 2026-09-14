@@ -224,7 +224,7 @@ jobs:
     if: needs.prepare.outputs.prerelease == 'false'
     runs-on: ubuntu-latest
     steps:
-      # Le site (dépôt easy-ci-web, hébergé sur Netlify) embarque la dernière version publiée dans sa démo :
+      # Le site (hébergé sur Netlify) embarque la dernière version publiée dans sa démo :
       # un build hook Netlify, rangé dans le secret NETLIFY_BUILD_HOOK, relance son déploiement.
       # Sans ce secret, l'étape est ignorée avec un avertissement.
       - name: Redéploiement du site (build hook Netlify)
