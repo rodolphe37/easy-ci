@@ -1,0 +1,81 @@
+"""Fenêtre desktop : charge l'interface web et expose l'API Python via pywebview."""
+
+from __future__ import annotations
+
+import logging
+import sys
+from pathlib import Path
+from typing import Any
+
+import webview
+from platformdirs import user_data_dir
+
+from easy_ci.api import Api
+from easy_ci.storage import APP_NAME
+
+log = logging.getLogger(__name__)
+
+WEB_DIR = Path(__file__).parent / "web"
+RESOURCES_DIR = Path(__file__).parent / "resources"
+DEV_URL = "http://localhost:5173"
+
+
+class JsBridge:
+    """Seule la méthode `call` est visible côté JavaScript (window.pywebview.api.call)."""
+
+    def __init__(self, api: Api) -> None:
+        self._api = api
+
+    def call(self, method: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+        return self._api.call(method, params)
+
+
+def _apply_macos_identity() -> None:
+    """Icône du Dock et nom de l'app quand Easy CI est lancé depuis Python (hors bundle .app).
+
+    Une fois empaquetée, l'application tire ces informations de son Info.plist et de icon.icns.
+    """
+    try:
+        from AppKit import NSApplication, NSImage  # fourni par pyobjc, dépendance de pywebview sur macOS
+        from Foundation import NSBundle
+    except ImportError:
+        return
+    try:
+        info = NSBundle.mainBundle().infoDictionary()
+        if info is not None:
+            info["CFBundleName"] = APP_NAME
+        image = NSImage.alloc().initWithContentsOfFile_(str(RESOURCES_DIR / "icon.icns"))
+        if image is not None:
+            NSApplication.sharedApplication().setApplicationIconImage_(image)
+    except Exception:  # purement cosmétique : ne doit jamais empêcher le lancement
+        log.debug("Impossible d'appliquer l'icône macOS", exc_info=True)
+
+
+def run(dev: bool = False, debug: bool = False) -> int:
+    logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
+    index = WEB_DIR / "index.html"
+    if not dev and not index.exists():
+        print("Interface non compilée. Lancez : cd frontend && npm install && npm run build")
+        return 1
+
+    if sys.platform == "darwin":
+        _apply_macos_identity()
+
+    webview.create_window(
+        APP_NAME,
+        DEV_URL if dev else str(index),
+        js_api=JsBridge(Api()),
+        width=1380,
+        height=880,
+        min_size=(1040, 680),
+        background_color="#0b0b0f",
+        text_select=True,
+    )
+    webview.start(
+        debug=debug,
+        private_mode=False,  # conserve le localStorage (thème, préférences d'affichage)
+        storage_path=user_data_dir(APP_NAME, appauthor=False),
+        # Icône de fenêtre sous Linux (GTK/Qt) ; Windows et macOS utilisent l'icône du paquet.
+        icon=str(RESOURCES_DIR / "icon.png"),
+    )
+    return 0

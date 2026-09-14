@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+dist/
+build/
+*.egg-info/
+
+# Frontend
+frontend/node_modules/
+src/easy_ci/web/
+
+.DS_Store

@@ -1,0 +1,212 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ---------------------------------------------------------------------------
+   Design tokens
+   --------------------------------------------------------------------------- */
+
+:root {
+  --canvas: #f6f6f8;
+  --surface: #ffffff;
+  --surface-2: #f3f3f6;
+  --surface-3: #eaeaef;
+  --elevated: #ffffff;
+  --line: rgb(17 17 27 / 0.08);
+  --line-strong: rgb(17 17 27 / 0.14);
+  --fg: #16161d;
+  --fg-muted: #5c5c6b;
+  --fg-subtle: #8c8c9a;
+  --accent: #5b5bf0;
+  --accent-hover: #4b4be0;
+  --accent-fg: #ffffff;
+  --accent-soft: rgb(91 91 240 / 0.1);
+  --ring: rgb(91 91 240 / 0.45);
+  --shadow-color: 230 20% 40%;
+
+  /* Statuts : couleurs fixes, toujours accompagnées d'une icône et d'un libellé. */
+  --success: #0ca30c;
+  --failure: #d03b3b;
+  --running: #e59e0b;
+  --queued: #8c8c9a;
+  --cancelled: #8c8c9a;
+
+  /* Couleurs ANSI des logs */
+  --ansi-black: #3b3b45;
+  --ansi-red: #c93838;
+  --ansi-green: #1b8a2f;
+  --ansi-yellow: #a86d00;
+  --ansi-blue: #3465d6;
+  --ansi-magenta: #a33fc2;
+  --ansi-cyan: #0f7f95;
+  --ansi-white: #6b6b78;
+  --ansi-bright-black: #8c8c9a;
+
+  --log-bg: #fbfbfc;
+
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --canvas: #09090c;
+  --surface: #111116;
+  --surface-2: #17171e;
+  --surface-3: #1f1f28;
+  --elevated: #1a1a22;
+  --line: rgb(255 255 255 / 0.065);
+  --line-strong: rgb(255 255 255 / 0.12);
+  --fg: #ececf1;
+  --fg-muted: #a1a1b0;
+  --fg-subtle: #6c6c7c;
+  --accent: #7b7bff;
+  --accent-hover: #8f8fff;
+  --accent-fg: #0b0b12;
+  --accent-soft: rgb(123 123 255 / 0.14);
+  --ring: rgb(123 123 255 / 0.5);
+  --shadow-color: 240 30% 2%;
+
+  --success: #22b322;
+  --failure: #e0524f;
+  --running: #fab219;
+  --queued: #6c6c7c;
+  --cancelled: #6c6c7c;
+
+  --ansi-black: #6c6c7c;
+  --ansi-red: #ff6b6b;
+  --ansi-green: #5fd068;
+  --ansi-yellow: #f5c542;
+  --ansi-blue: #6aa2ff;
+  --ansi-magenta: #d68bff;
+  --ansi-cyan: #4fd1e0;
+  --ansi-white: #d4d4dc;
+  --ansi-bright-black: #8a8a99;
+
+  --log-bg: #0c0c10;
+
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-elevated: var(--elevated);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-success: var(--success);
+  --color-failure: var(--failure);
+  --color-running: var(--running);
+  --color-queued: var(--queued);
+  --color-log: var(--log-bg);
+  --color-ansi-cyan: var(--ansi-cyan);
+  --color-ansi-yellow: var(--ansi-yellow);
+
+  --animate-fade-in: fade-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-pop-in: pop-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-pulse-ring: pulse-ring 1.8s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+  --animate-progress: progress 1.4s ease-in-out infinite;
+  --animate-float: float 7s ease-in-out infinite;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to { background-position: 200% 0; }
+}
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklab, currentColor 55%, transparent); }
+  70%, 100% { box-shadow: 0 0 0 6px transparent; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; }
+}
+@keyframes progress {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+
+/* ---------------------------------------------------------------------------
+   Base
+   --------------------------------------------------------------------------- */
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    background: var(--canvas);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-size: 13.5px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "cv11", "ss01";
+    overflow: hidden;
+  }
+  ::selection {
+    background: var(--accent-soft);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  button {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: default;
+  }
+}
+
+@layer components {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+  .shadow-soft {
+    box-shadow:
+      0 1px 2px hsl(var(--shadow-color) / 0.06),
+      0 4px 16px -4px hsl(var(--shadow-color) / 0.1);
+  }
+  .shadow-pop {
+    box-shadow:
+      0 0 0 1px var(--line),
+      0 12px 40px -8px hsl(var(--shadow-color) / 0.35);
+  }
+  .skeleton {
+    background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%);
+    background-size: 200% 100%;
+    animation: var(--animate-shimmer);
+    border-radius: 6px;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
