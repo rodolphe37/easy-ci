@@ -7,7 +7,7 @@ Easy CI est distribué sous forme d'**applications autonomes** construites avec 
 | `packaging/pyinstaller/easy-ci.spec` | Recette PyInstaller (données embarquées, moteur de rendu par système, bundle macOS) |
 | `.github/workflows/build.yml` | Construction réutilisable : interface, puis applications macOS arm64 / x64, Windows, Linux, vérification `--self-check`, archives zip |
 | `.github/workflows/package.yml` | Construction à chaque push sur `main` (artefacts conservés 14 jours) |
-| `.github/workflows/release.yml` | Publication d'une version sur un tag `v*.*.*` : GitHub Release + cask Homebrew |
+| `.github/workflows/release.yml` | Publication d'une version sur un tag `v*.*.*` : GitHub Release, cask Homebrew, redéploiement de la démo en ligne |
 | `scripts/bump_version.py` | Change la version dans `pyproject.toml` et `src/easy_ci/__init__.py` |
 | `packaging/homebrew/` | Mise à jour du cask (`Casks/easy-ci.rb`) et mise en place du tap |
 | `packaging/macos/install.sh` | Installation / mise à jour macOS en une commande (`curl … | bash`), sans quarantaine Gatekeeper |
@@ -25,9 +25,18 @@ python scripts/bump_version.py 0.2.0
 git commit -am "chore: version 0.2.0" && git tag v0.2.0 && git push origin main v0.2.0
 ```
 
-Le workflow **Release** vérifie que le tag correspond à la version du code, construit les quatre applications, les vérifie, puis crée la GitHub Release avec les archives et `SHA256SUMS.txt`. Un tag avec suffixe (`v0.2.0-beta.1`) crée une pré-version, sans mise à jour Homebrew.
+Le workflow **Release** vérifie que le tag correspond à la version du code, construit les quatre applications, les vérifie, puis crée la GitHub Release avec les archives et `SHA256SUMS.txt`. Un tag avec suffixe (`v0.2.0-beta.1`) crée une pré-version, sans mise à jour Homebrew ni de la démo en ligne.
 
 Pour republier les fichiers d'une version : onglet **Actions › Release › Run workflow**, en indiquant le tag.
+
+### Démo en ligne (https://easy-ci.netlify.app)
+
+Le site ([rodolphe37/easy-ci-web](https://github.com/rodolphe37/easy-ci-web)) embarque dans sa démo la dernière version publiée. Après la GitHub Release, le job **Mettre à jour la démo en ligne** appelle un *build hook* Netlify pour redéployer le site. Mise en place, une seule fois :
+
+1. Netlify › site easy-ci › **Site configuration › Build & deploy › Continuous deployment › Build hooks › Add build hook** (nom : `Easy CI release`, branche : `main`), puis copier l'URL générée.
+2. Dépôt easy-ci sur GitHub › **Settings › Secrets and variables › Actions › New repository secret** : nom `NETLIFY_BUILD_HOOK`, valeur : l'URL du hook.
+
+Sans ce secret, la release se termine normalement avec un avertissement ; la démo peut alors être mise à jour à la main (**Deploys › Trigger deploy** sur Netlify).
 
 > Les téléchargements d'une GitHub Release ne sont publics que si le dépôt l'est. Pour un dépôt privé, les archives restent accessibles aux membres du dépôt (page Releases ou artefacts du workflow).
 

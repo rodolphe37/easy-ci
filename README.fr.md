@@ -9,6 +9,9 @@
 </p>
 
 <p align="center">
+  <a href="https://easy-ci.netlify.app"><strong>Site web</strong></a> ·
+  <a href="https://easy-ci.netlify.app/demo"><strong>Démo en ligne</strong></a> ·
+  <a href="https://easy-ci.netlify.app/download">Télécharger</a> ·
   <a href="README.md">🇬🇧 Read in English</a>
 </p>
 
@@ -93,7 +96,7 @@ Easy CI rassemble tout cela dans une application desktop : tous les pipelines de
 ### Application desktop
 
 - **Installation en une commande** sur macOS, Linux et Windows, avec **détection des nouvelles versions** et la commande de mise à jour adaptée à votre installation.
-- **Mode démo** pour tout essayer sans compte, palette de commandes (`⌘K` / `Ctrl+K`), thèmes clair et sombre, **documentation intégrée**.
+- **Mode démo** pour tout essayer sans compte, aussi disponible en [démo en ligne dans le navigateur](https://easy-ci.netlify.app/demo) (sur ordinateur), palette de commandes (`⌘K` / `Ctrl+K`), thèmes clair et sombre, **documentation intégrée**.
 - **Interface en français et en anglais**, selon la langue du système, avec un choix manuel dans *Paramètres › Apparence*.
 
 ## Plateformes prises en charge
@@ -163,6 +166,9 @@ Options des scripts (variables d'environnement) : `EASY_CI_VERSION=v0.2.0` pour 
 Easy CI vérifie au démarrage, puis toutes les 6 heures, si une version plus récente est publiée sur GitHub. Si c'est le cas, une fenêtre affiche les nouveautés et **la commande de mise à jour adaptée à votre installation** (Homebrew, script ou PowerShell). Une version peut être ignorée, et la vérification désactivée dans **Paramètres › Mises à jour**.
 
 ## Premiers pas
+
+> [!TIP]
+> Envie de voir avant d'installer ? La [démo en ligne](https://easy-ci.netlify.app/demo) exécute la vraie application (interface et moteur Python, via WebAssembly) dans votre navigateur, sur des données d'exemple, sans rien installer.
 
 1. Lancez Easy CI et connectez une plateforme — ou cliquez sur **Explorer en mode démo** pour tout essayer avec des données simulées.
 2. Créez un token avec les droits ci-dessous et collez-le (il est conservé dans le trousseau du système) :

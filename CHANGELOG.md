@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Links to the website and the live demo (https://easy-ci.netlify.app) in the READMEs.
+- The release workflow redeploys the website so its live demo runs the new version (Netlify build hook in the `NETLIFY_BUILD_HOOK` secret, skipped with a warning when absent).
+
 ## [0.3.0] - 2026-09-14
 
 ### Added

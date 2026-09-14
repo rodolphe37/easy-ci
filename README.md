@@ -9,6 +9,9 @@
 </p>
 
 <p align="center">
+  <a href="https://easy-ci.netlify.app"><strong>Website</strong></a> ·
+  <a href="https://easy-ci.netlify.app/demo"><strong>Live demo</strong></a> ·
+  <a href="https://easy-ci.netlify.app/download">Download</a> ·
   <a href="README.fr.md">🇫🇷 Lire en français</a>
 </p>
 
@@ -93,7 +96,7 @@ Easy CI brings all of that into a single desktop app: every pipeline of every re
 ### Desktop app
 
 - **One-command install** on macOS, Linux and Windows, with **new version detection** and the right upgrade command for your install method.
-- **Demo mode** to try everything without an account, command palette (`⌘K` / `Ctrl+K`), light and dark themes, **built-in documentation**.
+- **Demo mode** to try everything without an account — also available as a [live demo in your browser](https://easy-ci.netlify.app/demo) (desktop screens), command palette (`⌘K` / `Ctrl+K`), light and dark themes, **built-in documentation**.
 - **English and French interface**, following the system language, with a manual switch in *Settings › Appearance*.
 
 ## Supported platforms
@@ -163,6 +166,9 @@ Install script options (environment variables): `EASY_CI_VERSION=v0.2.0` for a s
 Easy CI checks GitHub for a newer release at startup and every 6 hours. When one is available, a dialog shows the release notes and **the upgrade command matching how you installed it** (Homebrew, script or PowerShell). You can skip a version or turn the check off in **Settings › Updates**.
 
 ## Getting started
+
+> [!TIP]
+> Just want a look first? The [live demo](https://easy-ci.netlify.app/demo) runs the real app — interface and Python engine, via WebAssembly — in your browser on sample data, nothing to install.
 
 1. Launch Easy CI and connect a platform — or click **Explore demo mode** to try everything with simulated data.
 2. Create a token with the scopes below and paste it in (tokens are stored in your system keychain):

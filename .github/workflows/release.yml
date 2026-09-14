@@ -217,3 +217,24 @@ jobs:
             git commit -m "easy-ci ${{ needs.prepare.outputs.version }}"
             git push
           fi
+
+  website:
+    name: Mettre à jour la démo en ligne
+    needs: [prepare, release]
+    if: needs.prepare.outputs.prerelease == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      # Le site (dépôt easy-ci-web, hébergé sur Netlify) embarque la dernière version publiée dans sa démo :
+      # un build hook Netlify, rangé dans le secret NETLIFY_BUILD_HOOK, relance son déploiement.
+      # Sans ce secret, l'étape est ignorée avec un avertissement.
+      - name: Redéploiement du site (build hook Netlify)
+        env:
+          NETLIFY_BUILD_HOOK: ${{ secrets.NETLIFY_BUILD_HOOK }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          if [ -z "$NETLIFY_BUILD_HOOK" ]; then
+            echo "::warning::Secret NETLIFY_BUILD_HOOK absent : la démo en ligne n'est pas mise à jour (voir packaging/README.md)."
+            exit 0
+          fi
+          curl --fail --silent --show-error --retry 3 -X POST -d '{}' "${NETLIFY_BUILD_HOOK}?trigger_title=Easy+CI+${VERSION}"
+          echo "Déploiement du site demandé pour Easy CI ${VERSION}."
