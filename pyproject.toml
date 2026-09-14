@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "easy-ci"
-version = "0.2.0"
+version = "0.3.0"
 description = "Desktop app to monitor, edit and generate CI/CD pipelines for GitHub Actions, GitLab CI/CD and Bitbucket Pipelines"
 readme = "README.md"
 license = "MIT"

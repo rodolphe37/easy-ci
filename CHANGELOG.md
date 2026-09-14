@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-14
+
 ### Added
 
 - English interface: the app follows the system language (French or English, English otherwise) and can be switched in *Settings › Appearance* or from the sign-in screen. Built-in documentation, error messages, validation results and generated pipeline comments are translated too.
@@ -48,6 +50,7 @@ First public version.
 - Built-in documentation, light and dark themes, native window with app icons for macOS, Windows and Linux.
 - Project CI/CD: lint and tests on Linux, macOS and Windows, standalone PyInstaller apps for macOS (Apple Silicon and Intel), Windows and Linux, automated GitHub Releases with SHA-256 checksums.
 
-[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/rodolphe37/easy-ci/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/rodolphe37/easy-ci/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/rodolphe37/easy-ci/releases/tag/v0.1.0
