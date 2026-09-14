@@ -61,16 +61,23 @@ def run(dev: bool = False, debug: bool = False) -> int:
     if sys.platform == "darwin":
         _apply_macos_identity()
 
-    webview.create_window(
+    api = Api()
+    window = webview.create_window(
         APP_NAME,
         DEV_URL if dev else str(index),
-        js_api=JsBridge(Api()),
+        js_api=JsBridge(api),
         width=1380,
         height=880,
         min_size=(1040, 680),
         background_color="#0b0b0f",
         text_select=True,
     )
+
+    def pick_folder(title: str) -> str | None:
+        selection = window.create_file_dialog(webview.FileDialog.FOLDER, directory=str(Path.home()))
+        return selection[0] if selection else None
+
+    api.set_folder_picker(pick_folder)
     webview.start(
         debug=debug,
         private_mode=False,  # conserve le localStorage (thème, préférences d'affichage)

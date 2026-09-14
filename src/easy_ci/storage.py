@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import logging
 import os
@@ -26,6 +27,12 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "hidden_repositories": [],  # dépôts découverts que l'utilisateur ne veut pas voir
     "show_repos_without_ci": True,
     "include_archived": False,
+    # Projets locaux
+    "local_roots": [],  # dossiers parcourus pour détecter les clones Git
+    "local_links": {},  # clé de dépôt → dossier ; "" = liaison automatique retirée volontairement
+    "auto_fetch_minutes": 15,  # 0 = désactivé
+    "auto_pull": False,  # mise à jour en avance rapide seulement, si aucune modification locale
+    "preferred_editor": None,
 }
 
 _REPO_LIST_SETTINGS = ("favorites", "added_repositories", "hidden_repositories")
@@ -82,6 +89,17 @@ def _credentials_from_env(provider: str) -> dict[str, str] | None:
     return values if complete else None
 
 
+def _same_kind(default: Any, value: Any) -> bool:
+    """Ignore une valeur stockée dont le type ne correspond plus (fichier modifié à la main, ancienne version)."""
+    if default is None or value is None:
+        return True
+    if isinstance(default, bool):
+        return isinstance(value, bool)
+    if isinstance(default, (int, float)):
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
+    return isinstance(value, type(default))
+
+
 def _normalize_repo_lists(settings: dict[str, Any]) -> dict[str, Any]:
     for key in _REPO_LIST_SETTINGS:
         settings[key] = list(dict.fromkeys(_with_provider_prefix(item) for item in settings.get(key, []) if isinstance(item, str)))
@@ -104,12 +122,15 @@ class SettingsStore:
             stored = json.loads(self._path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             stored = {}
-        return _normalize_repo_lists({**DEFAULT_SETTINGS, **{k: v for k, v in stored.items() if k in DEFAULT_SETTINGS}})
+        settings = copy.deepcopy(DEFAULT_SETTINGS)
+        settings.update({k: v for k, v in stored.items() if k in DEFAULT_SETTINGS and _same_kind(DEFAULT_SETTINGS[k], v)})
+        return _normalize_repo_lists(settings)
 
     def update(self, changes: dict[str, Any]) -> dict[str, Any]:
         with self._lock:
             settings = self.load()
-            settings = _normalize_repo_lists({**settings, **{k: v for k, v in changes.items() if k in DEFAULT_SETTINGS}})
+            accepted = {k: v for k, v in changes.items() if k in DEFAULT_SETTINGS and _same_kind(DEFAULT_SETTINGS[k], v)}
+            settings = _normalize_repo_lists({**settings, **accepted})
             self._path.parent.mkdir(parents=True, exist_ok=True)
             self._path.write_text(json.dumps(settings, indent=2, ensure_ascii=False), encoding="utf-8")
             return settings

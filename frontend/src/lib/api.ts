@@ -1,5 +1,9 @@
 import type {
   Annotation,
+  LocalCiDiff,
+  LocalOverview,
+  LocalStatus,
+  SyncResult,
   ProviderId,
   JobLog,
   RateLimit,
@@ -121,6 +125,21 @@ export const api = {
   rerunRun: (ref: RepoRef, runId: string, failedOnly = false) =>
     call<{ run_id: string } | null>("rerun_run", { ...ref, run_id: runId, failed_only: failedOnly }),
   cancelRun: (ref: RepoRef, runId: string) => call<null>("cancel_run", { ...ref, run_id: runId }),
+
+  // Projets locaux
+  localOverview: () => call<LocalOverview>("local_overview"),
+  scanLocalProjects: () => call<LocalOverview>("scan_local_projects"),
+  addLocalRoot: (path: string) => call<LocalOverview>("add_local_root", { path }),
+  removeLocalRoot: (path: string) => call<LocalOverview>("remove_local_root", { path }),
+  pickFolder: (title: string) => call<string | null>("pick_folder", { title }),
+  linkLocalProject: (key: string, path: string, force = false) => call<LocalStatus>("link_local_project", { key, path, force }),
+  unlinkLocalProject: (key: string) => call<LocalOverview>("unlink_local_project", { key }),
+  cloneRepository: (key: string, parent: string, protocol: "https" | "ssh") => call<LocalStatus>("clone_repository", { key, parent, protocol }),
+  getLocalStatus: (key: string) => call<LocalStatus>("get_local_status", { key }),
+  syncLocalProject: (key: string, pull = false) => call<SyncResult>("sync_local_project", { key, pull }),
+  getLocalCiDiff: (key: string, path: string) => call<LocalCiDiff>("get_local_ci_diff", { key, path }),
+  openLocalProject: (key: string, target: "folder" | "editor" | "terminal", editorId?: string | null) =>
+    call<null>("open_local_project", { key, target, editor_id: editorId ?? null }),
 };
 
 /** Désigne un dépôt auprès du moteur : fournisseur + chemin complet. */

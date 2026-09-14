@@ -25,6 +25,8 @@ from easy_ci.errors import AuthError, EasyCIError, ForbiddenError, NetworkError,
 from easy_ci.github.client import GitHubClient
 from easy_ci.github.service import GitHubService
 from easy_ci.gitlab.service import GitLabClient, GitLabService, normalize_host
+from easy_ci.local.demo import DemoLocalProjects
+from easy_ci.local.service import LocalProjectsService
 from easy_ci.providers import GITHUB, GITLAB, PROVIDER_INFO, PROVIDERS, repo_key, split_repo_key
 from easy_ci.refs import parse_repository_reference
 from easy_ci.storage import CredentialStore, SettingsStore
@@ -82,6 +84,8 @@ class Api:
         self._restore_errors: dict[str, str] = {}
         self._demo: DemoService | None = None
         self._lock = threading.RLock()
+        self._local = LocalProjectsService(self._settings, gitlab_hosts=self._gitlab_hosts)
+        self._demo_local: DemoLocalProjects | None = None
 
         def repo(method: str) -> Callable[..., Any]:
             return lambda provider, full_name, **kwargs: getattr(self._service(provider), method)(full_name, **kwargs)
@@ -111,6 +115,19 @@ class Api:
             "get_workflow_file": lambda provider, full_name, path, ref=None: self._service(provider).get_workflow_file(full_name, path, ref),
             "rerun_run": lambda provider, full_name, run_id, failed_only=False: self._service(provider).rerun_run(full_name, str(run_id), bool(failed_only)),
             "cancel_run": lambda provider, full_name, run_id: self._service(provider).cancel_run(full_name, str(run_id)),
+            # Projets locaux
+            "local_overview": lambda: self._local_projects().overview(),
+            "scan_local_projects": lambda: self._local_projects().scan(),
+            "add_local_root": lambda path: self._local_projects().add_root(path),
+            "remove_local_root": lambda path: self._local_projects().remove_root(path),
+            "pick_folder": lambda title="Choisir un dossier": self._local_projects().pick_folder(title),
+            "link_local_project": lambda key, path, force=False: self._local_projects().link(key, path, bool(force)),
+            "unlink_local_project": lambda key: self._local_projects().unlink(key),
+            "clone_repository": self.clone_repository,
+            "get_local_status": lambda key: self._local_projects().status(key),
+            "sync_local_project": lambda key, pull=False: self._local_projects().sync(key, bool(pull)),
+            "get_local_ci_diff": lambda key, path: self._local_projects().ci_diff(key, path),
+            "open_local_project": lambda key, target, editor_id=None: self._local_projects().open(key, target, editor_id),
         }
 
     # -- Dispatch ---------------------------------------------------------
@@ -136,6 +153,22 @@ class Api:
         except Exception as exc:  # garde-fou : l'interface doit toujours recevoir une réponse
             log.exception("Erreur inattendue dans %s", method)
             return {"ok": False, "error": {"code": "internal", "message": f"Erreur inattendue : {exc}"}}
+
+    # -- Projets locaux ---------------------------------------------------
+
+    def set_folder_picker(self, picker: Callable[[str], str | None] | None) -> None:
+        self._local.set_folder_picker(picker)
+
+    def _local_projects(self) -> Any:
+        return self._demo_local if self._demo is not None and self._demo_local is not None else self._local
+
+    def _gitlab_hosts(self) -> tuple[str, ...]:
+        return tuple(a.host for a in self._accounts.values() if a.provider == GITLAB and a.host)
+
+    def clone_repository(self, key: str, parent: str, protocol: str = "https") -> dict[str, Any]:
+        provider, _ = split_repo_key(key)
+        account = self._accounts.get(provider)
+        return self._local_projects().clone(key, parent, protocol, account.host if account else None)
 
     # -- Comptes ----------------------------------------------------------
 
@@ -249,6 +282,7 @@ class Api:
             self._accounts.clear()
             self._restore_errors.clear()
             self._demo = DemoService()
+            self._demo_local = DemoLocalProjects()
             return self._session()
 
     def logout(self) -> dict[str, Any]:
@@ -265,6 +299,7 @@ class Api:
         if self._demo is not None:
             self._demo.close()
             self._demo = None
+            self._demo_local = None
 
     def get_rate_limits(self) -> list[dict[str, Any]]:
         limits = []

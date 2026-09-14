@@ -8,6 +8,7 @@ import {
   GitBranch,
   KeyRound,
   Keyboard,
+  Laptop,
   LayoutDashboard,
   Lightbulb,
   RotateCcw,
@@ -20,10 +21,11 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
+import { CI_STATE_INFO, CiStateBadge } from "@/components/local/LocalProjectPanel";
 import { STATE_LABELS, StatusIcon } from "@/components/status";
 import { Kbd } from "@/components/ui/primitives";
 import { api } from "@/lib/api";
-import type { ProviderId, RunStateName } from "@/lib/types";
+import type { CiFileState, ProviderId, RunStateName } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const CLASSIC_TOKEN_URL = "https://github.com/settings/tokens/new?scopes=repo,workflow,read:org&description=Easy%20CI";
@@ -681,6 +683,95 @@ export const DOC_SECTIONS: DocSection[] = [
     ),
   },
   {
+    id: "local",
+    title: "Projets locaux",
+    icon: Laptop,
+    summary: "Relier les dépôts à leurs clones, suivre et récupérer les changements.",
+    content: (
+      <>
+        <P>
+          Easy CI relie chaque dépôt suivi à son <Strong>clone sur votre machine</Strong>. C'est dans ce dossier que se feront les modifications de pipelines
+          (prochaines versions) : elles seront écrites et commitées localement, puis envoyées seulement quand vous le décidez.
+        </P>
+        <Callout variant="info" title="Prérequis">
+          Git doit être installé. Easy CI utilise votre Git et vos identifiants habituels (clé SSH, trousseau, gestionnaire d'identifiants) : si{" "}
+          <Code>git fetch</Code> fonctionne dans votre terminal, il fonctionne dans Easy CI.
+        </Callout>
+
+        <H3>1. Indiquer vos dossiers de projets</H3>
+        <Steps>
+          <>
+            <Strong>Paramètres › Projets locaux</Strong> › saisissez le dossier qui contient vos projets (par exemple <Code>~/Developer</Code>) ou cliquez sur{" "}
+            <Strong>Parcourir…</Strong>, puis <Strong>Ajouter</Strong>.
+          </>
+          <>
+            Easy CI parcourt ce dossier (jusqu'à 6 niveaux, en ignorant <Code>node_modules</Code>, <Code>.venv</Code>, <Code>build</Code>…) et lit les remotes de
+            chaque clone Git trouvé.
+          </>
+          <>
+            Chaque clone dont un remote pointe vers un dépôt suivi (GitHub, GitLab, Bitbucket, en HTTPS ou SSH) lui est <Strong>relié automatiquement</Strong>. Une
+            icône d'ordinateur apparaît alors sur la ligne du dépôt.
+          </>
+        </Steps>
+        <P>Ajoutez un nouveau projet sur le disque ? Cliquez sur <Strong>Relancer la détection</Strong>.</P>
+
+        <H3>2. Lier ou cloner un dépôt à la main</H3>
+        <P>Page du dépôt › onglet <Strong>Projet local</Strong> :</P>
+        <Table
+          head={["Action", "Usage"]}
+          rows={[
+            ["Lier un dossier existant", "Le clone est ailleurs que dans vos dossiers de projets. Easy CI vérifie que ses remotes correspondent au dépôt ; sinon il vous propose de lier quand même."],
+            ["Cloner le dépôt", "Pas encore de copie locale : choisissez le dossier parent et le protocole (HTTPS ou SSH). Le clone est relié dès la fin."],
+            ["Délier", "Menu ⋯ › Délier ce dossier. Le dossier n'est ni modifié ni supprimé, et n'est plus relié automatiquement."],
+          ]}
+        />
+
+        <H3>3. Suivre l'état du clone</H3>
+        <Table
+          head={["Indicateur", "Signification"]}
+          rows={[
+            ["À récupérer", "Commits présents sur la branche distante suivie mais pas encore dans votre branche locale."],
+            ["À pousser", "Commits locaux pas encore envoyés sur la branche distante."],
+            ["Non commités", "Fichiers modifiés, ajoutés ou supprimés dans la copie de travail."],
+            ["Dernière récupération", "Date du dernier git fetch, par vous ou par la récupération automatique."],
+          ]}
+        />
+        <P>
+          La section <Strong>Fichiers CI locaux</Strong> compare chaque fichier de configuration CI à la branche distante. Cliquez sur un fichier modifié pour
+          afficher les différences ligne à ligne (<span className="text-failure">−</span> distant, <span className="text-success">+</span> local).
+        </P>
+        <div className="my-4 grid gap-2 sm:grid-cols-2">
+          {(Object.keys(CI_STATE_INFO) as CiFileState[]).map((state) => (
+            <div key={state} className="flex items-start gap-2.5 rounded-xl border border-line bg-surface px-3 py-2.5">
+              <CiStateBadge state={state} />
+              <div className="text-[12.5px] leading-snug text-fg-muted">{CI_STATE_INFO[state].description}</div>
+            </div>
+          ))}
+        </div>
+
+        <H3>4. Récupérer et mettre à jour</H3>
+        <Table
+          head={["Bouton", "Effet"]}
+          rows={[
+            ["Récupérer", <>Lance <Code>git fetch</Code> : met à jour les indicateurs sans toucher à vos fichiers.</>],
+            [
+              "Mettre à jour",
+              <>
+                Lance <Code>git pull --ff-only</Code> : avance la branche locale. Désactivé s'il y a des modifications non commitées, des commits locaux non poussés
+                (branches divergentes) ou aucune branche distante suivie.
+              </>,
+            ],
+            ["Ouvrir", "Menu ⋯ : afficher le dossier, l'ouvrir dans votre éditeur de code (VS Code, Cursor, Zed, JetBrains…) ou dans un terminal."],
+          ]}
+        />
+        <Callout variant="tip" title="Récupération automatique">
+          Paramètres › Projets locaux : Easy CI peut récupérer les nouveautés toutes les 5, 15 ou 60 minutes, et même <Strong>mettre à jour les branches</Strong>{" "}
+          automatiquement. Cette mise à jour ne se fait qu'en avance rapide et jamais si vous avez du travail en cours : vos modifications ne sont jamais écrasées.
+        </Callout>
+      </>
+    ),
+  },
+  {
     id: "refresh",
     title: "Actualisation et quota",
     icon: Gauge,
@@ -730,6 +821,7 @@ export const DOC_SECTIONS: DocSection[] = [
         rows={[
           ["Comptes", "Un compte par plateforme : connexion, déconnexion, stockage des identifiants, messages en cas d'identifiants expirés."],
           ["Dépôts suivis", "Dépôts ajoutés manuellement et dépôts masqués."],
+          ["Projets locaux", "Dossiers de projets, détection des clones, récupération et mise à jour automatiques, éditeur de code."],
           ["Apparence", "Thème clair, sombre ou identique au système."],
           ["Synchronisation", "Fréquence d'actualisation (30 s à 5 min, ou manuelle), affichage des dépôts sans CI et des dépôts archivés."],
         ]}
@@ -801,6 +893,18 @@ export const DOC_SECTIONS: DocSection[] = [
             variable d'environnement de la plateforme (<Code>EASY_CI_GITHUB_TOKEN</Code>, <Code>EASY_CI_GITLAB_TOKEN</Code>…).
           </P>
         </Question>
+        <Question question="Un clone local n'est pas relié à son dépôt">
+          <P>
+            Vérifiez que son dossier se trouve dans un dossier de projets (à moins de 6 niveaux, hors dossiers ignorés) et qu'un de ses remotes pointe vers le dépôt
+            (<Code>git remote -v</Code>). Pour GitLab auto-hébergé, le compte de l'instance doit être connecté. Sinon, liez-le à la main depuis l'onglet Projet local.
+          </P>
+        </Question>
+        <Question question="« Git n'a pas pu s'authentifier » en récupérant ou en clonant">
+          <P>
+            Easy CI ne peut pas afficher de demande de mot de passe. Configurez un accès sans question : clé SSH chargée dans l'agent, ou gestionnaire d'identifiants
+            Git (<Code>gh auth setup-git</Code> pour GitHub, Git Credential Manager…). Vérifiez ensuite que <Code>git fetch</Code> fonctionne dans un terminal.
+          </P>
+        </Question>
         <Question question="« Le moteur Easy CI ne répond pas »">
           <P>L'interface ne parvient pas à joindre le moteur Python. Fermez puis relancez l'application ; si le problème persiste, lancez-la depuis un terminal :</P>
           <CodeBlock>easy-ci --debug</CodeBlock>
@@ -830,6 +934,7 @@ export const DOC_SECTIONS: DocSection[] = [
                 <Code>~/.config/Easy CI</Code> (Linux).
               </>,
             ],
+            ["Dossiers de projets et liaisons dépôt ↔ dossier", <><Code>settings.json</Code> (chemins uniquement : le contenu de vos projets n'est jamais copié).</>],
             ["Dépôts, exécutions, logs", "En mémoire uniquement, le temps de la session."],
           ]}
         />

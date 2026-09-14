@@ -1,4 +1,4 @@
-import { Archive, BookOpen, EyeOff, ExternalLink, FolderGit2, GitFork, Lock, MoreHorizontal, Plus, Search, Star, Trash2 } from "lucide-react";
+import { Archive, Laptop, BookOpen, EyeOff, ExternalLink, FolderGit2, GitFork, Lock, MoreHorizontal, Plus, Search, Star, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { AddRepositoryDialog } from "@/components/AddRepositoryDialog";
@@ -6,6 +6,7 @@ import { TimeAgo } from "@/components/runs";
 import { HistoryStrip, StatusIcon, STATE_LABELS } from "@/components/status";
 import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger, Tooltip } from "@/components/ui/overlays";
 import { Badge, Button, buttonClass, Card, EmptyState, Input, Kbd, SegmentedControl, Skeleton } from "@/components/ui/primitives";
+import { useLocalProjects } from "@/hooks/local";
 import { useRepositoryActions } from "@/hooks/repositories";
 import { useScans, type RepoEntry } from "@/hooks/scans";
 import { useSettings } from "@/hooks/session";
@@ -208,6 +209,7 @@ function RepoRow({ entry }: { entry: RepoEntry }) {
   const navigate = useNavigate();
   const { isFavorite, toggleFavorite } = useSettings();
   const { hide, remove } = useRepositoryActions();
+  const localProject = useLocalProjects().byKey.get(entry.repo.key);
   const { repo, scan, loading, error } = entry;
   const favorite = isFavorite(repo.key);
   const path = repoPath(repo.provider, repo.full_name);
@@ -251,6 +253,19 @@ function RepoRow({ entry }: { entry: RepoEntry }) {
             <Badge>
               <Archive /> Archivé
             </Badge>
+          ) : null}
+          {localProject ? (
+            <Tooltip content={`Clone local : ${localProject.display_path}`}>
+              <span
+                className="inline-flex shrink-0 items-center text-fg-subtle hover:text-accent"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  navigate(`${path}?tab=local`);
+                }}
+              >
+                <Laptop className="size-3.5" />
+              </span>
+            </Tooltip>
           ) : null}
           {repo.added_manually ? (
             <Tooltip content="Ajouté manuellement">

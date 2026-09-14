@@ -47,3 +47,9 @@ class RateLimitError(GitHubError):
 
     def to_dict(self) -> dict:
         return {**super().to_dict(), "reset_at": self.reset_at}
+
+
+class LinkMismatchError(EasyCIError):
+    """Le dossier choisi n'est pas un clone du dépôt : l'interface propose de lier quand même."""
+
+    code = "link_mismatch"

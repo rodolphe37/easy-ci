@@ -8,6 +8,7 @@ import {
   GitBranch,
   History,
   Layers,
+  Laptop,
   Lock,
   Pencil,
   RefreshCw,
@@ -22,7 +23,9 @@ import { BranchChip, EventIcon, RunDuration, RunRow, TimeAgo } from "@/component
 import { HistoryStrip, StatusBadge, StatusIcon } from "@/components/status";
 import { Tooltip } from "@/components/ui/overlays";
 import { Badge, Button, buttonClass, Card, EmptyState, SegmentedControl, Skeleton } from "@/components/ui/primitives";
+import { LocalProjectPanel } from "@/components/local/LocalProjectPanel";
 import { YamlViewer } from "@/components/YamlViewer";
+import { useLocalStatus } from "@/hooks/local";
 import { useRepoEntry, useScans } from "@/hooks/scans";
 import { useSettings } from "@/hooks/session";
 import { api, type RepoRef } from "@/lib/api";
@@ -31,7 +34,7 @@ import type { Repository, ScannedWorkflow, WorkflowFile } from "@/lib/types";
 import { cn, eventLabel, firstLine } from "@/lib/utils";
 import { ListSkeleton, Page } from "./OverviewPage";
 
-type Tab = "workflows" | "runs" | "files";
+type Tab = "workflows" | "runs" | "files" | "local";
 
 export function RepoPage() {
   const repoRef = useRepoRef();
@@ -62,6 +65,16 @@ export function RepoPage() {
   const scan = entry?.scan ?? scanQuery.data;
   const workflows = (scan?.workflows ?? []).filter((wf) => !wf.dynamic || wf.latest_run);
   const favorite = isFavorite(key);
+  const localStatus = useLocalStatus(key).data;
+  const localBadge = localStatus?.linked
+    ? localStatus.error
+      ? "!"
+      : (localStatus.behind ?? 0) > 0
+        ? `↓${localStatus.behind}`
+        : localStatus.dirty
+          ? "●"
+          : undefined
+    : undefined;
 
   const setTab = (next: Tab, extra: Record<string, string> = {}) => setParams({ tab: next, ...extra }, { replace: true });
 
@@ -137,10 +150,21 @@ export function RepoPage() {
           <TabButton active={tab === "files"} onClick={() => setTab("files")} icon={<FileCode2 />}>
             Fichiers CI
           </TabButton>
+          <TabButton active={tab === "local"} onClick={() => setTab("local")} icon={<Laptop />} badge={localBadge} dimmed={localStatus !== undefined && !localStatus.linked}>
+            Projet local
+          </TabButton>
         </div>
       </div>
 
-      {!scan ? (
+      {tab === "local" ? (
+        repo ? (
+          <LocalProjectPanel repo={repo} />
+        ) : (
+          <Card>
+            <ListSkeleton rows={2} />
+          </Card>
+        )
+      ) : !scan ? (
         <Card>
           <ListSkeleton rows={3} />
         </Card>
@@ -175,7 +199,23 @@ export function RepoPage() {
   );
 }
 
-function TabButton({ active, onClick, icon, children, count }: { active: boolean; onClick: () => void; icon: React.ReactNode; children: React.ReactNode; count?: number }) {
+function TabButton({
+  active,
+  onClick,
+  icon,
+  children,
+  count,
+  badge,
+  dimmed,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  count?: number;
+  badge?: string;
+  dimmed?: boolean;
+}) {
   return (
     <button
       onClick={onClick}
@@ -187,6 +227,8 @@ function TabButton({ active, onClick, icon, children, count }: { active: boolean
       <span className={active ? "text-accent" : "text-fg-subtle"}>{icon}</span>
       {children}
       {count !== undefined ? <span className="rounded-full bg-surface-3 px-1.5 text-[11px] text-fg-muted tabular">{count}</span> : null}
+      {badge ? <span className="rounded-full bg-running/15 px-1.5 text-[11px] font-semibold text-fg tabular">{badge}</span> : null}
+      {dimmed && !active ? <span className="size-1.5 rounded-full bg-fg-subtle/50" aria-label="non lié" /> : null}
       <span className={cn("absolute inset-x-2 bottom-0 h-0.5 rounded-full transition-colors", active ? "bg-accent" : "bg-transparent")} />
     </button>
   );

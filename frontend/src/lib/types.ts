@@ -67,6 +67,11 @@ export interface Settings {
   hidden_repositories: string[];
   show_repos_without_ci: boolean;
   include_archived: boolean;
+  local_roots: string[];
+  local_links: Record<string, string>;
+  auto_fetch_minutes: number;
+  auto_pull: boolean;
+  preferred_editor: string | null;
 }
 
 export interface Repository {
@@ -288,4 +293,84 @@ export interface RateLimit {
   limit: number;
   remaining: number;
   reset_at: number;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Projets locaux                                                             */
+/* -------------------------------------------------------------------------- */
+
+export interface LocalRoot {
+  path: string;
+  display_path: string;
+  exists: boolean;
+}
+
+export interface LocalProject {
+  key: string;
+  path: string;
+  display_path: string;
+  source: "scan" | "manual";
+  exists: boolean;
+  candidates: string[];
+}
+
+export interface LocalOverview {
+  git_version: string | null;
+  roots: LocalRoot[];
+  projects: LocalProject[];
+  unmatched: { path: string; display_path: string; remotes: string[] }[];
+  scanned_at: number | null;
+  scanning: boolean;
+  picker_available: boolean;
+  editors: { id: string; label: string }[];
+  file_manager: string;
+  demo?: boolean;
+}
+
+export type CiFileState = "synced" | "uncommitted" | "untracked" | "unpushed" | "outdated" | "diverged";
+
+export interface LocalCiFile {
+  path: string;
+  state: CiFileState;
+  local: boolean;
+  remote: boolean;
+}
+
+export type LocalStatus =
+  | { key: string; linked: false }
+  | {
+      key: string;
+      linked: true;
+      path: string;
+      display_path: string;
+      exists: boolean;
+      error: string | null;
+      branch?: string | null;
+      detached?: boolean;
+      upstream?: string | null;
+      ahead?: number;
+      behind?: number;
+      dirty?: boolean;
+      changes?: { path: string; status: string }[];
+      changes_count?: number;
+      last_commit?: { sha: string; message: string; author: string; date: string } | null;
+      last_fetch_at?: number | null;
+      remote_matches?: boolean;
+      remotes?: { name: string; url: string }[];
+      compare_ref?: string | null;
+      ci_files?: LocalCiFile[];
+    };
+
+export interface SyncResult {
+  pulled: boolean;
+  skipped_reason: "no_upstream" | "dirty" | "up_to_date" | "diverged" | null;
+  status: LocalStatus;
+}
+
+export interface LocalCiDiff {
+  path: string;
+  compare_ref: string | null;
+  local: string | null;
+  remote: string | null;
+  diff: string;
 }

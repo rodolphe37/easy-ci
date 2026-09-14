@@ -1,20 +1,31 @@
-import { BookOpen, Eye, KeyRound, LogOut, Monitor, Moon, Plus, RefreshCw, ShieldCheck, Sparkles, Sun, Trash2 } from "lucide-react";
+import { BookOpen, Eye, FolderOpen, GitBranch, TriangleAlert, KeyRound, LogOut, Monitor, Moon, Plus, RefreshCw, ShieldCheck, Sparkles, Sun, Trash2 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router";
 import { AddRepositoryDialog } from "@/components/AddRepositoryDialog";
 import { ConnectAccountForm } from "@/components/ConnectAccountForm";
+import { FolderField } from "@/components/local/FolderField";
 import { ProviderGuide } from "@/components/docs/DocsContent";
 import { Modal, Tooltip } from "@/components/ui/overlays";
 import { Avatar, Badge, BrandIllustration, Button, buttonClass, Card, SegmentedControl, Switch } from "@/components/ui/primitives";
+import { useLocalActions, useLocalProjects } from "@/hooks/local";
 import { useRepositoryActions } from "@/hooks/repositories";
+import { useNow } from "@/hooks/useNow";
 import { useSession, useSessionActions, useSettings } from "@/hooks/session";
 import { PROVIDER_IDS, PROVIDER_LABELS, ProviderIcon } from "@/lib/providers";
 import type { ProviderId, Settings } from "@/lib/types";
+import { timeAgo } from "@/lib/utils";
 import { Page } from "./OverviewPage";
 
 export function SettingsPage() {
   const { data: session } = useSession();
   const { settings, update } = useSettings();
+  const location = useLocation();
+
+  // Liens directs vers une section (« Gérer les dépôts masqués », « Gérer les dossiers »…).
+  useEffect(() => {
+    const id = location.hash.slice(1);
+    if (id) requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }, [location.hash]);
 
   return (
     <Page className="max-w-3xl">
@@ -24,6 +35,8 @@ export function SettingsPage() {
       <Accounts />
 
       <TrackedRepositories />
+
+      <LocalProjectsSettings />
 
       <SettingsGroup title="Apparence">
         <Row title="Thème" description="Suivre le système ou forcer un thème clair ou sombre.">
@@ -212,18 +225,144 @@ function Accounts() {
   );
 }
 
+function LocalProjectsSettings() {
+  const { overview, scan } = useLocalProjects();
+  const { addRoot, removeRoot } = useLocalActions();
+  const { settings, update } = useSettings();
+  const [path, setPath] = useState("");
+  const now = useNow();
+  const editors = overview?.editors ?? [];
+
+  return (
+    <SettingsGroup title="Projets locaux" id="local">
+      <Row
+        icon={overview?.git_version ? <GitBranch className="text-accent" /> : <TriangleAlert className="text-failure" />}
+        title={overview?.git_version ? `Git ${overview.git_version}` : "Git introuvable"}
+        description={
+          overview?.git_version
+            ? "Easy CI utilise le Git installé sur votre machine, avec vos identifiants et votre configuration habituels."
+            : "Installez Git (https://git-scm.com) puis relancez Easy CI pour utiliser les projets locaux."
+        }
+      >
+        <Link to="/docs?section=local" className={buttonClass("ghost", "sm")}>
+          <BookOpen className="size-3.5" /> En savoir plus
+        </Link>
+      </Row>
+
+      <div className="px-5 py-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="text-[13.5px] font-medium">Dossiers de projets</div>
+            <div className="mt-0.5 text-[12.5px] text-fg-muted">
+              Easy CI y recherche vos clones Git (jusqu'à 6 niveaux, hors node_modules, .venv…) et les relie à vos dépôts.
+            </div>
+          </div>
+          <Button size="sm" onClick={() => scan.mutate()} loading={scan.isPending} disabled={!overview?.roots.length}>
+            <RefreshCw className="size-3.5" /> Relancer la détection
+          </Button>
+        </div>
+
+        {overview?.roots.length ? (
+          <ul className="mt-3 divide-y divide-line rounded-lg border border-line">
+            {overview.roots.map((root) => (
+              <li key={root.path} className="flex items-center gap-3 py-1.5 pr-1.5 pl-3">
+                <FolderOpen className="size-3.5 shrink-0 text-fg-subtle" />
+                <code className="min-w-0 flex-1 truncate font-mono text-[12.5px]">{root.display_path}</code>
+                {!root.exists ? <Badge className="border-running/30 bg-running/10 text-fg">introuvable</Badge> : null}
+                <Button variant="ghost" size="sm" onClick={() => removeRoot.mutate(root.path)} className="text-fg-muted hover:text-failure">
+                  <Trash2 className="size-3.5" /> Retirer
+                </Button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
+        <form
+          className="mt-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (path.trim()) addRoot.mutate(path.trim(), { onSuccess: () => setPath("") });
+          }}
+        >
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <FolderField value={path} onChange={setPath} pickerAvailable={overview?.picker_available ?? false} pickerTitle="Dossier contenant vos projets" />
+            </div>
+            <Button type="submit" variant="primary" className="h-9" loading={addRoot.isPending} disabled={!path.trim()}>
+              <Plus /> Ajouter
+            </Button>
+          </div>
+        </form>
+
+        {overview?.scanned_at ? (
+          <p className="mt-3 text-[12.5px] text-fg-muted">
+            <span className="font-medium text-fg">
+              {overview.projects.length} projet{overview.projects.length > 1 ? "s" : ""} relié{overview.projects.length > 1 ? "s" : ""}
+            </span>{" "}
+            à vos dépôts
+            {overview.unmatched.length ? (
+              <Tooltip
+                content={
+                  <span>
+                    Clones dont aucun remote ne correspond à un dépôt suivi :
+                    <br />
+                    {overview.unmatched.slice(0, 8).map((item) => (
+                      <span key={item.path} className="block font-mono text-[11px]">
+                        {item.display_path}
+                      </span>
+                    ))}
+                  </span>
+                }
+              >
+                <span className="cursor-help underline decoration-dotted underline-offset-2">
+                  {" "}
+                  · {overview.unmatched.length} autre{overview.unmatched.length > 1 ? "s" : ""} non reconnu{overview.unmatched.length > 1 ? "s" : ""}
+                </span>
+              </Tooltip>
+            ) : null}{" "}
+            · détection {timeAgo(new Date(overview.scanned_at * 1000).toISOString(), now)}
+          </p>
+        ) : null}
+      </div>
+
+      <Row title="Récupération automatique" description="Interroge régulièrement le serveur Git de chaque projet lié (git fetch), sans toucher à vos fichiers.">
+        <SegmentedControl<number>
+          value={settings?.auto_fetch_minutes ?? 15}
+          onChange={(auto_fetch_minutes) => update({ auto_fetch_minutes })}
+          options={[
+            { value: 0, label: "Désactivée" },
+            { value: 5, label: "5 min" },
+            { value: 15, label: "15 min" },
+            { value: 60, label: "1 h" },
+          ]}
+        />
+      </Row>
+      <Row
+        title="Mettre à jour les branches automatiquement"
+        description="Après chaque récupération, avance la branche locale si elle est en retard. Jamais en cas de modifications non commitées ou de commits locaux non poussés."
+      >
+        <Switch label="Mise à jour automatique" checked={settings?.auto_pull ?? false} onChange={(auto_pull) => update({ auto_pull })} />
+      </Row>
+      {editors.length > 1 ? (
+        <Row title="Éditeur de code" description="Utilisé par « Ouvrir dans l'éditeur ».">
+          <SegmentedControl<string>
+            value={settings?.preferred_editor ?? editors[0].id}
+            onChange={(preferred_editor) => update({ preferred_editor })}
+            options={editors.map((editor) => ({ value: editor.id, label: editor.label }))}
+          />
+        </Row>
+      ) : null}
+    </SettingsGroup>
+  );
+}
+
 function TrackedRepositories() {
   const { settings } = useSettings();
   const { remove, unhide } = useRepositoryActions();
   const [adding, setAdding] = useState(false);
-  const location = useLocation();
   const added = settings?.added_repositories ?? [];
   const hidden = settings?.hidden_repositories ?? [];
 
-  // Lien direct depuis la page Dépôts (« Gérer les dépôts masqués »).
-  useEffect(() => {
-    if (location.hash === "#repositories") document.getElementById("repositories")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [location.hash]);
 
   return (
     <SettingsGroup title="Dépôts suivis" id="repositories">

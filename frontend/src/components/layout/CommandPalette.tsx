@@ -1,5 +1,5 @@
 import { Command } from "cmdk";
-import { BookOpen, FolderGit2, LayoutDashboard, LogOut, Monitor, Moon, Plus, RefreshCw, Settings, Sun } from "lucide-react";
+import { BookOpen, FolderGit2, Laptop, LayoutDashboard, LogOut, Monitor, Moon, Plus, RefreshCw, Settings, Sun } from "lucide-react";
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router";
 import { StatusIcon, STATE_LABELS } from "@/components/status";
@@ -75,6 +75,9 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
           </Item>
           <Item value="connecter un compte gitlab bitbucket github" icon={<Plus />} onSelect={() => run(() => navigate("/settings"))}>
             Connecter un compte
+          </Item>
+          <Item value="projets locaux dossiers clones git local" icon={<Laptop />} onSelect={() => run(() => navigate("/settings#local"))}>
+            Gérer les projets locaux
           </Item>
           <Item value="actualiser rafraîchir refresh" icon={<RefreshCw />} onSelect={() => run(() => void refreshAll())} shortcut="R">
             Tout actualiser

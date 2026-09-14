@@ -6,6 +6,7 @@ import { StatusIcon } from "@/components/status";
 import { Avatar, Badge, Button, Kbd, Logo } from "@/components/ui/primitives";
 import { Tooltip } from "@/components/ui/overlays";
 import { useNow } from "@/hooks/useNow";
+import { useAutoFetch } from "@/hooks/local";
 import { useScans } from "@/hooks/scans";
 import { useSession, useSessionActions, useSettings } from "@/hooks/session";
 import { api } from "@/lib/api";
@@ -19,6 +20,7 @@ export interface RouteHandle {
 
 export function AppShell() {
   const [paletteOpen, setPaletteOpen] = useState(false);
+  useAutoFetch();
   const location = useLocation();
 
   useEffect(() => {
