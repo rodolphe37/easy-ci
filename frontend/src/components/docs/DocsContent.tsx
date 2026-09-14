@@ -1000,8 +1000,8 @@ export const DOC_SECTIONS: DocSection[] = [
       <>
         <P>Easy CI s'installe en une commande sur chaque système. Git reste nécessaire pour les projets locaux.</P>
         <H3>macOS</H3>
-        <P>Avec Homebrew : mise à jour par brew upgrade, mais clic droit › Ouvrir au premier lancement (Homebrew applique la quarantaine).</P>
-        <CodeBlock>{"brew tap rodolphe37/easy-ci && brew install --cask easy-ci"}</CodeBlock>
+        <P>Avec Homebrew (la commande brew trust, demandée à partir de Homebrew 7, approuve ce tap tiers) : mise à jour par brew upgrade, mais clic droit › Ouvrir au premier lancement (Homebrew applique la quarantaine).</P>
+        <CodeBlock>{"brew trust --tap rodolphe37/easy-ci && brew tap rodolphe37/easy-ci && brew install --cask easy-ci"}</CodeBlock>
         <P>Ou avec le script d'installation : aucun avertissement Gatekeeper ; relancez-le pour mettre à jour.</P>
         <CodeBlock>{"curl -fsSL https://raw.githubusercontent.com/rodolphe37/easy-ci/main/packaging/macos/install.sh | bash"}</CodeBlock>
         <H3>Linux</H3>

@@ -1,0 +1,12 @@
+# Fins de ligne normalisées ; les scripts shell doivent rester en LF même sur Windows.
+* text=auto eol=lf
+*.sh text eol=lf
+
+# Fichiers binaires
+*.png binary
+*.icns binary
+*.ico binary
+*.zip binary
+
+# Fichiers générés : repliés dans les diffs GitHub
+frontend/package-lock.json linguist-generated=true -diff

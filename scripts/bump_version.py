@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Change la version d'Easy CI partout où elle est déclarée (pyproject.toml, src/easy_ci/__init__.py).
+"""Change la version d'Easy CI partout où elle est déclarée (pyproject.toml, src/easy_ci/__init__.py, frontend/package.json).
 
     python scripts/bump_version.py 0.2.0
 
@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TARGETS = [
     (ROOT / "pyproject.toml", r'(?m)^(version\s*=\s*")[^"]+(")'),
     (ROOT / "src" / "easy_ci" / "__init__.py", r'(__version__\s*=\s*")[^"]+(")'),
+    (ROOT / "frontend" / "package.json", r'(?m)^(  "version":\s*")[^"]+(")'),
 ]
 
 
@@ -30,6 +31,7 @@ def main() -> None:
             sys.exit(f"Version introuvable dans {path.relative_to(ROOT)} : format inattendu.")
         path.write_text(text)
         print(f"{path.relative_to(ROOT)} → {version}")
+    print(f"\nPensez à déplacer les entrées « Unreleased » de CHANGELOG.md sous [{version}].")
     print(f"\nPuis :\n  git commit -am \"chore: version {version}\"\n  git tag v{version}\n  git push origin main v{version}")
 
 

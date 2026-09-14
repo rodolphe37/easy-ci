@@ -1,0 +1,86 @@
+name: 🐛 Bug report
+description: Something doesn't work as expected / Quelque chose ne fonctionne pas
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! English or French are both fine.
+        Merci de signaler ce problème ! Vous pouvez écrire en français ou en anglais.
+
+        **Security issue?** Please do not report it here — see [SECURITY.md](https://github.com/rodolphe37/easy-ci/blob/main/SECURITY.md).
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened? / Que s'est-il passé ?
+      description: A clear description of the bug, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce / Étapes pour reproduire
+      placeholder: |
+        1. Open the repository page of …
+        2. Click on …
+        3. See the error …
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Easy CI version
+      description: Settings › Updates (Paramètres › Mises à jour), or `easy-ci --version`.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system / Système
+      options:
+        - macOS (Apple Silicon)
+        - macOS (Intel)
+        - Windows
+        - Linux
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: Install method / Méthode d'installation
+      options:
+        - Homebrew
+        - Install script (curl / PowerShell)
+        - Downloaded archive
+        - From source
+    validations:
+      required: true
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Platform involved / Plateforme concernée
+      multiple: true
+      options:
+        - GitHub Actions
+        - GitLab CI/CD (gitlab.com)
+        - GitLab CI/CD (self-managed)
+        - Bitbucket Pipelines
+        - Local projects / Git
+        - Demo mode
+        - Not platform-specific
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs, screenshots / Logs, captures
+      description: Error messages, screenshots, or the output of `easy-ci --debug`. **Remove any token or private data.**
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and this bug hasn't been reported yet.
+          required: true
+        - label: I removed tokens and private information from this report.
+          required: true

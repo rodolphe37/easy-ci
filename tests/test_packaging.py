@@ -1,4 +1,5 @@
 import importlib.util
+import json
 import re
 import tomllib
 from pathlib import Path
@@ -22,7 +23,13 @@ def _load(path: Path):
 def test_versions_are_consistent():
     project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["version"]
     cask = re.search(r'version "([^"]+)"', (ROOT / "Casks" / "easy-ci.rb").read_text()).group(1)
-    assert project == __version__ == cask
+    frontend = json.loads((ROOT / "frontend" / "package.json").read_text())["version"]
+    assert project == __version__ == cask == frontend
+
+
+def test_changelog_lists_current_version():
+    changelog = (ROOT / "CHANGELOG.md").read_text()
+    assert "## [Unreleased]" in changelog and f"## [{__version__}]" in changelog
 
 
 def test_bump_cask_updates_version_and_checksums():

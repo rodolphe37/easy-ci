@@ -1,0 +1,48 @@
+name: ✨ Feature request
+description: Suggest an idea or an improvement / Proposer une idée
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Easy CI! English or French are both fine.
+        Merci de contribuer à améliorer Easy CI ! Français ou anglais, au choix.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / Problème
+      description: What are you trying to do, and what makes it difficult today?
+      placeholder: "When a pipeline fails at night, I only notice it the next morning…"
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution / Solution proposée
+      description: How would you like Easy CI to help?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered / Alternatives envisagées
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area / Domaine
+      multiple: true
+      options:
+        - Monitoring and logs
+        - Local projects
+        - CI file editing
+        - Pipeline generation
+        - New CI provider
+        - Installation and updates
+        - User interface / translation
+        - Other
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I'd be willing to open a pull request for this.

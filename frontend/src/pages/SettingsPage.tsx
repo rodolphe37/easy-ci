@@ -1,4 +1,4 @@
-import { BookOpen, CheckCircle2, CircleArrowUp, Eye, FolderOpen, GitBranch, TriangleAlert, KeyRound, LogOut, Monitor, Moon, Plus, RefreshCw, ShieldCheck, Sparkles, Sun, Trash2 } from "lucide-react";
+import { BookOpen, Bug, CheckCircle2, ScrollText, CircleArrowUp, Eye, FolderOpen, GitBranch, TriangleAlert, KeyRound, LogOut, Monitor, Moon, Plus, RefreshCw, ShieldCheck, Sparkles, Sun, Trash2 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router";
 import { AddRepositoryDialog } from "@/components/AddRepositoryDialog";
@@ -6,17 +6,26 @@ import { ConnectAccountForm } from "@/components/ConnectAccountForm";
 import { FolderField } from "@/components/local/FolderField";
 import { ProviderGuide } from "@/components/docs/DocsContent";
 import { Modal, Tooltip } from "@/components/ui/overlays";
-import { Avatar, Badge, BrandIllustration, Button, buttonClass, Card, SegmentedControl, Switch } from "@/components/ui/primitives";
+import { Avatar, Badge, BrandIllustration, Button, GitHubMark, buttonClass, Card, SegmentedControl, Switch } from "@/components/ui/primitives";
 import { useLocalActions, useLocalProjects } from "@/hooks/local";
 import { useRepositoryActions } from "@/hooks/repositories";
 import { useNow } from "@/hooks/useNow";
 import { useUpdates } from "@/hooks/updates";
 import { INSTALL_METHOD_LABELS } from "@/components/UpdateDialog";
 import { useSession, useSessionActions, useSettings } from "@/hooks/session";
+import { api } from "@/lib/api";
 import { PROVIDER_IDS, PROVIDER_LABELS, ProviderIcon } from "@/lib/providers";
 import type { ProviderId, Settings } from "@/lib/types";
 import { timeAgo } from "@/lib/utils";
 import { Page } from "./OverviewPage";
+
+const REPOSITORY_URL = "https://github.com/rodolphe37/easy-ci";
+
+const ABOUT_LINKS = [
+  { label: "Code source", url: REPOSITORY_URL, icon: <GitHubMark className="size-3.5" /> },
+  { label: "Signaler un problème", url: `${REPOSITORY_URL}/issues/new/choose`, icon: <Bug className="size-3.5" /> },
+  { label: "Nouveautés", url: `${REPOSITORY_URL}/blob/main/CHANGELOG.md`, icon: <ScrollText className="size-3.5" /> },
+];
 
 export function SettingsPage() {
   const { data: session } = useSession();
@@ -93,8 +102,16 @@ export function SettingsPage() {
               {session?.app_version ? <Badge>v{session.app_version}</Badge> : null}
             </div>
             <p className="mt-1 text-[12.5px] leading-relaxed text-fg-muted">
-              Supervisez et diagnostiquez vos pipelines GitHub Actions, GitLab CI/CD et Bitbucket Pipelines depuis une seule application.
+              Supervisez, corrigez, modifiez et générez vos pipelines GitHub Actions, GitLab CI/CD et Bitbucket Pipelines depuis une seule application. Logiciel libre
+              distribué sous licence MIT.
             </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {ABOUT_LINKS.map((link) => (
+                <Button key={link.url} size="sm" variant="secondary" onClick={() => void api.openExternal(link.url)}>
+                  {link.icon} {link.label}
+                </Button>
+              ))}
+            </div>
           </div>
         </div>
       </SettingsGroup>

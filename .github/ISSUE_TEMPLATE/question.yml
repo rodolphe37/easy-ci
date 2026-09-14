@@ -1,0 +1,20 @@
+name: ❓ Question
+description: Ask how to do something / Poser une question
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before asking, have a look at the built-in documentation (sidebar › Documentation) and the [README](https://github.com/rodolphe37/easy-ci#readme).
+        Avant de poser votre question, consultez la documentation intégrée (barre latérale › Documentation) et le README.
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question / Votre question
+    validations:
+      required: true
+  - type: input
+    id: context
+    attributes:
+      label: Version, OS, platform / Version, système, plateforme
+      placeholder: "0.1.0, macOS, GitLab self-managed"

@@ -5,8 +5,30 @@ build-backend = "hatchling.build"
 [project]
 name = "easy-ci"
 version = "0.1.0"
-description = "Application desktop pour superviser et piloter vos pipelines CI/CD"
+description = "Desktop app to monitor, edit and generate CI/CD pipelines for GitHub Actions, GitLab CI/CD and Bitbucket Pipelines"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Rodolphe Augusto" }]
+keywords = ["ci", "cd", "devops", "github-actions", "gitlab-ci", "bitbucket-pipelines", "desktop", "pywebview"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: MacOS X",
+    "Environment :: Win32 (MS Windows)",
+    "Environment :: X11 Applications :: Qt",
+    "Intended Audience :: Developers",
+    "Natural Language :: French",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: Software Development :: Testing",
+]
 requires-python = ">=3.11"
 dependencies = [
     "pywebview>=5.3",
@@ -24,6 +46,13 @@ build = ["pyinstaller>=6.16"]
 brand = ["pillow>=10", "numpy>=1.26"]
 # Sous Linux, pywebview a besoin d'un moteur de rendu : GTK (système) ou Qt.
 qt = ["pywebview[qt]"]
+
+[project.urls]
+Homepage = "https://github.com/rodolphe37/easy-ci"
+Documentation = "https://github.com/rodolphe37/easy-ci#readme"
+Issues = "https://github.com/rodolphe37/easy-ci/issues"
+Changelog = "https://github.com/rodolphe37/easy-ci/blob/main/CHANGELOG.md"
+Releases = "https://github.com/rodolphe37/easy-ci/releases"
 
 [project.scripts]
 easy-ci = "easy_ci.__main__:main"
