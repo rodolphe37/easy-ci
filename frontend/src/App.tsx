@@ -8,6 +8,7 @@ import { TooltipProvider } from "@/components/ui/overlays";
 import { Button, Logo, Spinner } from "@/components/ui/primitives";
 import { ScanProvider } from "@/hooks/scans";
 import { SettingsProvider, useSession, useSettings } from "@/hooks/session";
+import { UpdatesProvider } from "@/hooks/updates";
 import { ApiError } from "@/lib/api";
 import { repoPath } from "@/lib/providers";
 import type { ProviderId } from "@/lib/types";
@@ -62,7 +63,9 @@ export function App() {
   return (
     <SettingsProvider>
       <TooltipProvider delayDuration={350} skipDelayDuration={150}>
-        <SessionGate />
+        <UpdatesProvider>
+          <SessionGate />
+        </UpdatesProvider>
         <ThemedToaster />
       </TooltipProvider>
     </SettingsProvider>

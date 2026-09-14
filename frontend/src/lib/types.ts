@@ -72,6 +72,8 @@ export interface Settings {
   auto_fetch_minutes: number;
   auto_pull: boolean;
   preferred_editor: string | null;
+  check_updates: boolean;
+  dismissed_update_version: string | null;
 }
 
 export interface Repository {
@@ -512,4 +514,21 @@ export interface GeneratedPipeline {
   exists: boolean;
   existing_hash: string | null;
   branch: string | null;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Mises à jour de l'application                                              */
+/* -------------------------------------------------------------------------- */
+
+export type InstallMethod = "homebrew" | "script" | "manual" | "source";
+
+export interface UpdateCheck {
+  current_version: string;
+  checked_at: number;
+  available: boolean;
+  latest: { version: string; url: string; published_at: string | null; notes: string } | null;
+  error: string | null;
+  releases_url: string;
+  install_method: InstallMethod;
+  instructions: { label: string; command: string }[];
 }

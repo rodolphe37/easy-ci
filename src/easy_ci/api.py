@@ -35,6 +35,7 @@ from easy_ci.local.service import LocalProjectsService
 from easy_ci.providers import GITHUB, GITLAB, PROVIDER_INFO, PROVIDERS, repo_key, split_repo_key
 from easy_ci.refs import parse_repository_reference
 from easy_ci.storage import CredentialStore, SettingsStore
+from easy_ci.updates import UpdateChecker
 from easy_ci.validation import validate as validate_ci
 from easy_ci.workflow_yaml import summarize as summarize_ci
 
@@ -83,6 +84,7 @@ class Api:
         credential_store: CredentialStore | None = None,
         settings_store: SettingsStore | None = None,
         factories: dict[str, ServiceFactory] | None = None,
+        update_checker: UpdateChecker | None = None,
     ) -> None:
         self._credentials = credential_store or CredentialStore()
         self._settings = settings_store or SettingsStore()
@@ -93,6 +95,7 @@ class Api:
         self._lock = threading.RLock()
         self._local = LocalProjectsService(self._settings, gitlab_hosts=self._gitlab_hosts)
         self._demo_local: DemoLocalProjects | None = None
+        self._updates = update_checker or UpdateChecker()
 
         def repo(method: str) -> Callable[..., Any]:
             return lambda provider, full_name, **kwargs: getattr(self._service(provider), method)(full_name, **kwargs)
@@ -110,6 +113,7 @@ class Api:
             "update_settings": lambda changes: self._settings.update(changes),
             "open_external": self.open_external,
             "get_rate_limits": self.get_rate_limits,
+            "check_for_update": lambda force=False: self._updates.check(bool(force)),
             "list_repositories": self.list_repositories,
             "add_repository": self.add_repository,
             "remove_repository": self.remove_repository,

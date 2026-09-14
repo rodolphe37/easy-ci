@@ -37,6 +37,30 @@ else:
     hiddenimports = ["webview.platforms.qt", "qtpy"]
     icon = None  # Linux : icône fournie par le fichier .desktop et par la fenêtre elle-même
 
+# Métadonnées de l'exécutable Windows (Propriétés › Détails, lues par packaging/windows/install.ps1).
+windows_version = None
+if sys.platform == "win32":
+    from PyInstaller.utils.win32 import versioninfo as vi
+
+    numbers = tuple(int(part) for part in re.findall(r"\d+", VERSION.split("-")[0])[:3]) + (0,)
+    windows_version = vi.VSVersionInfo(
+        ffi=vi.FixedFileInfo(filevers=numbers, prodvers=numbers),
+        kids=[
+            vi.StringFileInfo([
+                vi.StringTable("040C04B0", [
+                    vi.StringStruct("CompanyName", "rodolphe37"),
+                    vi.StringStruct("FileDescription", "Easy CI"),
+                    vi.StringStruct("FileVersion", VERSION),
+                    vi.StringStruct("InternalName", "EasyCI"),
+                    vi.StringStruct("OriginalFilename", "EasyCI.exe"),
+                    vi.StringStruct("ProductName", "Easy CI"),
+                    vi.StringStruct("ProductVersion", VERSION),
+                ])
+            ]),
+            vi.VarFileInfo([vi.VarStruct("Translation", [0x040C, 1200])]),
+        ],
+    )
+
 a = Analysis(
     [str(PACKAGE / "__main__.py")],
     pathex=[str(ROOT / "src")],
@@ -56,6 +80,7 @@ exe = EXE(
     name="EasyCI",
     console=False,
     icon=icon,
+    version=windows_version,
     upx=False,
 )
 

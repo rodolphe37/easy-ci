@@ -10,7 +10,10 @@ Easy CI est distribué sous forme d'**applications autonomes** construites avec 
 | `.github/workflows/release.yml` | Publication d'une version sur un tag `v*.*.*` : GitHub Release + cask Homebrew |
 | `scripts/bump_version.py` | Change la version dans `pyproject.toml` et `src/easy_ci/__init__.py` |
 | `packaging/homebrew/` | Mise à jour du cask (`Casks/easy-ci.rb`) et mise en place du tap |
-| `packaging/linux/` | Entrée de menu `.desktop` et script d'installation inclus dans l'archive Linux |
+| `packaging/macos/install.sh` | Installation / mise à jour macOS en une commande (`curl … | bash`), sans quarantaine Gatekeeper |
+| `packaging/linux/` | Script d'installation Linux (`curl … | bash` ou depuis l'archive) et entrée de menu `.desktop` |
+| `packaging/windows/install.ps1` | Installation / mise à jour Windows en une commande (`irm … | iex`) |
+| `src/easy_ci/updates.py` | Détection des nouvelles versions dans l'application et commande de mise à jour selon l'installation |
 
 ## Publier une version
 
@@ -50,17 +53,32 @@ Résultat : `dist/EasyCI/` et, sous macOS, `dist/EasyCI.app`. Sous Linux, instal
 dist/EasyCI.app/Contents/MacOS/EasyCI --self-check
 ```
 
-## Installer une version téléchargée
+## Installer une version
 
-**macOS** : décompresser, glisser `EasyCI.app` dans Applications. L'application n'étant pas signée, le premier lancement se fait par clic droit › **Ouvrir** (ou `xattr -dr com.apple.quarantine /Applications/EasyCI.app`). Avec Homebrew : voir `packaging/homebrew/README.md`.
+Les commandes d'installation (Homebrew, `curl | bash`, PowerShell) sont dans le [README](../README.md#installation). Les scripts téléchargent la dernière GitHub Release via les liens `releases/latest/download/…` (aucun appel à l'API pour un dépôt public) et acceptent :
 
-**Windows** : décompresser où vous le souhaitez et lancer `EasyCI.exe`. SmartScreen peut afficher « Windows a protégé votre ordinateur » : **Informations complémentaires › Exécuter quand même**. Le moteur WebView2, présent sur Windows 10 et 11 à jour, est requis.
+| Variable | Effet |
+|---|---|
+| `EASY_CI_VERSION=v0.2.0` | Installer une version précise |
+| `GITHUB_TOKEN` | Télécharger depuis un dépôt privé (passe par l'API GitHub) |
+| `EASY_CI_ARCHIVE=/chemin/EasyCI-….zip` | Installer une archive déjà téléchargée (utilisé par la CI pour tester les scripts) |
+| `EASY_CI_INSTALL_DIR` | Dossier de destination (macOS et Windows) |
 
-**Linux** : décompresser puis lancer `./EasyCI/install.sh` (menu des applications et commande `easy-ci`). Qt WebEngine est embarqué mais s'appuie sur quelques bibliothèques système, présentes sur la plupart des bureaux ; sur une installation minimale Debian/Ubuntu :
+Chaque construction de `build.yml` exécute le script d'installation de son système sur l'archive produite, puis lance `--self-check` sur l'application installée.
+
+Téléchargement manuel : **macOS**, glisser `EasyCI.app` dans Applications puis clic droit › **Ouvrir** au premier lancement ; **Windows**, décompresser et lancer `EasyCI.exe` (SmartScreen : **Informations complémentaires › Exécuter quand même** ; WebView2 requis, présent sur Windows 10 et 11 à jour) ; **Linux**, `./EasyCI/install.sh`.
+
+Qt WebEngine est embarqué dans la version Linux mais s'appuie sur quelques bibliothèques système, présentes sur la plupart des bureaux ; sur une installation minimale Debian/Ubuntu :
 
 ```bash
 sudo apt install libnss3 libxkbcommon-x11-0 libxcb-cursor0 libxcomposite1 libxdamage1 libxrandr2 libxtst6 libegl1
 ```
+
+## Détection des nouvelles versions
+
+Au démarrage (après quelques secondes) puis toutes les 6 heures, l'application interroge `api.github.com/repos/rodolphe37/easy-ci/releases/latest` — la même source que les scripts et le cask, donc uniquement des versions réellement publiées (ni brouillons ni pré-versions). En cas d'échec (hors ligne, dépôt privé, quota), rien n'est affiché.
+
+Si la version est plus récente, une fenêtre montre les nouveautés et la commande adaptée à l'installation détectée : `brew upgrade --cask easy-ci` si un dossier `Caskroom/easy-ci` existe, sinon le script `curl | bash` (macOS, Linux) ou PowerShell (Windows). « Ignorer cette version » est mémorisé dans les préférences ; la vérification se désactive dans Paramètres › Mises à jour.
 
 ## Limites connues
 

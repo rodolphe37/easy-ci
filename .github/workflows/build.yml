@@ -131,6 +131,41 @@ jobs:
           esac
           echo "name=${name}" >> "$GITHUB_OUTPUT"
 
+      # Les scripts d'installation publiés (curl | bash, irm | iex) sont testés sur l'archive
+      # qui vient d'être construite, puis l'application installée est vérifiée.
+      - name: Test du script d'installation (macOS, Linux)
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          QT_QPA_PLATFORM: offscreen
+          EASY_CI_ARCHIVE: ${{ github.workspace }}/release-assets/${{ steps.archive.outputs.name }}
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            EASY_CI_INSTALL_DIR="$RUNNER_TEMP/Applications" bash packaging/macos/install.sh
+            "$RUNNER_TEMP/Applications/EasyCI.app/Contents/MacOS/EasyCI" --self-check
+          else
+            export XDG_DATA_HOME="$RUNNER_TEMP/share" HOME="$RUNNER_TEMP/home"
+            bash packaging/linux/install.sh
+            "$HOME/.local/bin/easy-ci" --self-check
+            test -f "$XDG_DATA_HOME/applications/easy-ci.desktop"
+            bash "$XDG_DATA_HOME/easy-ci/install.sh" --uninstall
+            test ! -e "$XDG_DATA_HOME/easy-ci"
+          fi
+
+      - name: Test du script d'installation (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:EASY_CI_ARCHIVE = (Resolve-Path "release-assets/${{ steps.archive.outputs.name }}").Path
+          $env:EASY_CI_INSTALL_DIR = Join-Path $env:RUNNER_TEMP "EasyCI"
+          ./packaging/windows/install.ps1
+          $exe = Join-Path $env:EASY_CI_INSTALL_DIR "EasyCI.exe"
+          $check = Start-Process -FilePath $exe -ArgumentList "--self-check" -Wait -PassThru
+          if ($check.ExitCode -ne 0) { throw "--self-check a échoué après installation ($($check.ExitCode))." }
+          $version = (Get-Item $exe).VersionInfo.ProductVersion
+          if (-not $version) { throw "Métadonnées de version absentes de EasyCI.exe." }
+          Write-Host "EasyCI.exe version $version"
+
       - uses: actions/upload-artifact@v7
         with:
           # runner.arch distingue les deux constructions macOS (noms d'artefacts uniques).

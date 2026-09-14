@@ -33,6 +33,9 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "auto_fetch_minutes": 15,  # 0 = désactivé
     "auto_pull": False,  # mise à jour en avance rapide seulement, si aucune modification locale
     "preferred_editor": None,
+    # Mises à jour
+    "check_updates": True,  # interroge GitHub au démarrage puis toutes les 6 heures
+    "dismissed_update_version": None,  # « Ignorer cette version » : plus de fenêtre pour celle-ci
 }
 
 _REPO_LIST_SETTINGS = ("favorites", "added_repositories", "hidden_repositories")

@@ -7,6 +7,7 @@ import type {
   ValidationResult,
   WorkflowSummary,
   GeneratedPipeline,
+  UpdateCheck,
   PipelineOptions,
   ProjectAnalysis,
   LocalCiDiff,
@@ -117,6 +118,7 @@ export const api = {
   updateSettings: (changes: Partial<Settings>) => call<Settings>("update_settings", { changes }),
   openExternal: (url: string) => call<boolean>("open_external", { url }),
   getRateLimits: () => call<RateLimit[]>("get_rate_limits"),
+  checkForUpdate: (force = false) => call<UpdateCheck>("check_for_update", { force }),
 
   listRepositories: (provider: ProviderId) => call<Repository[]>("list_repositories", { provider }),
   addRepository: (reference: string, provider?: ProviderId) =>

@@ -15,6 +15,7 @@ Application desktop (macOS, Windows, Linux) pour superviser et piloter vos pipel
 - **Génération de pipelines** : assistant qui détecte la stack du clone local (Node.js, Python, Go, Rust, Java/Kotlin, Android, PHP, Ruby, .NET, monorepos), propose les étapes, déclencheurs, image Docker et déploiement, affiche le YAML validé en direct et l'écrit dans le dossier local — modèles déterministes, sans IA
 - **Publication à la demande** : commit local sur une branche dédiée, puis envoi et pull request / merge request uniquement sur action explicite
 - **Documentation intégrée** (menu Documentation) : connexion de chaque plateforme pas à pas, chaque fonctionnalité, dépannage
+- **Installation en une commande** (Homebrew, `curl | bash`, PowerShell) et **détection des nouvelles versions** avec la commande de mise à jour adaptée
 - **Mode démo** pour essayer sans compte, palette de commandes `⌘K`, thèmes clair et sombre
 
 ## Architecture
@@ -41,28 +42,61 @@ Application desktop (macOS, Windows, Linux) pour superviser et piloter vos pipel
 | `src/easy_ci/validation.py` | Validation des fichiers CI (syntaxe YAML et structure GitHub, GitLab, Bitbucket) avec positions des erreurs |
 | `src/easy_ci/generation/` | Détection de stack (`detect.py`) et génération des pipelines GitHub, GitLab et Bitbucket (`render.py`) |
 | `src/easy_ci/local/` | Projets locaux : appels au `git` de la machine, rapprochement des remotes, détection des clones, ouverture dans l'éditeur |
+| `src/easy_ci/updates.py` | Détection des nouvelles versions (API GitHub « latest release ») et commande de mise à jour selon l'installation |
 | `src/easy_ci/storage.py` | Identifiants dans le trousseau du système (un par plateforme), préférences en JSON |
 | `packaging/`, `.github/workflows/` | Recette PyInstaller, cask Homebrew, installation Linux ; CI, construction et publication des versions |
 | `src/easy_ci/resources/` | Icônes de l'application (macOS, Windows, Linux) |
 | `frontend/` | Interface React ; compilée dans `src/easy_ci/web/` |
 | `branding/`, `scripts/` | Images sources de la marque et script de génération des icônes |
 
-## Télécharger
+## Installation
 
-Les versions prêtes à l'emploi sont publiées dans les **[Releases](https://github.com/rodolphe37/easy-ci/releases)** : aucune installation de Python ou de Node n'est nécessaire, seulement Git pour les projets locaux.
+Easy CI est une application autonome : ni Python ni Node ne sont nécessaires, seulement **Git** pour les projets locaux. Elle n'est pas signée (certificats Apple et Microsoft payants) : choisissez la méthode qui vous convient.
 
-| Système | Fichier | Installation |
-|---|---|---|
-| macOS Apple Silicon | `EasyCI-macOS-ARM64.zip` | Glisser `EasyCI.app` dans Applications, premier lancement par clic droit › Ouvrir |
-| macOS Intel | `EasyCI-macOS-X64.zip` | Idem |
-| Windows 10 / 11 | `EasyCI-Windows-X64.zip` | Décompresser et lancer `EasyCI.exe` (SmartScreen : Informations complémentaires › Exécuter quand même) |
-| Linux x64 | `EasyCI-Linux-X64.zip` | Décompresser puis `./EasyCI/install.sh` |
+### macOS
 
-Avec Homebrew (une fois le tap publié, voir [packaging/homebrew](packaging/homebrew/README.md)) :
+Deux possibilités au choix :
 
 ```bash
-brew tap rodolphe37/easy-ci && brew install --cask easy-ci
+# Option 1 : Homebrew — installation dans /Applications, mise à jour avec brew upgrade,
+# mais clic droit › Ouvrir au premier lancement (Homebrew applique la quarantaine).
+brew tap rodolphe37/easy-ci
+brew install --cask easy-ci
 ```
+
+```bash
+# Option 2 : script d'installation — aucun avertissement Gatekeeper (curl et ditto n'appliquent pas
+# la quarantaine) ; pour mettre à jour, relancer la même commande.
+curl -fsSL https://raw.githubusercontent.com/rodolphe37/easy-ci/main/packaging/macos/install.sh | bash
+```
+
+### Linux
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/rodolphe37/easy-ci/main/packaging/linux/install.sh | bash
+```
+
+Installe dans `~/.local/share/easy-ci`, crée la commande `easy-ci` et l'entrée du menu des applications. Mise à jour : relancer la commande ; désinstallation : `~/.local/share/easy-ci/install.sh --uninstall`.
+
+### Windows
+
+Dans PowerShell :
+
+```powershell
+irm https://raw.githubusercontent.com/rodolphe37/easy-ci/main/packaging/windows/install.ps1 | iex
+```
+
+Installe dans `%LOCALAPPDATA%\Programs\EasyCI` avec un raccourci dans le menu Démarrer, sans droits administrateur ni écran SmartScreen. Mise à jour : relancer la commande.
+
+### Téléchargement manuel
+
+Les archives de chaque version sont dans les **[Releases](https://github.com/rodolphe37/easy-ci/releases/latest)** : `EasyCI-macOS-ARM64.zip` (Apple Silicon), `EasyCI-macOS-X64.zip` (Intel), `EasyCI-Windows-X64.zip`, `EasyCI-Linux-X64.zip`.
+
+Options des scripts (variables d'environnement) : `EASY_CI_VERSION=v0.2.0` pour une version précise, `GITHUB_TOKEN` pour un dépôt privé, `EASY_CI_ARCHIVE` pour installer une archive déjà téléchargée.
+
+### Mises à jour
+
+Easy CI vérifie au démarrage, puis toutes les 6 heures, si une version plus récente est publiée sur GitHub. Si c'est le cas, une fenêtre affiche les nouveautés et **la commande de mise à jour adaptée à votre installation** (Homebrew, script ou PowerShell), à copier dans un terminal. « Ignorer cette version » la fait taire pour cette version ; la vérification se désactive dans **Paramètres › Mises à jour**.
 
 ## CI/CD du projet
 
@@ -169,3 +203,4 @@ npm --prefix frontend run typecheck
 | 3 | Édition des fichiers CI en local avec validation, commit local, push et pull request à la demande | ✅ Terminé |
 | 4 | Génération automatique de pipelines selon la stack détectée (assistant, modèles sans IA) | ✅ Terminé |
 | 5 | CI/CD du projet : tests multi-OS, applications autonomes macOS / Windows / Linux, GitHub Releases, cask Homebrew | ✅ Terminé |
+| 6 | Installation en une commande (Homebrew, curl, PowerShell) et détection des nouvelles versions dans l'application | ✅ Terminé |

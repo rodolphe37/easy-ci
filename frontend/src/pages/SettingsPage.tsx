@@ -1,4 +1,4 @@
-import { BookOpen, Eye, FolderOpen, GitBranch, TriangleAlert, KeyRound, LogOut, Monitor, Moon, Plus, RefreshCw, ShieldCheck, Sparkles, Sun, Trash2 } from "lucide-react";
+import { BookOpen, CheckCircle2, CircleArrowUp, Eye, FolderOpen, GitBranch, TriangleAlert, KeyRound, LogOut, Monitor, Moon, Plus, RefreshCw, ShieldCheck, Sparkles, Sun, Trash2 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router";
 import { AddRepositoryDialog } from "@/components/AddRepositoryDialog";
@@ -10,6 +10,8 @@ import { Avatar, Badge, BrandIllustration, Button, buttonClass, Card, SegmentedC
 import { useLocalActions, useLocalProjects } from "@/hooks/local";
 import { useRepositoryActions } from "@/hooks/repositories";
 import { useNow } from "@/hooks/useNow";
+import { useUpdates } from "@/hooks/updates";
+import { INSTALL_METHOD_LABELS } from "@/components/UpdateDialog";
 import { useSession, useSessionActions, useSettings } from "@/hooks/session";
 import { PROVIDER_IDS, PROVIDER_LABELS, ProviderIcon } from "@/lib/providers";
 import type { ProviderId, Settings } from "@/lib/types";
@@ -79,6 +81,8 @@ export function SettingsPage() {
           <Switch label="Inclure les dépôts archivés" checked={settings?.include_archived ?? false} onChange={(include_archived) => update({ include_archived })} />
         </Row>
       </SettingsGroup>
+
+      <UpdatesSettings />
 
       <SettingsGroup title="À propos">
         <div className="flex items-center gap-5 px-5 py-5">
@@ -428,6 +432,72 @@ function RepoList({ names, empty, action }: { names: string[]; empty: string; ac
         </li>
       ))}
     </ul>
+  );
+}
+
+function UpdatesSettings() {
+  const { settings, update } = useSettings();
+  const { check, pending, checking, checkNow, showDialog } = useUpdates();
+  const [justChecked, setJustChecked] = useState(false);
+  const now = useNow();
+
+  const status = !check ? (
+    <span className="text-fg-subtle">Pas encore vérifié</span>
+  ) : check.available && check.latest ? (
+    <span className="inline-flex items-center gap-1.5 text-fg">
+      <CircleArrowUp className="size-3.5 text-accent" /> Easy CI {check.latest.version} est disponible
+    </span>
+  ) : check.error ? (
+    <span className="inline-flex items-center gap-1.5 text-fg-muted">
+      <TriangleAlert className="size-3.5 text-running" /> {check.error}
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1.5 text-fg-muted">
+      <CheckCircle2 className="size-3.5 text-success" /> Vous utilisez la dernière version
+    </span>
+  );
+
+  return (
+    <SettingsGroup title="Mises à jour" id="updates">
+      <Row
+        title={`Version ${check?.current_version ?? ""}`.trim()}
+        description={check ? `${INSTALL_METHOD_LABELS[check.install_method].replace(/^./, (c) => c.toUpperCase())} · vérifié ${timeAgo(new Date(check.checked_at * 1000).toISOString(), now)}` : undefined}
+      >
+        <div className="flex items-center gap-3 text-[12.5px]">
+          {justChecked || check ? status : null}
+          {pending ? (
+            <Button size="sm" variant="primary" onClick={showDialog}>
+              Mettre à jour…
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              loading={checking}
+              onClick={() =>
+                void checkNow()
+                  .then(() => setJustChecked(true))
+                  .catch(() => undefined)
+              }
+            >
+              <RefreshCw className="size-3.5" /> Vérifier
+            </Button>
+          )}
+        </div>
+      </Row>
+      <Row
+        title="Rechercher les mises à jour automatiquement"
+        description="Interroge GitHub au démarrage puis toutes les 6 heures pour savoir si une version plus récente est publiée. Aucune donnée personnelle n'est envoyée."
+      >
+        <Switch checked={settings?.check_updates ?? true} onChange={(check_updates) => update({ check_updates })} label="Rechercher les mises à jour" />
+      </Row>
+      {settings?.dismissed_update_version ? (
+        <Row title={`Version ${settings.dismissed_update_version} ignorée`} description="Aucune fenêtre ne s'affiche pour cette version. Les versions suivantes seront signalées.">
+          <Button size="sm" variant="ghost" onClick={() => update({ dismissed_update_version: null })}>
+            Ne plus ignorer
+          </Button>
+        </Row>
+      ) : null}
+    </SettingsGroup>
   );
 }
 

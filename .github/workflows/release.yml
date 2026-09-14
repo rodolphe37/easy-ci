@@ -105,7 +105,21 @@ jobs:
             | Windows 10 / 11 | `EasyCI-Windows-X64.zip` |
             | Linux x64 | `EasyCI-Linux-X64.zip` |
 
-            Applications non signées : au premier lancement, clic droit › **Ouvrir** sur macOS, **Informations complémentaires › Exécuter quand même** sur Windows. Git doit être installé pour les projets locaux.
+            ## Installation en une commande
+
+            ```bash
+            # macOS (ou : brew tap rodolphe37/easy-ci && brew install --cask easy-ci)
+            curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/packaging/macos/install.sh | bash
+            # Linux
+            curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/packaging/linux/install.sh | bash
+            ```
+
+            ```powershell
+            # Windows (PowerShell)
+            irm https://raw.githubusercontent.com/${{ github.repository }}/main/packaging/windows/install.ps1 | iex
+            ```
+
+            Déjà installé ? Easy CI signale la nouvelle version et affiche la commande de mise à jour. Applications non signées : avec un téléchargement manuel, clic droit › **Ouvrir** au premier lancement sur macOS, **Informations complémentaires › Exécuter quand même** sur Windows. Git est nécessaire pour les projets locaux.
           files: |
             release-assets/EasyCI-*.zip
             release-assets/SHA256SUMS.txt

@@ -7,6 +7,8 @@
 #
 # L'application n'est pas signée : Homebrew conserve l'attribut de quarantaine, un clic droit ›
 # Ouvrir reste nécessaire au premier lancement (ou `xattr -dr com.apple.quarantine /Applications/EasyCI.app`).
+# Pour une installation sans cet avertissement : packaging/macos/install.sh (curl | bash).
+# Easy CI détecte une installation Homebrew et propose alors `brew upgrade --cask easy-ci`.
 cask "easy-ci" do
   arch arm: "ARM64", intel: "X64"
 

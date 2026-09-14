@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { BookOpen, FolderGit2, LayoutDashboard, RefreshCw, Search, Settings as SettingsIcon, Sparkles, Star } from "lucide-react";
+import { BookOpen, CircleArrowUp, FolderGit2, LayoutDashboard, RefreshCw, Search, Settings as SettingsIcon, Sparkles, Star } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, Outlet, useLocation, useMatches } from "react-router";
 import { StatusIcon } from "@/components/status";
@@ -8,6 +8,7 @@ import { Tooltip } from "@/components/ui/overlays";
 import { useNow } from "@/hooks/useNow";
 import { useAutoFetch } from "@/hooks/local";
 import { useScans } from "@/hooks/scans";
+import { useUpdates } from "@/hooks/updates";
 import { useSession, useSessionActions, useSettings } from "@/hooks/session";
 import { api } from "@/lib/api";
 import { PROVIDER_LABELS, ProviderIcon, repoPath } from "@/lib/providers";
@@ -161,6 +162,23 @@ function SidebarLink({ to, icon, children, end, count }: { to: string; icon: Rea
   );
 }
 
+function UpdateBanner() {
+  const { pending, showDialog } = useUpdates();
+  if (!pending) return null;
+  return (
+    <button
+      onClick={showDialog}
+      className="mb-2.5 flex w-full items-center gap-2 rounded-lg border border-accent/30 bg-accent-soft px-2.5 py-2 text-left transition-colors hover:border-accent/50 animate-fade-in"
+    >
+      <CircleArrowUp className="size-4 shrink-0 text-accent" />
+      <span className="min-w-0 flex-1 leading-tight">
+        <span className="block text-[12.5px] font-medium">Mise à jour disponible</span>
+        <span className="block text-[11.5px] text-fg-muted">Easy CI {pending.version}</span>
+      </span>
+    </button>
+  );
+}
+
 function SidebarFooter() {
   const { data: session } = useSession();
   const { data: rates } = useQuery({
@@ -173,6 +191,7 @@ function SidebarFooter() {
 
   return (
     <div className="border-t border-line p-3">
+      <UpdateBanner />
       {(rates ?? []).map((rate) => {
         const ratio = rate.limit ? rate.remaining / rate.limit : 1;
         const label = PROVIDER_LABELS[rate.provider].label;

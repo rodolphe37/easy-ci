@@ -1,6 +1,7 @@
 import {
   Activity,
   BookOpen,
+  CircleArrowUp,
   CircleHelp,
   ExternalLink,
   FolderGit2,
@@ -988,6 +989,47 @@ export const DOC_SECTIONS: DocSection[] = [
           ["Synchronisation", "Fréquence d'actualisation (30 s à 5 min, ou manuelle), affichage des dépôts sans CI et des dépôts archivés."],
         ]}
       />
+    ),
+  },
+  {
+    id: "updates",
+    title: "Installation et mises à jour",
+    icon: CircleArrowUp,
+    summary: "Installer Easy CI en une commande et être prévenu des nouvelles versions.",
+    content: (
+      <>
+        <P>Easy CI s'installe en une commande sur chaque système. Git reste nécessaire pour les projets locaux.</P>
+        <H3>macOS</H3>
+        <P>Avec Homebrew : mise à jour par brew upgrade, mais clic droit › Ouvrir au premier lancement (Homebrew applique la quarantaine).</P>
+        <CodeBlock>{"brew tap rodolphe37/easy-ci && brew install --cask easy-ci"}</CodeBlock>
+        <P>Ou avec le script d'installation : aucun avertissement Gatekeeper ; relancez-le pour mettre à jour.</P>
+        <CodeBlock>{"curl -fsSL https://raw.githubusercontent.com/rodolphe37/easy-ci/main/packaging/macos/install.sh | bash"}</CodeBlock>
+        <H3>Linux</H3>
+        <P>Installe dans ~/.local/share/easy-ci, avec la commande easy-ci et l'entrée du menu des applications.</P>
+        <CodeBlock>{"curl -fsSL https://raw.githubusercontent.com/rodolphe37/easy-ci/main/packaging/linux/install.sh | bash"}</CodeBlock>
+        <H3>Windows</H3>
+        <P>Dans PowerShell : installe dans le dossier des programmes de l'utilisateur, avec un raccourci dans le menu Démarrer.</P>
+        <CodeBlock>{"irm https://raw.githubusercontent.com/rodolphe37/easy-ci/main/packaging/windows/install.ps1 | iex"}</CodeBlock>
+
+        <H3>Être prévenu d'une nouvelle version</H3>
+        <P>
+          Au démarrage puis toutes les 6 heures, Easy CI demande à GitHub quelle est la dernière version publiée. Si elle est plus récente, une fenêtre affiche
+          les nouveautés et la <Strong>commande de mise à jour adaptée à votre installation</Strong> (Homebrew, script ou PowerShell) avec un bouton Copier :
+          collez-la dans un terminal puis relancez l'application. Vos comptes et préférences sont conservés.
+        </P>
+        <Table
+          head={["Bouton", "Effet"]}
+          rows={[
+            ["Plus tard", "Ferme la fenêtre ; le rappel « Mise à jour disponible » reste en bas de la barre latérale."],
+            ["Ignorer cette version", "Plus aucun rappel pour cette version ; les suivantes seront signalées. Annulable dans Paramètres › Mises à jour."],
+            ["Voir la version", "Ouvre la page de la version sur GitHub (notes complètes, téléchargement manuel)."],
+          ]}
+        />
+        <Callout variant="info">
+          La vérification n'envoie aucune donnée personnelle et se désactive dans <Strong>Paramètres › Mises à jour</Strong>, où le bouton <Strong>Vérifier</Strong>{" "}
+          permet aussi de lancer une vérification immédiate.
+        </Callout>
+      </>
     ),
   },
   {
