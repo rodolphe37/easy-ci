@@ -68,7 +68,8 @@ jobs:
     needs: prepare
     uses: ./.github/workflows/build.yml
     with:
-      retention-days: 7
+      # Les archives sont publiées dans la Release : un jour suffit pour les jobs suivants.
+      retention-days: 1
 
   release:
     name: Publier la GitHub Release

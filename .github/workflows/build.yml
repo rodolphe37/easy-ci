@@ -10,6 +10,10 @@ name: Build
 on:
   workflow_call:
     inputs:
+      upload-artifacts:
+        description: Conserver les archives comme artefacts (nécessaire pour publier une version)
+        type: boolean
+        default: true
       retention-days:
         description: Durée de conservation des artefacts
         type: number
@@ -167,6 +171,7 @@ jobs:
           Write-Host "EasyCI.exe version $version"
 
       - uses: actions/upload-artifact@v7
+        if: inputs.upload-artifacts
         with:
           # runner.arch distingue les deux constructions macOS (noms d'artefacts uniques).
           name: easy-ci-${{ runner.os }}-${{ runner.arch }}

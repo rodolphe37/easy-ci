@@ -1,7 +1,9 @@
 name: Package
 
-# Vérifie à chaque push sur main que les applications autonomes se construisent toujours,
-# et met les archives à disposition pendant 14 jours (onglet Actions › exécution › Artifacts).
+# Vérifie à chaque push sur main que les applications autonomes se construisent, démarrent
+# (--self-check) et s'installent avec les scripts publiés, sur les quatre plateformes.
+# Les archives ne sont pas conservées (plusieurs centaines de Mo par exécution) : pour les
+# récupérer, lancer ce workflow à la main avec « Conserver les archives ».
 # Pas de déclenchement sur les pull requests : seules les modifications intégrées sont construites.
 # Les téléchargements publics passent par les GitHub Releases (release.yml).
 
@@ -16,6 +18,11 @@ on:
       - ".github/workflows/build.yml"
       - ".github/workflows/package.yml"
   workflow_dispatch:
+    inputs:
+      keep-archives:
+        description: Conserver les archives 3 jours (onglet Artifacts de l'exécution)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -28,4 +35,5 @@ jobs:
   build:
     uses: ./.github/workflows/build.yml
     with:
-      retention-days: 14
+      upload-artifacts: ${{ github.event_name == 'workflow_dispatch' && inputs.keep-archives }}
+      retention-days: 3
