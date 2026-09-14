@@ -146,8 +146,11 @@ jobs:
 
       # Une pull request plutôt qu'un push direct : compatible avec une branche main protégée.
       # Nécessite « Allow GitHub Actions to create and approve pull requests »
-      # (Settings › Actions › General › Workflow permissions).
+      # (Settings › Actions › General › Workflow permissions). Sans ce réglage, simple avertissement :
+      # la version est déjà publiée et la publication dans le tap (étape suivante) reste tentée.
       - name: Pull request du cask
+        id: cask_pr
+        continue-on-error: true
         uses: peter-evans/create-pull-request@v8
         with:
           base: main
@@ -162,6 +165,10 @@ jobs:
             - version → `${{ needs.prepare.outputs.version }}`
             - macOS Apple Silicon → `${{ steps.sha.outputs.arm }}`
             - macOS Intel → `${{ steps.sha.outputs.intel }}`
+
+      - name: Pull request du cask impossible
+        if: steps.cask_pr.outcome == 'failure'
+        run: echo "::warning::Pull request du cask non créée. Cochez « Allow GitHub Actions to create and approve pull requests » (Settings › Actions › General), ou mettez à jour Casks/easy-ci.rb à la main."
 
       # Le tap (dépôt séparé homebrew-easy-ci) n'est pas accessible avec le GITHUB_TOKEN de ce
       # dépôt : il faut un token à portée limitée dans le secret HOMEBREW_TAP_TOKEN
