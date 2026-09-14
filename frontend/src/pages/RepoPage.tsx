@@ -460,14 +460,35 @@ function FilesTab({
             <EmptyState icon={<TriangleAlert />} title="Fichier illisible" description={fileQuery.error.message} />
           </Card>
         ) : fileQuery.data ? (
-          <WorkflowFileView file={fileQuery.data} providerLabel={PROVIDER_LABELS[repoRef.provider].label} />
+          <WorkflowFileView file={fileQuery.data} providerLabel={PROVIDER_LABELS[repoRef.provider].label} repoRef={repoRef} />
         ) : null}
       </div>
     </div>
   );
 }
 
-function WorkflowFileView({ file, providerLabel }: { file: WorkflowFile; providerLabel: string }) {
+function EditButton({ repoRef, path }: { repoRef: RepoRef; path: string }) {
+  const status = useLocalStatus(repoKey(repoRef.provider, repoRef.full_name)).data;
+  const base = `/repos/${repoRef.provider}/${encodeURIComponent(repoRef.full_name)}`;
+  if (status?.linked && !status.error) {
+    return (
+      <Tooltip content="Modifier dans le clone local, puis commiter et proposer quand vous le décidez">
+        <Link to={`${base}/edit?path=${encodeURIComponent(path)}`} className={buttonClass("secondary", "sm")}>
+          <Pencil className="size-3.5" /> Modifier
+        </Link>
+      </Tooltip>
+    );
+  }
+  return (
+    <Tooltip content="Les modifications se font dans le clone local : liez d'abord un dossier.">
+      <Link to={`${base}?tab=local`} className={buttonClass("ghost", "sm")}>
+        <Pencil className="size-3.5" /> Modifier…
+      </Link>
+    </Tooltip>
+  );
+}
+
+function WorkflowFileView({ file, providerLabel, repoRef }: { file: WorkflowFile; providerLabel: string; repoRef: RepoRef }) {
   const [copied, setCopied] = useState(false);
   const { summary } = file;
   const lineCount = useMemo(() => file.content.split("\n").length, [file.content]);
@@ -554,11 +575,7 @@ function WorkflowFileView({ file, providerLabel }: { file: WorkflowFile; provide
           <span className="font-mono text-[12.5px]">{file.path}</span>
           <span className="text-[12px] text-fg-subtle">{lineCount} lignes</span>
           <div className="ml-auto flex items-center gap-1.5">
-            <Tooltip content="L'édition directe avec commit et pull request arrive dans la prochaine version.">
-              <span className={buttonClass("ghost", "sm", "cursor-default opacity-60")}>
-                <Pencil className="size-3.5" /> Modifier
-              </span>
-            </Tooltip>
+            <EditButton repoRef={repoRef} path={file.path} />
             <Button
               variant="ghost"
               size="sm"

@@ -117,6 +117,17 @@ class GitHubService:
     def cancel_run(self, full_name: str, run_id: str) -> None:
         self._client.post(f"/repos/{full_name}/actions/runs/{run_id}/cancel")
 
+    # -- Pull requests ----------------------------------------------------
+
+    def find_pull_request(self, full_name: str, branch: str) -> dict[str, Any] | None:
+        owner = full_name.split("/", 1)[0]
+        pulls = self._client.get_json(f"/repos/{full_name}/pulls", {"head": f"{owner}:{branch}", "state": "open", "per_page": 5})
+        return _pull_request(pulls[0]) if pulls else None
+
+    def create_pull_request(self, full_name: str, branch: str, base: str, title: str, body: str, draft: bool = False) -> dict[str, Any]:
+        raw = self._client.post(f"/repos/{full_name}/pulls", json={"title": title, "head": branch, "base": base, "body": body, "draft": draft})
+        return _pull_request(raw)
+
     # -- Fichiers ---------------------------------------------------------
 
     def get_workflow_file(self, full_name: str, path: str, ref: str | None = None) -> dict[str, Any]:
@@ -130,3 +141,16 @@ class GitHubService:
             "content": content,
             "summary": summarize_workflow(content),
         }
+
+
+def _pull_request(raw: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "number": raw.get("number"),
+        "title": raw.get("title"),
+        "url": raw.get("html_url"),
+        "state": raw.get("state"),
+        "draft": bool(raw.get("draft")),
+        "source_branch": (raw.get("head") or {}).get("ref"),
+        "target_branch": (raw.get("base") or {}).get("ref"),
+        "label": "Pull request",
+    }

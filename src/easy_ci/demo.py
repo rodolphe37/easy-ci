@@ -1048,6 +1048,7 @@ class DemoService:
         self._workflows: dict[str, list[DemoWorkflow]] = {}
         self._runs: dict[int, DemoRun] = {}
         self._next_run_id = 17_000_000_000
+        self._pull_requests: dict[tuple[str, str], dict[str, Any]] = {}
         self._build_runs()
 
     def close(self) -> None:
@@ -1432,6 +1433,37 @@ class DemoService:
         host = PROVIDER_INFO[provider]["default_host"]
         html_url = {GITHUB: f"{host}/{full_name}/blob/main/{path}", GITLAB: f"{host}/{full_name}/-/blob/main/{path}", BITBUCKET: f"{host}/{full_name}/src/main/{path}"}[provider]
         return {"path": path, "sha": _sha(workflow.content), "html_url": html_url, "content": workflow.content, "summary": summarize(provider, workflow.content)}
+
+    # -- Pull requests & validation ---------------------------------------
+
+    def find_pull_request(self, full_name: str, branch: str) -> dict[str, Any] | None:
+        return self._pull_requests.get((full_name, branch))
+
+    def create_pull_request(self, full_name: str, branch: str, base: str, title: str, body: str, draft: bool = False) -> dict[str, Any]:
+        provider = self._provider(full_name)
+        number = 40 + len(self._pull_requests) + 1
+        host = PROVIDER_INFO[provider]["default_host"]
+        url = {GITHUB: f"{host}/{full_name}/pull/{number}", GITLAB: f"{host}/{full_name}/-/merge_requests/{number}", BITBUCKET: f"{host}/{full_name}/pull-requests/{number}"}[provider]
+        pull = {
+            "number": number,
+            "title": f"Draft: {title}" if draft and provider == GITLAB else title,
+            "url": url,
+            "state": "open",
+            "draft": draft,
+            "source_branch": branch,
+            "target_branch": base,
+            "label": "Merge request" if provider == GITLAB else "Pull request",
+        }
+        self._pull_requests[(full_name, branch)] = pull
+        return pull
+
+    def lint_ci(self, full_name: str, content: str, ref: str | None = None) -> dict[str, Any]:
+        from easy_ci.validation import validate
+
+        result = validate(self._provider(full_name), content)
+        errors = [f"{p['message']} (ligne {p['line']})" if p["line"] else p["message"] for p in result["problems"] if p["severity"] == "error"]
+        warnings = [p["message"] for p in result["problems"] if p["severity"] == "warning"]
+        return {"valid": not errors, "errors": errors, "warnings": warnings}
 
     # -- Utilitaires ------------------------------------------------------
 

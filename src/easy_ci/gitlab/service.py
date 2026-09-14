@@ -219,6 +219,24 @@ class GitLabService:
     def cancel_run(self, full_name: str, run_id: str) -> None:
         self._client.post(f"{self._base(full_name)}/pipelines/{run_id}/cancel")
 
+    # -- Merge requests & validation officielle ----------------------------
+
+    def find_pull_request(self, full_name: str, branch: str) -> dict[str, Any] | None:
+        requests = self._client.get_json(f"{self._base(full_name)}/merge_requests", {"source_branch": branch, "state": "opened", "per_page": 5})
+        return _merge_request(requests[0]) if requests else None
+
+    def create_pull_request(self, full_name: str, branch: str, base: str, title: str, body: str, draft: bool = False) -> dict[str, Any]:
+        payload = {"source_branch": branch, "target_branch": base, "title": f"Draft: {title}" if draft else title, "description": body, "remove_source_branch": False}
+        return _merge_request(self._client.post(f"{self._base(full_name)}/merge_requests", json=payload))
+
+    def lint_ci(self, full_name: str, content: str, ref: str | None = None) -> dict[str, Any]:
+        """Validation officielle GitLab (CI Lint) : includes, extends et règles résolus par le serveur."""
+        payload: dict[str, Any] = {"content": content, "dry_run": False, "include_jobs": False}
+        if ref:
+            payload["ref"] = ref
+        raw = self._client.post(f"{self._base(full_name)}/ci/lint", json=payload) or {}
+        return {"valid": bool(raw.get("valid")), "errors": raw.get("errors") or [], "warnings": raw.get("warnings") or []}
+
     # -- Fichiers ---------------------------------------------------------
 
     def get_workflow_file(self, full_name: str, path: str, ref: str | None = None) -> dict[str, Any]:
@@ -282,3 +300,16 @@ class GitLabService:
         head = list(self._pool.map(enrich, raw_pipelines[:limit]))
         tail = [normalize.pipeline(raw, full_name) for raw in raw_pipelines[limit:]]
         return head + tail
+
+
+def _merge_request(raw: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "number": raw.get("iid"),
+        "title": raw.get("title"),
+        "url": raw.get("web_url"),
+        "state": raw.get("state"),
+        "draft": bool(raw.get("draft") or raw.get("work_in_progress")),
+        "source_branch": raw.get("source_branch"),
+        "target_branch": raw.get("target_branch"),
+        "label": "Merge request",
+    }

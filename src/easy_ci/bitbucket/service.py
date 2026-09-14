@@ -194,6 +194,25 @@ class BitbucketService:
     def cancel_run(self, full_name: str, run_id: str) -> None:
         self._client.post(f"/repositories/{full_name}/pipelines/{_uuid(run_id)}/stopPipeline")
 
+    # -- Pull requests ----------------------------------------------------
+
+    def find_pull_request(self, full_name: str, branch: str) -> dict[str, Any] | None:
+        query = f'source.branch.name="{branch.replace(chr(34), "")}" AND state="OPEN"'
+        data = self._client.get_json(f"/repositories/{full_name}/pullrequests", {"q": query, "pagelen": 5})
+        values = data.get("values") or []
+        return _pull_request(values[0]) if values else None
+
+    def create_pull_request(self, full_name: str, branch: str, base: str, title: str, body: str, draft: bool = False) -> dict[str, Any]:
+        payload = {
+            "title": title,
+            "description": body,
+            "source": {"branch": {"name": branch}},
+            "destination": {"branch": {"name": base}},
+            "close_source_branch": False,
+            "draft": draft,
+        }
+        return _pull_request(self._client.post(f"/repositories/{full_name}/pullrequests", json=payload))
+
     # -- Fichiers ---------------------------------------------------------
 
     def get_workflow_file(self, full_name: str, path: str, ref: str | None = None) -> dict[str, Any]:
@@ -251,3 +270,16 @@ class BitbucketService:
 def mark_commands(text: str) -> str:
     """Dans les logs Bitbucket, chaque commande du script commence par « + » : on en fait des sections."""
     return "\n".join(f"##[group]{line}" if line.startswith("+ ") else line for line in text.split("\n"))
+
+
+def _pull_request(raw: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "number": raw.get("id"),
+        "title": raw.get("title"),
+        "url": ((raw.get("links") or {}).get("html") or {}).get("href"),
+        "state": (raw.get("state") or "").lower(),
+        "draft": bool(raw.get("draft")),
+        "source_branch": (((raw.get("source") or {}).get("branch")) or {}).get("name"),
+        "target_branch": (((raw.get("destination") or {}).get("branch")) or {}).get("name"),
+        "label": "Pull request",
+    }

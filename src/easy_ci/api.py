@@ -30,6 +30,8 @@ from easy_ci.local.service import LocalProjectsService
 from easy_ci.providers import GITHUB, GITLAB, PROVIDER_INFO, PROVIDERS, repo_key, split_repo_key
 from easy_ci.refs import parse_repository_reference
 from easy_ci.storage import CredentialStore, SettingsStore
+from easy_ci.validation import validate as validate_ci
+from easy_ci.workflow_yaml import summarize as summarize_ci
 
 log = logging.getLogger(__name__)
 
@@ -128,6 +130,18 @@ class Api:
             "sync_local_project": lambda key, pull=False: self._local_projects().sync(key, bool(pull)),
             "get_local_ci_diff": lambda key, path: self._local_projects().ci_diff(key, path),
             "open_local_project": lambda key, target, editor_id=None: self._local_projects().open(key, target, editor_id),
+            # Édition des fichiers CI (dans le clone local)
+            "validate_ci": lambda provider, content: validate_ci(provider, content),
+            "summarize_ci": lambda provider, content: summarize_ci(provider, content),
+            "lint_ci_remote": self.lint_ci_remote,
+            "read_ci_file": lambda key, path: self._local_projects().read_ci_file(key, path),
+            "save_ci_file": lambda key, path, content, expected_hash=None, overwrite=False: self._local_projects().save_ci_file(key, path, content, expected_hash, bool(overwrite)),
+            "discard_ci_file": lambda key, path: self._local_projects().discard_ci_file(key, path),
+            "branch_suggestion": lambda key, path=None: self._local_projects().branch_suggestion(key, path),
+            "commit_ci": lambda key, paths, message, new_branch=None: self._local_projects().commit_ci(key, list(paths), message, new_branch),
+            "push_local_branch": lambda key: self._local_projects().push(key),
+            "get_publication": self.get_publication,
+            "create_pull_request": self.create_pull_request,
         }
 
     # -- Dispatch ---------------------------------------------------------
@@ -169,6 +183,63 @@ class Api:
         provider, _ = split_repo_key(key)
         account = self._accounts.get(provider)
         return self._local_projects().clone(key, parent, protocol, account.host if account else None)
+
+    def lint_ci_remote(self, key: str, content: str) -> dict[str, Any]:
+        provider, full_name = split_repo_key(key)
+        service = self._service(provider)
+        if not hasattr(service, "lint_ci") or (self._demo is None and provider != GITLAB):
+            raise EasyCIError("La validation officielle n'est disponible que pour GitLab (CI Lint).")
+        return service.lint_ci(full_name, content)
+
+    def get_publication(self, key: str) -> dict[str, Any]:
+        """Où en est la branche locale : envoyée ou non, pull request existante, branche cible par défaut."""
+        provider, full_name = split_repo_key(key)
+        status = self._local_projects().status(key)
+        if not status.get("linked") or status.get("error"):
+            return {"available": False}
+        branch = status.get("branch")
+        pushed = bool(status.get("upstream")) and status.get("ahead", 0) == 0
+        publication: dict[str, Any] = {
+            "available": True,
+            "branch": branch,
+            "upstream": status.get("upstream"),
+            "ahead": status.get("ahead", 0),
+            "pushed": pushed,
+            "pull_request": None,
+            "default_branch": None,
+            "account_connected": self._demo is not None or provider in self._accounts,
+            "pull_request_error": None,
+        }
+        if not publication["account_connected"] or not branch:
+            return publication
+        service = self._service(provider)
+        try:
+            publication["default_branch"] = service.get_repository(full_name).get("default_branch")
+            if status.get("upstream"):
+                publication["pull_request"] = service.find_pull_request(full_name, branch)
+        except (NotFoundError, ForbiddenError, NetworkError) as exc:
+            publication["pull_request_error"] = str(exc)
+        return publication
+
+    def create_pull_request(self, key: str, title: str, body: str = "", base: str | None = None, draft: bool = False) -> dict[str, Any]:
+        provider, full_name = split_repo_key(key)
+        title = title.strip()
+        if not title:
+            raise EasyCIError("Saisissez un titre.")
+        status = self._local_projects().status(key)
+        branch = status.get("branch")
+        if not branch:
+            raise EasyCIError("Aucune branche locale : impossible de créer une pull request.")
+        if not status.get("upstream") or status.get("ahead", 0) > 0:
+            raise EasyCIError("Envoyez d'abord la branche (bouton « Envoyer ») pour que la plateforme connaisse vos commits.")
+        service = self._service(provider)
+        base = base or service.get_repository(full_name).get("default_branch")
+        if base == branch:
+            raise EasyCIError(f"La branche « {branch} » est déjà la branche cible : créez une branche dédiée pour proposer une modification.")
+        existing = service.find_pull_request(full_name, branch)
+        if existing:
+            return {**existing, "already_existed": True}
+        return {**service.create_pull_request(full_name, branch, base, title, body, bool(draft)), "already_existed": False}
 
     # -- Comptes ----------------------------------------------------------
 
@@ -282,7 +353,7 @@ class Api:
             self._accounts.clear()
             self._restore_errors.clear()
             self._demo = DemoService()
-            self._demo_local = DemoLocalProjects()
+            self._demo_local = DemoLocalProjects(self._demo)
             return self._session()
 
     def logout(self) -> dict[str, Any]:

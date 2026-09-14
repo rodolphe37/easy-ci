@@ -7,8 +7,10 @@ import {
   Gauge,
   GitBranch,
   KeyRound,
+  FilePlus2,
   Keyboard,
   Laptop,
+  Pencil,
   LayoutDashboard,
   Lightbulb,
   RotateCcw,
@@ -235,6 +237,7 @@ export function GitHubGuide() {
               ["Actions", "Read and write", "Voir les exécutions et les logs, relancer, annuler. « Read-only » suffit pour consulter."],
               ["Contents", "Read-only", "Lire les fichiers de workflow YAML."],
               ["Checks", "Read-only", "Afficher les annotations d'erreur (fichier et ligne en cause)."],
+              ["Pull requests", "Read and write", "Créer une pull request après modification de la CI (facultatif)."],
             ]}
           />
         </>
@@ -333,6 +336,7 @@ export function BitbucketGuide() {
               [<Code>read:repository:bitbucket</Code>, "Lister les dépôts et lire bitbucket-pipelines.yml."],
               [<Code>read:pipeline:bitbucket</Code>, "Voir les pipelines, les steps et les logs."],
               [<Code>write:pipeline:bitbucket</Code>, "Relancer et arrêter des pipelines (facultatif)."],
+              [<Code>write:pullrequest:bitbucket</Code>, "Créer des pull requests depuis l'éditeur (facultatif)."],
             ]}
           />
         </>
@@ -558,7 +562,9 @@ export const DOC_SECTIONS: DocSection[] = [
           planification, tag…), <Strong>stages</Strong> (GitLab) ou sections du pipeline (Bitbucket), <Strong>jobs</Strong> avec leurs dépendances et fichiers{" "}
           <Strong>inclus</Strong> (<Code>include:</Code> GitLab). Un YAML invalide est signalé avec la ligne en cause.
         </P>
-        <Callout variant="info">L'édition directe des workflows (avec commit et pull request) arrive dans une prochaine version.</Callout>
+        <P>
+          Le bouton <Strong>Modifier</Strong> ouvre le fichier dans l'éditeur, à condition qu'un dossier local soit lié au dépôt (voir Modifier la CI).
+        </P>
       </>
     ),
   },
@@ -690,8 +696,8 @@ export const DOC_SECTIONS: DocSection[] = [
     content: (
       <>
         <P>
-          Easy CI relie chaque dépôt suivi à son <Strong>clone sur votre machine</Strong>. C'est dans ce dossier que se feront les modifications de pipelines
-          (prochaines versions) : elles seront écrites et commitées localement, puis envoyées seulement quand vous le décidez.
+          Easy CI relie chaque dépôt suivi à son <Strong>clone sur votre machine</Strong>. C'est dans ce dossier que se font les modifications de pipelines :
+          elles sont écrites et commitées localement, puis envoyées seulement quand vous le décidez (voir Modifier la CI).
         </P>
         <Callout variant="info" title="Prérequis">
           Git doit être installé. Easy CI utilise votre Git et vos identifiants habituels (clé SSH, trousseau, gestionnaire d'identifiants) : si{" "}
@@ -772,6 +778,80 @@ export const DOC_SECTIONS: DocSection[] = [
     ),
   },
   {
+    id: "editing",
+    title: "Modifier la CI",
+    icon: Pencil,
+    summary: "Éditer en local, valider, commiter, envoyer et proposer une pull request.",
+    content: (
+      <>
+        <P>
+          Les fichiers CI se modifient <Strong>dans le clone local</Strong> du dépôt, jamais directement sur la plateforme. Chaque étape est une action distincte :
+          rien ne quitte votre machine tant que vous ne cliquez pas sur <Strong>Envoyer</Strong>.
+        </P>
+        <Steps>
+          <>
+            <Strong>Ouvrir l'éditeur</Strong> : onglet Projet local › icône crayon d'un fichier (ou « Ouvrir l'éditeur »), ou onglet Fichiers CI › <Strong>Modifier</Strong>.
+            Sur GitHub, l'icône <FilePlus2 className="inline size-3.5" /> crée un nouveau workflow à partir d'un modèle.
+          </>
+          <>
+            <Strong>Éditer</Strong> : coloration YAML, indentation automatique, repli des blocs, recherche (<Kbd>⌘</Kbd> <Kbd>F</Kbd>) et suggestion des mots-clés de la
+            plateforme (<Kbd>Ctrl</Kbd> <Kbd>Espace</Kbd>).
+          </>
+          <>
+            <Strong>Valider</Strong> : chaque modification est vérifiée en direct. Les erreurs sont soulignées dans le texte et listées dans l'onglet Validation ;
+            un clic place le curseur sur la ligne. Sur GitLab, <Strong>Valider avec GitLab</Strong> interroge aussi l'outil officiel CI Lint.
+          </>
+          <>
+            <Strong>Enregistrer</Strong> (<Kbd>⌘</Kbd> <Kbd>S</Kbd>) : le fichier est écrit dans le dossier local. Si un autre éditeur l'a modifié entre-temps, Easy CI
+            vous demande de recharger ou d'écraser.
+          </>
+          <>
+            <Strong>Commiter</Strong> : choisissez les fichiers, le message et la branche. Depuis la branche principale, une <Strong>nouvelle branche</Strong> est
+            proposée (<Code>ci/…</Code>). Le commit est seulement local ; les autres fichiers modifiés du projet ne sont pas inclus.
+          </>
+          <>
+            <Strong>Envoyer</Strong> : la carte « Branche et publication » affiche les commits en attente. Le bouton <Strong>Envoyer…</Strong> demande confirmation
+            puis pousse la branche avec votre Git habituel.
+          </>
+          <>
+            <Strong>Proposer</Strong> : <Strong>Créer…</Strong> ouvre une pull request (merge request sur GitLab) vers la branche principale, avec titre, description
+            et option brouillon. Si une proposition existe déjà pour la branche, Easy CI l'affiche au lieu d'en créer une seconde.
+          </>
+        </Steps>
+
+        <H3>Ce que vérifie la validation</H3>
+        <Table
+          head={["Plateforme", "Contrôles"]}
+          rows={[
+            ["Toutes", "Syntaxe YAML (tabulations, indentation, guillemets), expressions ${{ }} non refermées, clés inconnues (avertissement)."],
+            ["GitHub Actions", "on et jobs présents, runs-on, steps non vides, « uses » ou « run » par étape, version des actions (@v4), needs existants et sans boucle, cron à 5 champs."],
+            ["GitLab CI", "script ou trigger par job, stages déclarés, needs et extends existants, rules incompatible avec only/except, valeurs de when. Validation officielle CI Lint en option."],
+            ["Bitbucket Pipelines", "Section pipelines, sections connues, script dans chaque step, size, trigger et max-time valides."],
+          ]}
+        />
+        <Callout variant="info">
+          Un fichier qui contient des erreurs peut être enregistré (travail en cours) mais le commit est déconseillé : Easy CI le signale et demande une confirmation
+          explicite.
+        </Callout>
+
+        <H3>Annuler une modification</H3>
+        <Table
+          head={["Bouton", "Effet"]}
+          rows={[
+            ["Annuler", "Revient au contenu enregistré sur le disque (modifications de l'éditeur non enregistrées)."],
+            ["Restaurer", "Revient à la dernière version commitée (git restore). Pour un nouveau fichier jamais commité, le supprime. Demande confirmation."],
+          ]}
+        />
+
+        <H3>Droits nécessaires</H3>
+        <P>
+          L'envoi utilise vos identifiants Git (SSH ou gestionnaire d'identifiants). La création de pull request utilise le compte connecté : <Code>repo</Code> ou{" "}
+          <Strong>Pull requests : Read and write</Strong> (GitHub), <Code>api</Code> (GitLab), <Code>write:pullrequest:bitbucket</Code> (Bitbucket).
+        </P>
+      </>
+    ),
+  },
+  {
     id: "refresh",
     title: "Actualisation et quota",
     icon: Gauge,
@@ -803,7 +883,9 @@ export const DOC_SECTIONS: DocSection[] = [
           [<><Kbd>⌘</Kbd> <Kbd>K</Kbd></>, "Palette de commandes : dépôts, pages, thème, actualisation, déconnexion."],
           [<Kbd>/</Kbd>, "Rechercher (champ de filtre de la page, sinon palette)."],
           [<Kbd>R</Kbd>, "Tout actualiser."],
-          [<><Kbd>⌘</Kbd> <Kbd>F</Kbd></>, "Rechercher dans le log affiché."],
+          [<><Kbd>⌘</Kbd> <Kbd>F</Kbd></>, "Rechercher dans le log affiché ou dans l'éditeur."],
+          [<><Kbd>⌘</Kbd> <Kbd>S</Kbd></>, "Enregistrer le fichier CI dans le dossier local (éditeur)."],
+          [<><Kbd>Ctrl</Kbd> <Kbd>Espace</Kbd></>, "Suggérer les mots-clés de la plateforme (éditeur)."],
           [<><Kbd>Entrée</Kbd> / <Kbd>⇧</Kbd> <Kbd>Entrée</Kbd></>, "Occurrence suivante / précédente dans le log."],
           [<Kbd>Échap</Kbd>, "Fermer la palette ou une fenêtre, effacer la recherche du log."],
         ]}
@@ -891,6 +973,16 @@ export const DOC_SECTIONS: DocSection[] = [
           <P>
             Aucun trousseau n'est disponible sur le système. Installez et démarrez un service compatible Secret Service (GNOME Keyring, KWallet), ou définissez la
             variable d'environnement de la plateforme (<Code>EASY_CI_GITHUB_TOKEN</Code>, <Code>EASY_CI_GITLAB_TOKEN</Code>…).
+          </P>
+        </Question>
+        <Question question="« Identité Git non configurée » en commitant">
+          <P>Git a besoin d'un nom et d'une adresse pour signer les commits. Dans un terminal :</P>
+          <CodeBlock>{'git config --global user.name "Votre nom"\ngit config --global user.email vous@exemple.fr'}</CodeBlock>
+        </Question>
+        <Question question="La création de pull request échoue">
+          <P>
+            Vérifiez que la branche a bien été envoyée, qu'elle diffère de la branche cible et que le token du compte a le droit de créer des pull requests (voir
+            Modifier la CI › Droits nécessaires).
           </P>
         </Question>
         <Question question="Un clone local n'est pas relié à son dépôt">

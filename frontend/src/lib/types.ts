@@ -374,3 +374,63 @@ export interface LocalCiDiff {
   remote: string | null;
   diff: string;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Édition des fichiers CI                                                    */
+/* -------------------------------------------------------------------------- */
+
+export interface ValidationProblem {
+  severity: "error" | "warning";
+  message: string;
+  line: number | null;
+  column: number | null;
+  path: string | null;
+}
+
+export interface ValidationResult {
+  valid: boolean;
+  errors: number;
+  warnings: number;
+  problems: ValidationProblem[];
+}
+
+export interface CiFileContent {
+  path: string;
+  exists: boolean;
+  content: string;
+  hash: string | null;
+  tracked: boolean;
+  branch: string | null;
+  detached: boolean;
+}
+
+export interface BranchSuggestion {
+  suggested: string;
+  current: string | null;
+  default_branch: string | null;
+  on_default_branch: boolean;
+}
+
+export interface PullRequest {
+  number: number;
+  title: string;
+  url: string;
+  state: string;
+  draft: boolean;
+  source_branch: string | null;
+  target_branch: string | null;
+  label: string;
+  already_existed?: boolean;
+}
+
+export interface Publication {
+  available: boolean;
+  branch?: string | null;
+  upstream?: string | null;
+  ahead?: number;
+  pushed?: boolean;
+  pull_request?: PullRequest | null;
+  default_branch?: string | null;
+  account_connected?: boolean;
+  pull_request_error?: string | null;
+}

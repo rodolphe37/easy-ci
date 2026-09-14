@@ -13,6 +13,7 @@ import { repoPath } from "@/lib/providers";
 import type { ProviderId } from "@/lib/types";
 import { ConnectPage } from "@/pages/ConnectPage";
 import { DocsPage } from "@/pages/DocsPage";
+import { EditorPage } from "@/pages/EditorPage";
 import { OverviewPage } from "@/pages/OverviewPage";
 import { RepoPage } from "@/pages/RepoPage";
 import { ReposPage } from "@/pages/ReposPage";
@@ -37,6 +38,11 @@ function createRouter() {
           path: "repos/:provider/:repo/runs/:runId",
           element: <RunPage />,
           handle: { crumb: (params) => [...repoCrumbs(params), { label: `Exécution` }] } satisfies RouteHandle,
+        },
+        {
+          path: "repos/:provider/:repo/edit",
+          element: <EditorPage />,
+          handle: { crumb: (params) => [...repoCrumbs(params), { label: "Modifier la CI" }] } satisfies RouteHandle,
         },
         { path: "docs", element: <DocsPage />, handle: { crumb: () => [{ label: "Documentation" }] } satisfies RouteHandle },
         { path: "settings", element: <SettingsPage />, handle: { crumb: () => [{ label: "Paramètres" }] } satisfies RouteHandle },

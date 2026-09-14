@@ -7,6 +7,7 @@ explicite de l'utilisateur.
 
 from __future__ import annotations
 
+import hashlib
 import os
 import re
 import threading
@@ -15,7 +16,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from easy_ci.errors import EasyCIError, LinkMismatchError
+from easy_ci.errors import EasyCIError, FileConflictError, LinkMismatchError
 from easy_ci.local import git, opener
 from easy_ci.local.remotes import clone_urls, match_remote
 from easy_ci.providers import BITBUCKET, GITLAB, split_repo_key
@@ -296,6 +297,140 @@ class LocalProjectsService:
             "diff": git.diff_against(path, ref, file_path) if ref else "",
         }
 
+    # -- Édition des fichiers CI -------------------------------------------
+
+    def read_ci_file(self, key: str, file_path: str) -> dict[str, Any]:
+        """Contenu du fichier dans la copie de travail, avec une empreinte pour détecter les modifications externes."""
+        path = self._require_path(key)
+        provider, _ = split_repo_key(key)
+        target = self._ci_target(provider, path, file_path)
+        exists = target.is_file()
+        content = target.read_text(encoding="utf-8", errors="replace") if exists else ""
+        state = git.status(path)
+        return {
+            "path": file_path,
+            "exists": exists,
+            "content": content,
+            "hash": _hash(target) if exists else None,
+            "tracked": git.is_tracked(path, file_path),
+            "branch": state["branch"],
+            "detached": state["detached"],
+        }
+
+    def save_ci_file(self, key: str, file_path: str, content: str, expected_hash: str | None, overwrite: bool = False) -> dict[str, Any]:
+        """Écrit le fichier dans le clone local. Refuse d'écraser une modification faite ailleurs entre-temps."""
+        path = self._require_path(key)
+        provider, _ = split_repo_key(key)
+        target = self._ci_target(provider, path, file_path)
+        current = _hash(target) if target.is_file() else None
+        if not overwrite and current != expected_hash:
+            if expected_hash is None:
+                raise FileConflictError(f"« {file_path} » existe déjà dans le dossier local.")
+            raise FileConflictError(f"« {file_path} » a été modifié en dehors d'Easy CI depuis son ouverture.")
+        if not content.endswith("\n"):
+            content += "\n"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        tmp = target.with_name(f".{target.name}.easy-ci.tmp")
+        tmp.write_text(content, encoding="utf-8")
+        os.replace(tmp, target)  # écriture atomique : jamais de fichier à moitié écrit
+        return {"hash": _hash(target), "status": self.status(key)}
+
+    def discard_ci_file(self, key: str, file_path: str) -> dict[str, Any]:
+        """Annule les modifications locales non commitées d'un fichier CI (ou supprime un fichier jamais commité)."""
+        path = self._require_path(key)
+        provider, _ = split_repo_key(key)
+        target = self._ci_target(provider, path, file_path)
+        if git.is_tracked(path, file_path):
+            git.restore_path(path, file_path)
+        elif target.is_file():
+            target.unlink()
+        return self.status(key)
+
+    def commit_ci(self, key: str, paths: list[str], message: str, new_branch: str | None = None) -> dict[str, Any]:
+        path = self._require_path(key)
+        provider, _ = split_repo_key(key)
+        message = message.strip()
+        if not message:
+            raise EasyCIError("Saisissez un message de commit.")
+        if not paths:
+            raise EasyCIError("Sélectionnez au moins un fichier à commiter.")
+        for file_path in paths:
+            self._ci_target(provider, path, file_path)
+        state = git.status(path)
+        changed = {change["path"] for change in state["changes"]}
+        unchanged = [p for p in paths if p not in changed]
+        if unchanged:
+            raise EasyCIError(f"Aucune modification à commiter pour : {', '.join(unchanged)}.")
+        if git.identity(path) is None:
+            raise EasyCIError(
+                "Identité Git non configurée. Dans un terminal : git config --global user.name \"Votre nom\" puis "
+                "git config --global user.email vous@exemple.fr"
+            )
+        if new_branch:
+            new_branch = new_branch.strip()
+            if not git.valid_branch_name(path, new_branch):
+                raise EasyCIError(f"« {new_branch} » n'est pas un nom de branche valide.")
+            if git.branch_exists(path, new_branch):
+                raise EasyCIError(f"La branche « {new_branch} » existe déjà localement.")
+            git.create_branch(path, new_branch)
+        elif state["detached"]:
+            raise EasyCIError("HEAD détachée : créez une branche pour commiter.")
+        sha = git.commit_paths(path, paths, message)
+        return {"sha": sha, "status": self.status(key)}
+
+    def push(self, key: str) -> dict[str, Any]:
+        """Envoie la branche courante sur le remote du dépôt. Toujours à la demande explicite de l'utilisateur."""
+        path = self._require_path(key)
+        state = git.status(path)
+        if state["detached"] or not state["branch"]:
+            raise EasyCIError("HEAD détachée : placez-vous sur une branche avant d'envoyer.")
+        remote = self._push_remote(key, path, state)
+        git.push_branch(path, remote, state["branch"])
+        return {"remote": remote, "branch": state["branch"], "status": self.status(key)}
+
+    def branch_suggestion(self, key: str, file_path: str | None) -> dict[str, Any]:
+        path = self._require_path(key)
+        state = git.status(path)
+        stem = re.sub(r"[^a-z0-9]+", "-", Path(file_path or "ci").stem.lower()).strip("-") or "ci"
+        base = f"ci/{stem}-{time.strftime('%Y%m%d')}"
+        candidate, index = base, 2
+        existing = set(git.list_local_branches(path))
+        while candidate in existing:
+            candidate, index = f"{base}-{index}", index + 1
+        default = self._default_branch_name(path)
+        return {"suggested": candidate, "current": state["branch"], "default_branch": default, "on_default_branch": state["branch"] == default}
+
+    def _push_remote(self, key: str, path: Path, state: dict[str, Any]) -> str:
+        remotes = git.remote_urls(path)
+        for name, url in sorted(remotes.items(), key=lambda item: item[0] != "origin"):
+            matched = match_remote(url, self._gitlab_hosts())
+            if matched and f"{matched[0]}:{matched[1]}".lower() == key.lower():
+                return name
+        if state["upstream"]:
+            return state["upstream"].split("/", 1)[0]
+        if "origin" in remotes:
+            return "origin"
+        raise EasyCIError("Aucun remote configuré pour envoyer la branche.")
+
+    @staticmethod
+    def _default_branch_name(path: Path) -> str | None:
+        head = git.run_git(["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], cwd=path, check=False).stdout.strip()
+        if head:
+            return head.split("/", 1)[1]
+        for name in ("main", "master"):
+            if git.ref_exists(path, f"origin/{name}"):
+                return name
+        return None
+
+    @staticmethod
+    def _ci_target(provider: str, repo_path: Path, file_path: str) -> Path:
+        if not any(_matches_pattern(file_path, pattern) for pattern in CI_PATTERNS[provider]):
+            raise EasyCIError(f"« {file_path} » n'est pas un fichier de configuration CI {provider} modifiable ici.")
+        target = (repo_path / file_path).resolve()
+        if repo_path.resolve() not in target.parents:
+            raise EasyCIError("Chemin de fichier invalide.")
+        return target
+
     def open(self, key: str, target: str, editor_id: str | None = None) -> None:
         opener.open_path(self._require_path(key), target, editor_id)
 
@@ -345,6 +480,10 @@ class LocalProjectsService:
                 }
             )
         return files
+
+
+def _hash(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _mtime(path: Path) -> float:

@@ -8,7 +8,9 @@ import {
   Code2,
   Download,
   FileCode2,
+  FilePlus2,
   FolderGit2,
+  Pencil,
   FolderOpen,
   GitBranch,
   GitCommitHorizontal,
@@ -22,7 +24,7 @@ import {
   Unlink,
 } from "lucide-react";
 import { useState, type FormEvent, type ReactNode } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { errorMessage, useLocalActions, useLocalProjects, useLocalStatus } from "@/hooks/local";
 import { useSettings } from "@/hooks/session";
 import { useNow } from "@/hooks/useNow";
@@ -33,6 +35,7 @@ import { cn, shortSha, timeAgo } from "@/lib/utils";
 import { TimeAgo } from "../runs";
 import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger, Tooltip } from "../ui/overlays";
 import { Badge, Button, buttonClass, Card, EmptyState, SegmentedControl, Skeleton, Spinner } from "../ui/primitives";
+import { PublicationCard } from "../editor/PublishFlow";
 import { DiffViewer } from "./DiffViewer";
 import { FolderField } from "./FolderField";
 
@@ -266,6 +269,8 @@ function Linked({ repo, status, refreshing, onRefresh }: { repo: Repository; sta
   const { sync, unlink, open } = useLocalActions();
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const now = useNow();
+  const navigate = useNavigate();
+  const editPath = (file?: string) => `/repos/${repo.provider}/${encodeURIComponent(repo.full_name)}/edit${file ? `?path=${encodeURIComponent(file)}` : ""}`;
 
   if (!status.exists || status.error) {
     return (
@@ -409,12 +414,18 @@ function Linked({ repo, status, refreshing, onRefresh }: { repo: Repository; sta
         ) : null}
       </Card>
 
+      <PublicationCard repoKey={repo.key} provider={repo.provider} status={status} onCommit={() => navigate(editPath((status.ci_files ?? []).find((f) => f.state === "uncommitted" || f.state === "untracked")?.path))} />
+
       {/* Fichiers CI */}
       <Card className="overflow-hidden">
         <div className="flex items-center gap-2.5 border-b border-line px-4 py-3">
           <FileCode2 className="size-4 text-fg-subtle" />
           <h3 className="text-[13.5px] font-semibold">Fichiers CI locaux</h3>
           <span className="text-[12.5px] text-fg-subtle">comparés à {status.compare_ref ?? "—"}</span>
+          <Link to={editPath()} className={buttonClass(ciFiles.some((f) => f.local) ? "ghost" : "primary", "sm", "ml-auto")}>
+            {ciFiles.some((f) => f.local) ? <Pencil className="size-3.5" /> : <FilePlus2 className="size-3.5" />}
+            {ciFiles.some((f) => f.local) ? "Ouvrir l'éditeur" : "Créer la configuration CI"}
+          </Link>
         </div>
         {ciFiles.length === 0 ? (
           <div className="px-4 py-6 text-[13px] text-fg-muted">
@@ -435,6 +446,21 @@ function Linked({ repo, status, refreshing, onRefresh }: { repo: Repository; sta
                     <code className="min-w-0 flex-1 truncate font-mono text-[12.5px]">{file.path}</code>
                     {!file.local ? <span className="text-[12px] text-fg-subtle">absent localement</span> : null}
                     <CiStateBadge state={file.state} />
+                    {file.local ? (
+                      <Tooltip content="Modifier dans le dossier local">
+                        <span
+                          role="link"
+                          tabIndex={0}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            navigate(editPath(file.path));
+                          }}
+                          className={buttonClass("ghost", "icon-sm")}
+                        >
+                          <Pencil className="size-3.5" />
+                        </span>
+                      </Tooltip>
+                    ) : null}
                   </button>
                   {expanded ? <CiFileDiff repoKey={repo.key} path={file.path} /> : null}
                 </div>
@@ -467,9 +493,9 @@ function Linked({ repo, status, refreshing, onRefresh }: { repo: Repository; sta
       <div className="flex items-start gap-2.5 rounded-xl border border-line bg-surface-2/50 p-3.5 text-[12.5px] leading-relaxed text-fg-muted">
         <Info className="mt-0.5 size-4 shrink-0 text-accent" />
         <p>
-          Easy CI ne pousse jamais rien sans votre accord. Les modifications de pipelines (prochaine version) seront écrites dans ce dossier et commitées sur une
-          branche locale ; l'envoi et la pull request se feront sur un bouton séparé. La mise à jour automatique, si vous l'activez, n'avance la branche que si
-          aucune modification locale n'est en cours.
+          Easy CI n'envoie jamais rien sans votre accord : les fichiers CI sont modifiés dans ce dossier, commités sur une branche locale, puis envoyés et
+          proposés en pull request uniquement quand vous cliquez sur « Envoyer » et « Créer ». La mise à jour automatique, si vous l'activez, n'avance la branche
+          que si aucune modification locale n'est en cours.
         </p>
       </div>
     </div>

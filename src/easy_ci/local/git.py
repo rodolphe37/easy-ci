@@ -239,3 +239,52 @@ def ls_tree(path: Path | str, ref: str, patterns: list[str]) -> set[str]:
     prefixes = sorted({pattern.split("*", 1)[0].rsplit("/", 1)[0] for pattern in patterns if "/" in pattern.split("*", 1)[0]})
     result = run_git(["ls-tree", "-r", "--name-only", ref, "--", *(prefixes or ["."])], cwd=path, check=False)
     return {line for line in result.stdout.splitlines() if line and any(fnmatch.fnmatchcase(line, p) for p in patterns)}
+
+
+# ---------------------------------------------------------------------------
+# Écriture : branches, commits, envoi
+# ---------------------------------------------------------------------------
+
+
+def valid_branch_name(path: Path | str, name: str) -> bool:
+    return run_git(["check-ref-format", "--branch", name], cwd=path, check=False).returncode == 0
+
+
+def branch_exists(path: Path | str, name: str) -> bool:
+    return run_git(["show-ref", "--verify", "--quiet", f"refs/heads/{name}"], cwd=path, check=False).returncode == 0
+
+
+def create_branch(path: Path | str, name: str) -> None:
+    """Crée la branche depuis HEAD et s'y place, en conservant les modifications en cours."""
+    run_git(["switch", "-c", name], cwd=path)
+
+
+def identity(path: Path | str) -> dict[str, str] | None:
+    name = run_git(["config", "user.name"], cwd=path, check=False).stdout.strip()
+    email = run_git(["config", "user.email"], cwd=path, check=False).stdout.strip()
+    return {"name": name, "email": email} if name and email else None
+
+
+def commit_paths(path: Path | str, paths: list[str], message: str) -> str:
+    """Commite uniquement ces fichiers (ajouts, modifications, suppressions), sans toucher au reste de l'index."""
+    run_git(["add", "-A", "--", *paths], cwd=path)
+    run_git(["commit", "--quiet", "-m", message, "--", *paths], cwd=path)
+    return run_git(["rev-parse", "HEAD"], cwd=path).stdout.strip()
+
+
+def restore_path(path: Path | str, file_path: str) -> None:
+    """Annule les modifications non commitées d'un fichier suivi (index et copie de travail)."""
+    run_git(["restore", "--source=HEAD", "--staged", "--worktree", "--", file_path], cwd=path)
+
+
+def is_tracked(path: Path | str, file_path: str) -> bool:
+    return run_git(["ls-files", "--error-unmatch", "--", file_path], cwd=path, check=False).returncode == 0
+
+
+def push_branch(path: Path | str, remote: str, branch: str) -> None:
+    run_git(["push", "--quiet", "--set-upstream", remote, f"HEAD:refs/heads/{branch}"], cwd=path, timeout=NETWORK_TIMEOUT)
+
+
+def list_local_branches(path: Path | str) -> list[str]:
+    result = run_git(["for-each-ref", "--format=%(refname:short)", "refs/heads"], cwd=path, check=False)
+    return [line for line in result.stdout.splitlines() if line]

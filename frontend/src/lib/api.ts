@@ -1,5 +1,11 @@
 import type {
   Annotation,
+  BranchSuggestion,
+  CiFileContent,
+  Publication,
+  PullRequest,
+  ValidationResult,
+  WorkflowSummary,
   LocalCiDiff,
   LocalOverview,
   LocalStatus,
@@ -140,6 +146,22 @@ export const api = {
   getLocalCiDiff: (key: string, path: string) => call<LocalCiDiff>("get_local_ci_diff", { key, path }),
   openLocalProject: (key: string, target: "folder" | "editor" | "terminal", editorId?: string | null) =>
     call<null>("open_local_project", { key, target, editor_id: editorId ?? null }),
+
+  // Édition des fichiers CI (dans le clone local)
+  validateCi: (provider: ProviderId, content: string) => call<ValidationResult>("validate_ci", { provider, content }),
+  summarizeCi: (provider: ProviderId, content: string) => call<WorkflowSummary>("summarize_ci", { provider, content }),
+  lintCiRemote: (key: string, content: string) => call<{ valid: boolean; errors: string[]; warnings: string[] }>("lint_ci_remote", { key, content }),
+  readCiFile: (key: string, path: string) => call<CiFileContent>("read_ci_file", { key, path }),
+  saveCiFile: (key: string, path: string, content: string, expectedHash: string | null, overwrite = false) =>
+    call<{ hash: string; status: LocalStatus }>("save_ci_file", { key, path, content, expected_hash: expectedHash, overwrite }),
+  discardCiFile: (key: string, path: string) => call<LocalStatus>("discard_ci_file", { key, path }),
+  branchSuggestion: (key: string, path?: string) => call<BranchSuggestion>("branch_suggestion", { key, path }),
+  commitCi: (key: string, paths: string[], message: string, newBranch: string | null) =>
+    call<{ sha: string; status: LocalStatus }>("commit_ci", { key, paths, message, new_branch: newBranch }),
+  pushLocalBranch: (key: string) => call<{ remote: string; branch: string; status: LocalStatus }>("push_local_branch", { key }),
+  getPublication: (key: string) => call<Publication>("get_publication", { key }),
+  createPullRequest: (key: string, title: string, body: string, base: string | null, draft: boolean) =>
+    call<PullRequest>("create_pull_request", { key, title, body, base, draft }),
 };
 
 /** Désigne un dépôt auprès du moteur : fournisseur + chemin complet. */

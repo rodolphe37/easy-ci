@@ -53,3 +53,9 @@ class LinkMismatchError(EasyCIError):
     """Le dossier choisi n'est pas un clone du dépôt : l'interface propose de lier quand même."""
 
     code = "link_mismatch"
+
+
+class FileConflictError(EasyCIError):
+    """Le fichier a changé sur le disque depuis son ouverture dans l'éditeur."""
+
+    code = "file_conflict"

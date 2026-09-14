@@ -167,6 +167,10 @@ class ApiClient:
             # GitHub/GitLab : {"message": …} ; Bitbucket : {"error": {"message": …}}
             error = body.get("error")
             detail = body.get("message") or (error.get("message") if isinstance(error, dict) else error) or ""
+            # GitHub 422 : {"message": "Validation Failed", "errors": [{"message": "A pull request already exists…"}]}
+            extra = [e.get("message") for e in body.get("errors") or [] if isinstance(e, dict) and e.get("message")]
+            if extra:
+                detail = f"{detail} : {'; '.join(extra)}" if detail else "; ".join(extra)
         elif body is None:
             detail = response.text[:200]
         detail = detail if isinstance(detail, str) else str(detail)
