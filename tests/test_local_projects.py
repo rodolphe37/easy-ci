@@ -193,11 +193,10 @@ def test_clone_links_the_new_folder(workspace, tmp_path, monkeypatch):
 
 
 def test_deleted_folder_is_reported(workspace):
-    import shutil
-
     service, work = workspace["service"], workspace["work"]
     service.link(KEY, str(work))
-    shutil.rmtree(work)
+    # Déplacer plutôt que supprimer : sous Windows, les objets Git en lecture seule bloquent shutil.rmtree.
+    work.rename(work.with_name("app-deplace"))
     status = service.status(KEY)
     assert status["exists"] is False and "n'existe plus" in status["error"]
     with pytest.raises(EasyCIError):
