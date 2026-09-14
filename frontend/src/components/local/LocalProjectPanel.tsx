@@ -22,6 +22,7 @@ import {
   SquareTerminal,
   TriangleAlert,
   Unlink,
+  Zap,
 } from "lucide-react";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
@@ -270,6 +271,7 @@ function Linked({ repo, status, refreshing, onRefresh }: { repo: Repository; sta
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const now = useNow();
   const navigate = useNavigate();
+  const generatePath = `/repos/${repo.provider}/${encodeURIComponent(repo.full_name)}/generate`;
   const editPath = (file?: string) => `/repos/${repo.provider}/${encodeURIComponent(repo.full_name)}/edit${file ? `?path=${encodeURIComponent(file)}` : ""}`;
 
   if (!status.exists || status.error) {
@@ -422,9 +424,14 @@ function Linked({ repo, status, refreshing, onRefresh }: { repo: Repository; sta
           <FileCode2 className="size-4 text-fg-subtle" />
           <h3 className="text-[13.5px] font-semibold">Fichiers CI locaux</h3>
           <span className="text-[12.5px] text-fg-subtle">comparés à {status.compare_ref ?? "—"}</span>
-          <Link to={editPath()} className={buttonClass(ciFiles.some((f) => f.local) ? "ghost" : "primary", "sm", "ml-auto")}>
+          <Tooltip content="Assistant : analyse la stack du projet et génère un pipeline">
+            <Link to={generatePath} className={buttonClass(ciFiles.some((f) => f.local) ? "ghost" : "primary", "sm", "ml-auto")}>
+              <Zap className="size-3.5" /> {ciFiles.some((f) => f.local) ? "Générer" : "Générer la configuration CI"}
+            </Link>
+          </Tooltip>
+          <Link to={editPath()} className={buttonClass("ghost", "sm")}>
             {ciFiles.some((f) => f.local) ? <Pencil className="size-3.5" /> : <FilePlus2 className="size-3.5" />}
-            {ciFiles.some((f) => f.local) ? "Ouvrir l'éditeur" : "Créer la configuration CI"}
+            {ciFiles.some((f) => f.local) ? "Ouvrir l'éditeur" : "Écrire à la main"}
           </Link>
         </div>
         {ciFiles.length === 0 ? (

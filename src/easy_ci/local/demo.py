@@ -16,6 +16,8 @@ from datetime import datetime, timezone
 from typing import Any
 
 from easy_ci.errors import EasyCIError, FileConflictError
+from easy_ci.generation.demo_projects import demo_project_tree
+from easy_ci.generation.files import MemoryFiles
 from easy_ci.local.service import CI_PATTERNS, _matches_pattern
 from easy_ci.providers import split_repo_key
 
@@ -104,6 +106,9 @@ class DemoLocalProjects:
             )
             gitlab_ci.content = gitlab_ci.committed = changed
             billing.ahead = 1
+
+        # Projet sans CI : point de départ idéal pour l'assistant de génération.
+        self._add("github:acme/handbook", "handbook", "main", "origin/main", behind=0, commit=("5e8d21a", "docs: guide d'accueil des nouveaux arrivants", 72))
 
     def _add(self, key: str, folder: str, branch: str, upstream: str | None, behind: int, commit: tuple[str, str, float]) -> DemoProject:
         _, repo = split_repo_key(key)
@@ -253,6 +258,14 @@ class DemoLocalProjects:
 
     def project_path(self, key: str) -> None:
         return None
+
+    def project_files(self, key: str) -> MemoryFiles:
+        project = self._project(key)
+        tree = dict(demo_project_tree(key))
+        for path, file in project.files.items():
+            if file.content is not None:
+                tree[path] = file.content
+        return MemoryFiles(tree)
 
     # -- Édition ----------------------------------------------------------
 

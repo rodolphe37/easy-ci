@@ -20,6 +20,7 @@ import {
   TriangleAlert,
   Users,
   Workflow,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
@@ -848,6 +849,85 @@ export const DOC_SECTIONS: DocSection[] = [
           L'envoi utilise vos identifiants Git (SSH ou gestionnaire d'identifiants). La création de pull request utilise le compte connecté : <Code>repo</Code> ou{" "}
           <Strong>Pull requests : Read and write</Strong> (GitHub), <Code>api</Code> (GitLab), <Code>write:pullrequest:bitbucket</Code> (Bitbucket).
         </P>
+      </>
+    ),
+  },
+  {
+    id: "generate",
+    title: "Générer un pipeline",
+    icon: Zap,
+    summary: "Créer une CI adaptée à la stack du projet en quelques clics, sans IA.",
+    content: (
+      <>
+        <P>
+          L'assistant de génération analyse les fichiers du <Strong>clone local</Strong> et produit un pipeline complet pour GitHub Actions, GitLab CI/CD ou Bitbucket
+          Pipelines. Il repose uniquement sur des <Strong>modèles déterministes</Strong> : pas d'IA, aucun contenu envoyé à un service tiers, et les mêmes choix
+          donnent toujours le même fichier.
+        </P>
+        <Steps>
+          <>
+            <Strong>Ouvrir l'assistant</Strong> : bouton <Strong>Générer un pipeline</Strong> sur un dépôt sans CI, bouton <Strong>Générer</Strong> de l'onglet Projet
+            local, ou icône <Zap className="inline size-3.5" /> de l'éditeur. Un dossier local doit être lié au dépôt.
+          </>
+          <>
+            <Strong>Analyse</Strong> : les stacks détectées s'affichent avec leur framework, leur version (et le fichier qui l'indique), le gestionnaire de paquets et
+            les fichiers justificatifs. Désactivez une stack pour l'exclure. Un Dockerfile, des fichiers d'hébergement et une CI existante sont aussi signalés.
+          </>
+          <>
+            <Strong>Étapes</Strong> : installation, lint, vérification des types, tests et build sont pré-remplis d'après vos scripts. Chaque commande se modifie ou se
+            désactive. Vous pouvez tester plusieurs versions (matrice), activer le cache et, sur GitHub, plusieurs systèmes.
+          </>
+          <>
+            <Strong>Déclencheurs</Strong> : push sur la branche principale, pull/merge requests, tags <Code>v*</Code>, lancement manuel, exécution planifiée et
+            annulation des exécutions dépassées.
+          </>
+          <>
+            <Strong>Livraison</Strong> (facultatif) : construction et envoi d'une image Docker (ghcr.io, registre GitLab, Docker Hub…) et job de déploiement avec
+            environnement, secrets, validation manuelle. Des modèles de commande sont proposés quand un fichier Netlify, Vercel, Fly.io, Cloudflare, Render,
+            Firebase ou Serverless est détecté.
+          </>
+          <>
+            <Strong>Vérifier et écrire</Strong> : récapitulatif des jobs, actions à faire sur la plateforme (secrets à créer, planification…), puis{" "}
+            <Strong>Écrire dans le dossier local</Strong>. Le fichier s'ouvre dans l'éditeur : relisez, commitez, envoyez et proposez-le comme toute modification.
+          </>
+        </Steps>
+        <Callout variant="tip" title="Aperçu en direct">
+          Le YAML généré s'affiche à droite pendant toute la configuration, validé à chaque changement. Le bouton copier permet aussi de le coller ailleurs.
+        </Callout>
+
+        <H3>Stacks reconnues</H3>
+        <Table
+          head={["Stack", "Détection", "Commandes déduites"]}
+          rows={[
+            ["Node.js", "package.json, lockfile npm / pnpm / Yarn / Bun, .nvmrc, engines", "scripts lint, typecheck, test, build ; tsc --noEmit si TypeScript"],
+            ["Python", "pyproject.toml, requirements*.txt, uv.lock, poetry.lock, Pipfile, .python-version", "ruff / flake8, mypy / pyright, pytest ou manage.py test, build"],
+            ["Go", "go.mod (version), .golangci.yml", "go vet ou golangci-lint, go test -race, go build"],
+            ["Rust", "Cargo.toml, rust-toolchain.toml", "cargo fmt + clippy, cargo test, cargo build --release"],
+            ["Java / Kotlin", "pom.xml, build.gradle(.kts), wrappers mvnw / gradlew", "mvn verify / gradle test, package / build"],
+            ["Android", "plugin com.android dans Gradle", "gradlew lint, testDebugUnitTest, assembleDebug"],
+            ["PHP", "composer.json (Laravel, Symfony)", "pint / php-cs-fixer, phpstan, phpunit / pest / artisan test"],
+            ["Ruby", "Gemfile, .ruby-version (Rails)", "rubocop, rspec ou rails test"],
+            [".NET", ".sln / .csproj (TargetFramework)", "dotnet format, dotnet test, dotnet build"],
+          ]}
+        />
+        <P>
+          Dans un monorepo, les sous-dossiers de premier niveau sont aussi analysés (par exemple <Code>frontend/</Code> et <Code>api/</Code>) : chaque stack obtient ses
+          propres jobs, exécutés dans son dossier. Les paquets gérés par un workspace racine (npm, pnpm, Yarn, Cargo, modules Gradle) ne sont pas dupliqués.
+        </P>
+
+        <H3>Particularités par plateforme</H3>
+        <Table
+          head={["Plateforme", "Fichier généré"]}
+          rows={[
+            ["GitHub Actions", "Un workflow dans .github/workflows (nom modifiable), actions officielles à jour, permissions minimales, cache intégré aux actions setup-*, image Docker avec cache GitHub."],
+            ["GitLab CI/CD", ".gitlab-ci.yml avec workflow:rules (sans pipelines en double), stages, modèle caché par stack (extends), parallel:matrix, rapport JUnit pour pytest, déploiement manuel via when: manual."],
+            ["Bitbucket Pipelines", "bitbucket-pipelines.yml avec étapes définies une fois (ancres YAML) et réutilisées pour la branche principale, les pull requests, les tags et les pipelines personnalisés."],
+          ]}
+        />
+        <Callout variant="info">
+          Si le fichier existe déjà dans le dossier local, l'assistant demande de confirmer son remplacement. Tant que rien n'est commité, <Strong>Restaurer</Strong> dans
+          l'éditeur rétablit l'ancienne version.
+        </Callout>
       </>
     ),
   },

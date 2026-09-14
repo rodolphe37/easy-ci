@@ -11,3 +11,4 @@ frontend/node_modules/
 src/easy_ci/web/
 
 .DS_Store
+*.tsbuildinfo

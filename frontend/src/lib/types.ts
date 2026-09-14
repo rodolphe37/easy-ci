@@ -434,3 +434,82 @@ export interface Publication {
   account_connected?: boolean;
   pull_request_error?: string | null;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Génération de pipelines                                                    */
+/* -------------------------------------------------------------------------- */
+
+export type PipelineStep = "lint" | "typecheck" | "test" | "build";
+export type DeliveryWhen = "default_branch" | "tags" | "both";
+
+export interface DetectedStack {
+  id: string;
+  label: string;
+  directory: string;
+  framework: string | null;
+  version: string | null;
+  version_source: string | null;
+  package_manager: string | null;
+  workspace: boolean;
+  commands: Record<PipelineStep | "install", string | null>;
+  evidence: string[];
+}
+
+export interface ProjectDetection {
+  stacks: DetectedStack[];
+  docker: { dockerfile: string; context: string; compose: boolean } | null;
+  deploy_hints: { id: string; label: string; file: string }[];
+  existing_ci: string[];
+}
+
+export interface StackOptions {
+  id: string;
+  directory: string;
+  enabled: boolean;
+  version: string;
+  package_manager: string | null;
+  matrix: string[];
+  install: string;
+  steps: Record<PipelineStep, { enabled: boolean; command: string }>;
+}
+
+export interface PipelineOptions {
+  path: string;
+  name: string;
+  stacks: StackOptions[];
+  triggers: { push_default: boolean; pull_requests: boolean; tags: boolean; schedule: string; manual: boolean };
+  default_branch: string;
+  cache: boolean;
+  concurrency: boolean;
+  os: string[];
+  docker: { enabled: boolean; dockerfile: string; context: string; push: boolean; registry: string; image: string; when: DeliveryWhen };
+  deploy: { enabled: boolean; environment: string; command: string; secrets: string[]; use_stack: boolean; manual: boolean; when: DeliveryWhen };
+}
+
+export interface PipelineChoices {
+  paths: string[];
+  path_editable: boolean;
+  os: { id: string; label: string }[];
+  registries: { id: string; label: string }[];
+  supports: { concurrency: boolean; os_matrix: boolean; schedule_in_file: boolean };
+  step_labels: Record<PipelineStep, string>;
+  stack_labels: Record<string, string>;
+}
+
+export interface ProjectAnalysis {
+  provider: ProviderId;
+  detection: ProjectDetection;
+  options: PipelineOptions;
+  choices: PipelineChoices;
+}
+
+export interface GeneratedPipeline {
+  path: string;
+  content: string;
+  validation: ValidationResult;
+  summary: WorkflowSummary;
+  notes: string[];
+  exists: boolean;
+  existing_hash: string | null;
+  branch: string | null;
+}

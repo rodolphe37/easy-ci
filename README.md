@@ -12,6 +12,7 @@ Application desktop (macOS, Windows, Linux) pour superviser et piloter vos pipel
 - **Gestion des dépôts** : découverte automatique, ajout manuel (`owner/nom` ou URL), masquage, favoris
 - **Projets locaux** : détection des clones Git dans vos dossiers de projets, liaison ou clonage, branche et commits à récupérer ou à pousser, état et diff des fichiers CI locaux, récupération et mise à jour (avance rapide) manuelles ou automatiques, ouverture dans le Finder, l'éditeur ou un terminal
 - **Édition des fichiers CI dans le clone local** : éditeur YAML (suggestions de mots-clés, recherche, repli), validation en direct propre à chaque plateforme avec erreurs soulignées (et CI Lint officiel pour GitLab), aperçu des jobs, diff avec la branche distante, protection contre les modifications externes et les pertes non enregistrées
+- **Génération de pipelines** : assistant qui détecte la stack du clone local (Node.js, Python, Go, Rust, Java/Kotlin, Android, PHP, Ruby, .NET, monorepos), propose les étapes, déclencheurs, image Docker et déploiement, affiche le YAML validé en direct et l'écrit dans le dossier local — modèles déterministes, sans IA
 - **Publication à la demande** : commit local sur une branche dédiée, puis envoi et pull request / merge request uniquement sur action explicite
 - **Documentation intégrée** (menu Documentation) : connexion de chaque plateforme pas à pas, chaque fonctionnalité, dépannage
 - **Mode démo** pour essayer sans compte, palette de commandes `⌘K`, thèmes clair et sombre
@@ -38,6 +39,7 @@ Application desktop (macOS, Windows, Linux) pour superviser et piloter vos pipel
 | `src/easy_ci/logs.py` | Découpage des logs : ANSI, groupes, erreurs, extraits de contexte |
 | `src/easy_ci/demo.py` | Données simulées, dont des exécutions qui avancent en temps réel |
 | `src/easy_ci/validation.py` | Validation des fichiers CI (syntaxe YAML et structure GitHub, GitLab, Bitbucket) avec positions des erreurs |
+| `src/easy_ci/generation/` | Détection de stack (`detect.py`) et génération des pipelines GitHub, GitLab et Bitbucket (`render.py`) |
 | `src/easy_ci/local/` | Projets locaux : appels au `git` de la machine, rapprochement des remotes, détection des clones, ouverture dans l'éditeur |
 | `src/easy_ci/storage.py` | Identifiants dans le trousseau du système (un par plateforme), préférences en JSON |
 | `src/easy_ci/resources/` | Icônes de l'application (macOS, Windows, Linux) |
@@ -123,4 +125,4 @@ npm --prefix frontend run typecheck
 | 1 | GitLab CI et Bitbucket Pipelines : comptes multiples, pipelines, jobs, logs en direct | ✅ Terminé |
 | 2 | Projets locaux : détection des clones, liaison, état Git, récupération, comparaison des fichiers CI | ✅ Terminé |
 | 3 | Édition des fichiers CI en local avec validation, commit local, push et pull request à la demande | ✅ Terminé |
-| 4 | Génération automatique de pipelines selon la stack détectée | 🚧 Prochaine étape |
+| 4 | Génération automatique de pipelines selon la stack détectée (assistant, modèles sans IA) | ✅ Terminé |

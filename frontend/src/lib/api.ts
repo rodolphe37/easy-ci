@@ -6,6 +6,9 @@ import type {
   PullRequest,
   ValidationResult,
   WorkflowSummary,
+  GeneratedPipeline,
+  PipelineOptions,
+  ProjectAnalysis,
   LocalCiDiff,
   LocalOverview,
   LocalStatus,
@@ -162,6 +165,10 @@ export const api = {
   getPublication: (key: string) => call<Publication>("get_publication", { key }),
   createPullRequest: (key: string, title: string, body: string, base: string | null, draft: boolean) =>
     call<PullRequest>("create_pull_request", { key, title, body, base, draft }),
+
+  // Génération de pipelines (modèles, sans IA)
+  detectProject: (key: string) => call<ProjectAnalysis>("detect_project", { key }),
+  generatePipeline: (key: string, options: PipelineOptions) => call<GeneratedPipeline>("generate_pipeline", { key, options }),
 };
 
 /** Désigne un dépôt auprès du moteur : fournisseur + chemin complet. */

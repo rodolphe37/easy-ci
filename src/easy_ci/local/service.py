@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from easy_ci.errors import EasyCIError, FileConflictError, LinkMismatchError
+from easy_ci.generation.files import DiskFiles
 from easy_ci.local import git, opener
 from easy_ci.local.remotes import clone_urls, match_remote
 from easy_ci.providers import BITBUCKET, GITLAB, split_repo_key
@@ -433,6 +434,10 @@ class LocalProjectsService:
 
     def open(self, key: str, target: str, editor_id: str | None = None) -> None:
         opener.open_path(self._require_path(key), target, editor_id)
+
+    def project_files(self, key: str) -> DiskFiles:
+        """Accès en lecture seule aux fichiers du clone, pour la détection de stack."""
+        return DiskFiles(self._require_path(key))
 
     # -- Interne ----------------------------------------------------------
 

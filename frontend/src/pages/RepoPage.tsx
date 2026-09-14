@@ -29,7 +29,7 @@ import { useLocalStatus } from "@/hooks/local";
 import { useRepoEntry, useScans } from "@/hooks/scans";
 import { useSettings } from "@/hooks/session";
 import { api, type RepoRef } from "@/lib/api";
-import { PROVIDER_LABELS, ProviderIcon, repoKey, runPath, useRepoRef } from "@/lib/providers";
+import { PROVIDER_LABELS, ProviderIcon, repoKey, repoPath, runPath, useRepoRef } from "@/lib/providers";
 import type { Repository, ScannedWorkflow, WorkflowFile } from "@/lib/types";
 import { cn, eventLabel, firstLine } from "@/lib/utils";
 import { ListSkeleton, Page } from "./OverviewPage";
@@ -173,13 +173,18 @@ export function RepoPage() {
           <EmptyState
             icon={<Zap />}
             title={`Aucun pipeline ${labels.ci}`}
-            description={`Ce dépôt ne contient pas encore de configuration (${labels.config}). La génération automatique de pipelines arrive bientôt dans Easy CI.`}
+            description={`Ce dépôt ne contient pas encore de configuration (${labels.config}). L'assistant analyse votre clone local et génère un pipeline adapté à sa stack.`}
             action={
-              repo ? (
-                <Button variant="secondary" onClick={() => void api.openExternal(ciUrl(repo))}>
-                  <ExternalLink /> Configurer la CI sur {labels.label}
-                </Button>
-              ) : null
+              <div className="flex flex-wrap justify-center gap-2">
+                <Link to={repoPath(provider, fullName, "/generate")} className={buttonClass("primary")}>
+                  <Zap /> Générer un pipeline
+                </Link>
+                {repo ? (
+                  <Button variant="secondary" onClick={() => void api.openExternal(ciUrl(repo))}>
+                    <ExternalLink /> Ouvrir {labels.label}
+                  </Button>
+                ) : null}
+              </div>
             }
           />
         </Card>

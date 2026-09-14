@@ -24,6 +24,10 @@ from easy_ci.demo import DemoService
 from easy_ci.errors import AuthError, EasyCIError, ForbiddenError, NetworkError, NotAuthenticatedError, NotFoundError
 from easy_ci.github.client import GitHubClient
 from easy_ci.github.service import GitHubService
+from easy_ci.generation.detect import detect as detect_stack
+from easy_ci.generation.render import default_options as default_pipeline_options
+from easy_ci.generation.render import generate as generate_pipeline
+from easy_ci.generation.render import choices as pipeline_choices
 from easy_ci.gitlab.service import GitLabClient, GitLabService, normalize_host
 from easy_ci.local.demo import DemoLocalProjects
 from easy_ci.local.service import LocalProjectsService
@@ -141,6 +145,9 @@ class Api:
             "commit_ci": lambda key, paths, message, new_branch=None: self._local_projects().commit_ci(key, list(paths), message, new_branch),
             "push_local_branch": lambda key: self._local_projects().push(key),
             "get_publication": self.get_publication,
+            # Génération de pipelines (modèles, sans IA)
+            "detect_project": self.detect_project,
+            "generate_pipeline": self.generate_pipeline,
             "create_pull_request": self.create_pull_request,
         }
 
@@ -190,6 +197,29 @@ class Api:
         if not hasattr(service, "lint_ci") or (self._demo is None and provider != GITLAB):
             raise EasyCIError("La validation officielle n'est disponible que pour GitLab (CI Lint).")
         return service.lint_ci(full_name, content)
+
+    def detect_project(self, key: str) -> dict[str, Any]:
+        """Analyse le clone local et propose une configuration de départ pour l'assistant."""
+        provider, full_name = split_repo_key(key)
+        local = self._local_projects()
+        detection = detect_stack(local.project_files(key))
+        try:
+            default_branch = local.branch_suggestion(key, None).get("default_branch") or "main"
+        except EasyCIError:
+            default_branch = "main"
+        return {
+            "provider": provider,
+            "detection": detection,
+            "options": default_pipeline_options(provider, detection, default_branch, full_name),
+            "choices": pipeline_choices(provider),
+        }
+
+    def generate_pipeline(self, key: str, options: dict[str, Any]) -> dict[str, Any]:
+        """Rendu du fichier (aperçu) ; l'écriture passe ensuite par save_ci_file, comme une édition."""
+        provider, _ = split_repo_key(key)
+        result = generate_pipeline(provider, options)
+        existing = self._local_projects().read_ci_file(key, result["path"])
+        return {**result, "exists": existing["exists"], "existing_hash": existing["hash"], "branch": existing["branch"]}
 
     def get_publication(self, key: str) -> dict[str, Any]:
         """Où en est la branche locale : envoyée ou non, pull request existante, branche cible par défaut."""

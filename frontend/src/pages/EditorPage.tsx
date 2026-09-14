@@ -13,6 +13,7 @@ import {
   TriangleAlert,
   Undo2,
   Workflow as WorkflowIcon,
+  Zap,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useBlocker, useSearchParams } from "react-router";
@@ -278,6 +279,11 @@ function EditorWorkspace({
             </Button>
           </Tooltip>
         ) : null}
+        <Tooltip content="Générer un pipeline avec l'assistant">
+          <Link to={repoPath(provider, fullName, "/generate")} className={buttonClass("ghost", "icon-sm")} aria-label="Générer un pipeline">
+            <Zap />
+          </Link>
+        </Tooltip>
         {!file?.exists && file ? <Badge className="border-accent/25 bg-accent-soft text-fg">Nouveau fichier</Badge> : ciFile ? <CiStateBadge state={ciFile.state} /> : null}
         {dirty ? (
           <span className="inline-flex items-center gap-1.5 text-[12.5px] text-running">

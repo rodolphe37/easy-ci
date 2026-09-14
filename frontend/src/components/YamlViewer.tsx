@@ -49,7 +49,17 @@ export function YamlViewer({ content, highlightLine }: { content: string; highli
         ],
       }),
     });
-    return () => view.current?.destroy();
+    return () => {
+      view.current?.destroy();
+      view.current = null;
+    };
+  }, []);
+
+  // Mise à jour du contenu sans recréer la vue : la position de défilement est conservée (aperçu en direct).
+  useEffect(() => {
+    const current = view.current;
+    if (!current || current.state.doc.toString() === content) return;
+    current.dispatch({ changes: { from: 0, to: current.state.doc.length, insert: content } });
   }, [content]);
 
   useEffect(() => {

@@ -222,7 +222,7 @@ def test_api_routes_demo_local_projects(tmp_path):
     assert real["projects"] == [] and "demo" not in real
     api.call("start_demo")
     overview = api.call("local_overview")["data"]
-    assert overview["demo"] is True and len(overview["projects"]) == 3
+    assert overview["demo"] is True and len(overview["projects"]) == 4
     status = api.call("get_local_status", {"key": "github:acme/storefront"})["data"]
     assert status["behind"] == 2
     synced = api.call("sync_local_project", {"key": "github:acme/storefront", "pull": True})["data"]
