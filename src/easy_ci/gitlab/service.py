@@ -14,7 +14,8 @@ from easy_ci import logs
 from easy_ci.errors import EasyCIError, ForbiddenError, NotFoundError
 from easy_ci.gitlab import normalize
 from easy_ci.http import ApiClient
-from easy_ci.providers import GITLAB, PROVIDER_INFO, RECENT_RUNS, build_scan, empty_scan
+from easy_ci.i18n import tr
+from easy_ci.providers import GITLAB, RECENT_RUNS, build_scan, capabilities, empty_scan
 from easy_ci.state import FAILURE, QUEUED, RUNNING
 from easy_ci.workflow_yaml import summarize_gitlab_ci
 
@@ -148,7 +149,7 @@ class GitLabService:
         return {
             "run": normalize.pipeline(detail, full_name, detail, commit),
             "jobs": jobs,
-            "capabilities": PROVIDER_INFO[GITLAB]["capabilities"],
+            "capabilities": capabilities(GITLAB),
         }
 
     def get_job_log(self, full_name: str, job_id: str) -> dict[str, Any]:
@@ -193,16 +194,16 @@ class GitLabService:
                             "end_line": None,
                             "level": "failure",
                             "title": " › ".join(part for part in (case.get("classname"), case.get("name")) if part),
-                            "message": output[:600] or "Test en échec.",
+                            "message": output[:600] or tr("Test en échec."),
                         }
                     )
 
         reason = raw_job.get("failure_reason")
         if reason:
             level = "warning" if raw_job.get("allow_failure") else "failure"
-            message = normalize.FAILURE_REASONS.get(reason, reason)
+            message = tr(normalize.FAILURE_REASONS[reason]) if reason in normalize.FAILURE_REASONS else reason
             if raw_job.get("allow_failure"):
-                message += " Échec autorisé : le pipeline continue."
+                message += tr(" Échec autorisé : le pipeline continue.")
             annotations.append({"path": None, "start_line": None, "end_line": None, "level": level, "title": None, "message": message})
         return annotations
 

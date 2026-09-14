@@ -17,7 +17,8 @@ from typing import Any
 from easy_ci import logs
 from easy_ci.bitbucket.service import mark_commands
 from easy_ci.errors import NotFoundError
-from easy_ci.providers import BITBUCKET, GITHUB, GITLAB, PROVIDER_INFO, build_scan, empty_scan, repo_key
+from easy_ci.i18n import N_, tr
+from easy_ci.providers import BITBUCKET, GITHUB, GITLAB, PROVIDER_INFO, build_scan, capabilities, empty_scan, repo_key
 from easy_ci.state import NEUTRAL, run_state
 from easy_ci.workflow_yaml import summarize
 
@@ -150,18 +151,18 @@ def node_job(name: str, command: Step, stage: int = 0, **kwargs: Any) -> Job:
 # ---------------------------------------------------------------------------
 
 REPOSITORIES: list[dict[str, Any]] = [
-    {"full_name": "acme/storefront", "language": "TypeScript", "description": "Boutique en ligne Next.js", "private": True, "pushed": 0.4},
-    {"full_name": "acme/payments-api", "language": "Go", "description": "API de paiement et grand livre comptable", "private": True, "pushed": 0.2},
-    {"full_name": "acme/mobile-app", "language": "Kotlin", "description": "Application mobile Android & iOS", "private": True, "pushed": 1},
-    {"full_name": "acme/data-pipeline", "language": "Python", "description": "ETL et traitements planifiés", "private": True, "pushed": 7},
-    {"full_name": "acme/design-system", "language": "TypeScript", "description": "Bibliothèque de composants UI partagés", "private": False, "pushed": 30},
-    {"full_name": "acme/infrastructure", "language": "HCL", "description": "Terraform & manifests Kubernetes", "private": True, "pushed": 2},
-    {"full_name": "demo-user/dotfiles", "language": "Shell", "description": "Configuration personnelle", "private": False, "pushed": 120},
-    {"full_name": "acme/handbook", "language": None, "description": "Documentation interne de l'équipe", "private": True, "pushed": 300},
-    {"provider": GITLAB, "full_name": "platform/backend/billing-service", "language": None, "description": "Facturation et abonnements (FastAPI)", "private": True, "pushed": 0.3},
-    {"provider": GITLAB, "full_name": "platform/frontend/customer-portal", "language": None, "description": "Portail client Vue.js", "private": True, "pushed": 0.8},
-    {"provider": BITBUCKET, "full_name": "acme-team/marketing-site", "language": "javascript", "description": "Site vitrine Astro", "private": False, "pushed": 1.5},
-    {"provider": BITBUCKET, "full_name": "acme-team/data-importer", "language": "python", "description": "Import des catalogues fournisseurs", "private": True, "pushed": 0.1},
+    {"full_name": "acme/storefront", "language": "TypeScript", "description": N_("Boutique en ligne Next.js"), "private": True, "pushed": 0.4},
+    {"full_name": "acme/payments-api", "language": "Go", "description": N_("API de paiement et grand livre comptable"), "private": True, "pushed": 0.2},
+    {"full_name": "acme/mobile-app", "language": "Kotlin", "description": N_("Application mobile Android & iOS"), "private": True, "pushed": 1},
+    {"full_name": "acme/data-pipeline", "language": "Python", "description": N_("ETL et traitements planifiés"), "private": True, "pushed": 7},
+    {"full_name": "acme/design-system", "language": "TypeScript", "description": N_("Bibliothèque de composants UI partagés"), "private": False, "pushed": 30},
+    {"full_name": "acme/infrastructure", "language": "HCL", "description": N_("Terraform & manifests Kubernetes"), "private": True, "pushed": 2},
+    {"full_name": "demo-user/dotfiles", "language": "Shell", "description": N_("Configuration personnelle"), "private": False, "pushed": 120},
+    {"full_name": "acme/handbook", "language": None, "description": N_("Documentation interne de l'équipe"), "private": True, "pushed": 300},
+    {"provider": GITLAB, "full_name": "platform/backend/billing-service", "language": None, "description": N_("Facturation et abonnements (FastAPI)"), "private": True, "pushed": 0.3},
+    {"provider": GITLAB, "full_name": "platform/frontend/customer-portal", "language": None, "description": N_("Portail client Vue.js"), "private": True, "pushed": 0.8},
+    {"provider": BITBUCKET, "full_name": "acme-team/marketing-site", "language": "javascript", "description": N_("Site vitrine Astro"), "private": False, "pushed": 1.5},
+    {"provider": BITBUCKET, "full_name": "acme-team/data-importer", "language": "python", "description": N_("Import des catalogues fournisseurs"), "private": True, "pushed": 0.1},
 ]
 
 
@@ -932,7 +933,7 @@ def _importer_steps(outcome: str) -> tuple[Job, ...]:
             ),
             fail_error="",
         )
-    return (tests, Job("Import staging", (cmd("python -m importer --env staging", 20, "INFO  3 catalogues importés (18 402 produits)"),), stage=1, runner="python:3.13"))
+    return (tests, Job("Import staging", (cmd("python -m importer --env staging", 20, "INFO  3 catalogs imported (18,402 products)"),), stage=1, runner="python:3.13"))
 
 
 _MARKETING_YAML = """image: node:22
@@ -1018,16 +1019,16 @@ _WORKFLOWS: list[tuple[Any, ...]] = [
 ]
 
 _MESSAGES = [
-    "fix(checkout): arrondi de la TVA sur les remises",
-    "feat: ajout du paiement en trois fois",
+    N_("fix(checkout): arrondi de la TVA sur les remises"),
+    N_("feat: ajout du paiement en trois fois"),
     "chore(deps): bump vite from 7.0.6 to 7.1.3",
-    "refactor: extraction du service de panier",
-    "feat(api): pagination des transactions",
-    "fix: timeout du webhook Stripe",
-    "docs: mise à jour du guide de contribution",
-    "perf: cache des fiches produits",
-    "ci: activation du cache npm",
-    "feat: nouveau tunnel de commande",
+    N_("refactor: extraction du service de panier"),
+    N_("feat(api): pagination des transactions"),
+    N_("fix: timeout du webhook Stripe"),
+    N_("docs: mise à jour du guide de contribution"),
+    N_("perf: cache des fiches produits"),
+    N_("ci: activation du cache npm"),
+    N_("feat: nouveau tunnel de commande"),
 ]
 _ACTORS = ["marie-dupont", "thomas-martin", "dependabot[bot]", "demo-user", "lea-bernard"]
 _BRANCHES = ["main", "main", "feat/paiement-3x", "main", "fix/tva-remises", "main"]
@@ -1234,8 +1235,8 @@ class DemoService:
         run = {
             "id": str(demo_run.id),
             "name": demo_run.workflow_name,
-            "title": demo_run.message,
-            "commit_message": demo_run.message,
+            "title": tr(demo_run.message),
+            "commit_message": tr(demo_run.message),
             "workflow_id": demo_run.workflow_id,
             "run_number": demo_run.run_number,
             "run_attempt": demo_run.attempt,
@@ -1299,19 +1300,23 @@ class DemoService:
     # -- API publique (mêmes signatures que les services réels) -----------------
 
     def get_user(self) -> dict[str, Any]:
-        return {"login": "demo-user", "name": "Utilisateur démo", "avatar_url": None, "html_url": None}
+        return {"login": "demo-user", "name": tr("Utilisateur démo"), "avatar_url": None, "html_url": None}
 
     def rate_limit(self) -> dict[str, int] | None:
         return None
 
+    @staticmethod
+    def _localized(repo: dict[str, Any]) -> dict[str, Any]:
+        return {**repo, "description": tr(repo["description"])} if repo.get("description") else repo
+
     def list_repositories(self) -> list[dict[str, Any]]:
-        return sorted(self._repos.values(), key=lambda r: r["pushed_at"] or "", reverse=True)
+        return sorted((self._localized(repo) for repo in self._repos.values()), key=lambda r: r["pushed_at"] or "", reverse=True)
 
     def get_repository(self, full_name: str) -> dict[str, Any]:
         match = next((repo for name, repo in self._repos.items() if name.lower() == full_name.lower()), None)
         if match is None:
-            raise NotFoundError("Dépôt introuvable.")
-        return match
+            raise NotFoundError(tr("Dépôt introuvable."))
+        return self._localized(match)
 
     def scan_repository(self, full_name: str) -> dict[str, Any]:
         self.get_repository(full_name)
@@ -1345,7 +1350,7 @@ class DemoService:
         return {
             "run": run,
             "jobs": [{k: v for k, v in job.items() if k != "_steps"} for job in jobs],
-            "capabilities": PROVIDER_INFO[self._provider(full_name)]["capabilities"],
+            "capabilities": capabilities(self._provider(full_name)),
         }
 
     def get_job_log(self, full_name: str, job_id: str) -> dict[str, Any]:
@@ -1384,9 +1389,9 @@ class DemoService:
             return []
         if provider == GITLAB:
             level = "warning" if job.allow_failure else "failure"
-            reason = "Le script du job s'est terminé en erreur (code de sortie non nul)."
+            reason = tr("Le script du job s'est terminé en erreur (code de sortie non nul).")
             if job.allow_failure:
-                reason += " Échec autorisé : le pipeline continue."
+                reason += tr(" Échec autorisé : le pipeline continue.")
             return [*job.annotations, {"path": None, "start_line": None, "end_line": None, "level": level, "title": None, "message": reason}]
         level = "warning" if job_data["conclusion"] == "cancelled" else "failure"
         return [*job.annotations, {"path": ".github", "start_line": None, "end_line": None, "level": level, "title": None, "message": job.fail_error}]
@@ -1473,7 +1478,7 @@ class DemoService:
         except ValueError:
             demo_run = None
         if demo_run is None or demo_run.repo != full_name:
-            raise NotFoundError("Exécution introuvable.")
+            raise NotFoundError(tr("Exécution introuvable."))
         return demo_run
 
     @staticmethod

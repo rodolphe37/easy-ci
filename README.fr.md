@@ -94,6 +94,7 @@ Easy CI rassemble tout cela dans une application desktop : tous les pipelines de
 
 - **Installation en une commande** sur macOS, Linux et Windows, avec **détection des nouvelles versions** et la commande de mise à jour adaptée à votre installation.
 - **Mode démo** pour tout essayer sans compte, palette de commandes (`⌘K` / `Ctrl+K`), thèmes clair et sombre, **documentation intégrée**.
+- **Interface en français et en anglais**, selon la langue du système, avec un choix manuel dans *Paramètres › Apparence*.
 
 ## Plateformes prises en charge
 
@@ -192,7 +193,7 @@ Une vulnérabilité ? Merci de la signaler en privé : voir [SECURITY.md](SECURI
 |---|---|
 | Fenêtre desktop | [pywebview](https://pywebview.flowrl.com/) (Cocoa/WebKit sur macOS, Edge WebView2 sur Windows, Qt WebEngine sous Linux) |
 | Backend | Python 3.11+, [httpx](https://www.python-httpx.org/), [keyring](https://github.com/jaraco/keyring), [PyYAML](https://pyyaml.org/), [platformdirs](https://github.com/platformdirs/platformdirs) |
-| Interface | [React](https://react.dev/) + TypeScript, [Vite](https://vite.dev/), [Tailwind CSS](https://tailwindcss.com/), [TanStack Query](https://tanstack.com/query), [React Router](https://reactrouter.com/), [Radix UI](https://www.radix-ui.com/), [CodeMirror 6](https://codemirror.net/), [cmdk](https://cmdk.paco.me/), [Lucide](https://lucide.dev/) |
+| Interface | [React](https://react.dev/) + TypeScript, [Vite](https://vite.dev/), [Tailwind CSS](https://tailwindcss.com/), [TanStack Query](https://tanstack.com/query), [React Router](https://reactrouter.com/), [Radix UI](https://www.radix-ui.com/), [CodeMirror 6](https://codemirror.net/), [cmdk](https://cmdk.paco.me/), [Lucide](https://lucide.dev/), [i18next](https://www.i18next.com/) |
 | Qualité | [pytest](https://pytest.org/), [Ruff](https://docs.astral.sh/ruff/), TypeScript strict |
 | Empaquetage et livraison | [PyInstaller](https://pyinstaller.org/), GitHub Actions (tests sur 3 systèmes, constructions macOS arm64/x64, Windows, Linux), GitHub Releases, tap Homebrew |
 
@@ -246,6 +247,10 @@ Vérifications exécutées par la CI :
 npm --prefix frontend run typecheck
 ```
 
+```bash
+npm --prefix frontend run i18n:check
+```
+
 Sous Linux, pywebview a besoin de GTK (`python3-gi`, `gir1.2-webkit2-4.1`) ou de Qt (`pip install -e ".[qt]"`). La construction de l'application autonome et la publication des versions sont décrites dans [packaging/README.md](packaging/README.md).
 
 ## Feuille de route
@@ -259,10 +264,11 @@ Réalisé :
 - [x] Génération de pipelines selon la stack détectée
 - [x] CI/CD du projet : tests sur 3 systèmes, applications autonomes, GitHub Releases, tap Homebrew
 - [x] Installation en une commande et notification des nouvelles versions
+- [x] Interface et documentation en français et en anglais (i18n)
 
 Prochaines idées — retours et contributions bienvenus :
 
-- [ ] Interface et documentation en anglais (i18n)
+- [ ] D'autres langues pour l'interface (contributions bienvenues : un catalogue JSON par langue)
 - [ ] Notifications système quand un pipeline suivi échoue ou repasse au vert
 - [ ] Nouvelles plateformes : Azure Pipelines, CircleCI, Gitea/Forgejo Actions
 - [ ] Linux arm64, AppImage / Flatpak, paquet winget

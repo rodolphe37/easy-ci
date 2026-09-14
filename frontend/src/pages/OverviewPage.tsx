@@ -1,6 +1,8 @@
 import { ArrowRight, CircleCheckBig, FolderGit2, Inbox } from "lucide-react";
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
+import i18n from "@/i18n";
 import { RunDuration, RunRow, TimeAgo } from "@/components/runs";
 import { isActive, StatusIcon } from "@/components/status";
 import { buttonClass, Card, EmptyState, Skeleton } from "@/components/ui/primitives";
@@ -17,6 +19,7 @@ interface WorkflowWithRepo {
 }
 
 export function OverviewPage() {
+  const { t } = useTranslation();
   const { entries, recentRuns, isLoadingRepos, scanned, total, reposErrors, accounts } = useScans();
   const { data: session } = useSession();
 
@@ -33,7 +36,7 @@ export function OverviewPage() {
   if (reposErrors.length && reposErrors.length === accounts.length) {
     return (
       <Page>
-        <EmptyState icon={<Inbox />} title="Impossible de charger les dépôts" description={reposErrors.map((e) => `${PROVIDER_LABELS[e.provider].label} : ${e.error.message}`).join(" · ")} />
+        <EmptyState icon={<Inbox />} title={t("overview.loadFailed")} description={reposErrors.map((e) => `${PROVIDER_LABELS[e.provider].label} : ${e.error.message}`).join(" · ")} />
       </Page>
     );
   }
@@ -47,30 +50,30 @@ export function OverviewPage() {
           <h1 className="text-[22px] font-semibold tracking-tight">{greeting()}{firstName ? `, ${firstName}` : ""}</h1>
           <p className="mt-1 text-[13.5px] text-fg-muted">
             {loading
-              ? "Analyse de vos dépôts en cours…"
+              ? t("overview.analyzing")
               : failing.length
-                ? `${failing.length} workflow${failing.length > 1 ? "s" : ""} en échec demande${failing.length > 1 ? "nt" : ""} votre attention.`
-                : "Tous vos pipelines sont au vert."}
+                ? t("overview.failingSummary", { count: failing.length })
+                : t("overview.allGreen")}
           </p>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <StatTile label="Dépôts avec CI" value={loading ? null : withCi.length} suffix={total ? `/ ${total}` : undefined} />
-        <StatTile label="En cours" value={loading ? null : active.length} state={active.length ? "running" : undefined} />
-        <StatTile label="Workflows en échec" value={loading ? null : failing.length} state={failing.length ? "failure" : "success"} />
-        <StatTile label="Taux de réussite récent" value={loading ? null : successRate} suffix={successRate !== null ? "%" : undefined} hint={`sur ${completed.length} exécutions`} />
+        <StatTile label={t("overview.stats.withCi")} value={loading ? null : withCi.length} suffix={total ? `/ ${total}` : undefined} />
+        <StatTile label={t("overview.stats.running")} value={loading ? null : active.length} state={active.length ? "running" : undefined} />
+        <StatTile label={t("overview.stats.failing")} value={loading ? null : failing.length} state={failing.length ? "failure" : "success"} />
+        <StatTile label={t("overview.stats.successRate")} value={loading ? null : successRate} suffix={successRate !== null ? "%" : undefined} hint={t("overview.stats.overRuns", { count: completed.length })} />
       </div>
 
       <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="min-w-0 space-y-6">
-          <Section title="À corriger" count={failing.length}>
+          <Section title={t("overview.toFix")} count={failing.length}>
             {loading ? (
               <ListSkeleton rows={2} />
             ) : failing.length === 0 ? (
               <div className="flex items-center gap-3 px-4 py-5 text-[13px] text-fg-muted">
                 <CircleCheckBig className="size-5 text-success" />
-                Aucun échec sur la dernière exécution de vos workflows.
+                {t("overview.noFailure")}
               </div>
             ) : (
               <div className="divide-y divide-line">
@@ -82,10 +85,10 @@ export function OverviewPage() {
           </Section>
 
           <Section
-            title="Activité récente"
+            title={t("overview.recentActivity")}
             action={
               <Link to="/repos" className="flex items-center gap-1 text-[12.5px] font-medium text-fg-muted hover:text-fg">
-                Tous les dépôts <ArrowRight className="size-3.5" />
+                {t("overview.allRepositories")} <ArrowRight className="size-3.5" />
               </Link>
             }
           >
@@ -94,8 +97,8 @@ export function OverviewPage() {
             ) : recentRuns.length === 0 ? (
               <EmptyState
                 icon={<FolderGit2 />}
-                title="Aucune exécution pour le moment"
-                description="Dès qu'un pipeline tournera sur l'un de vos dépôts, il apparaîtra ici."
+                title={t("overview.noRuns")}
+                description={t("overview.noRunsDescription")}
               />
             ) : (
               <div className="divide-y divide-line">
@@ -108,11 +111,11 @@ export function OverviewPage() {
         </div>
 
         <div className="space-y-6">
-          <Section title="En direct" count={active.length} live={active.length > 0}>
+          <Section title={t("overview.live")} count={active.length} live={active.length > 0}>
             {loading ? (
               <ListSkeleton rows={2} />
             ) : active.length === 0 ? (
-              <p className="px-4 py-5 text-[13px] text-fg-muted">Aucune exécution en cours.</p>
+              <p className="px-4 py-5 text-[13px] text-fg-muted">{t("overview.noActive")}</p>
             ) : (
               <div className="divide-y divide-line">
                 {active.map((item) => (
@@ -139,7 +142,7 @@ export function OverviewPage() {
             )}
           </Section>
 
-          <Section title="Santé des dépôts">
+          <Section title={t("overview.health")}>
             {loading ? (
               <ListSkeleton rows={4} />
             ) : (
@@ -183,7 +186,7 @@ export function OverviewPage() {
 
 function greeting() {
   const hour = new Date().getHours();
-  return hour < 5 ? "Bonne nuit" : hour < 18 ? "Bonjour" : "Bonsoir";
+  return i18n.t(hour < 5 ? "overview.greeting.night" : hour < 12 ? "overview.greeting.morning" : hour < 18 ? "overview.greeting.afternoon" : "overview.greeting.evening");
 }
 
 function severity(state: string) {
@@ -210,7 +213,7 @@ function FailureRow({ item }: { item: WorkflowWithRepo }) {
         </div>
       </div>
       <Link to={runPath(item.repo.provider, item.repo.full_name, item.run.id)} className={buttonClass("secondary", "sm")}>
-        Voir l'erreur
+        {i18n.t("overview.viewError")}
         <ArrowRight className="size-3.5" />
       </Link>
     </div>

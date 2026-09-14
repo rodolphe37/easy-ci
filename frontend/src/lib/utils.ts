@@ -1,13 +1,27 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import i18n, { currentLanguage } from "@/i18n";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const relativeFormatter = new Intl.RelativeTimeFormat("fr", { numeric: "auto", style: "short" });
-const dateFormatter = new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" });
-const numberFormatter = new Intl.NumberFormat("fr-FR");
+// Formats localisés : recréés seulement quand la langue change.
+let formatters: { language: string; relative: Intl.RelativeTimeFormat; date: Intl.DateTimeFormat; number: Intl.NumberFormat } | null = null;
+
+function intl() {
+  const language = currentLanguage();
+  if (formatters?.language !== language) {
+    const locale = language === "fr" ? "fr-FR" : "en-US";
+    formatters = {
+      language,
+      relative: new Intl.RelativeTimeFormat(language, { numeric: "auto", style: "short" }),
+      date: new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }),
+      number: new Intl.NumberFormat(locale),
+    };
+  }
+  return formatters;
+}
 
 const DIVISIONS: { amount: number; unit: Intl.RelativeTimeFormatUnit }[] = [
   { amount: 60, unit: "second" },
@@ -23,10 +37,10 @@ export function timeAgo(date: string | null | undefined, now = Date.now()): stri
   if (!date) return "—";
   let duration = (new Date(date).getTime() - now) / 1000;
   // Une date légèrement dans le futur vient d'un décalage d'horloge : on la considère comme récente.
-  if (duration > -10 && duration < 60) return "à l'instant";
+  if (duration > -10 && duration < 60) return i18n.t("time.justNow");
   for (const division of DIVISIONS) {
     if (Math.abs(duration) < division.amount) {
-      return relativeFormatter.format(Math.round(duration), division.unit);
+      return intl().relative.format(Math.round(duration), division.unit);
     }
     duration /= division.amount;
   }
@@ -34,7 +48,7 @@ export function timeAgo(date: string | null | undefined, now = Date.now()): stri
 }
 
 export function formatDate(date: string | null | undefined): string {
-  return date ? dateFormatter.format(new Date(date)) : "—";
+  return date ? intl().date.format(new Date(date)) : "—";
 }
 
 export function formatDuration(seconds: number | null | undefined): string {
@@ -53,7 +67,7 @@ export function elapsedSeconds(start: string | null | undefined, end?: string | 
 }
 
 export function formatNumber(value: number): string {
-  return numberFormatter.format(value);
+  return intl().number.format(value);
 }
 
 export function shortSha(sha: string | null | undefined): string {
@@ -64,26 +78,28 @@ export function firstLine(text: string | null | undefined): string {
   return (text ?? "").split("\n", 1)[0];
 }
 
-const EVENT_LABELS: Record<string, string> = {
-  push: "Push",
-  pull_request: "Pull request",
-  pull_request_target: "Pull request",
-  merge_request: "Merge request",
-  schedule: "Planifié",
-  workflow_dispatch: "Manuel",
-  manual: "Manuel",
-  release: "Release",
-  tag: "Tag",
-  merge_group: "Merge queue",
-  workflow_run: "Workflow",
-  pipeline: "Pipeline parent",
-  trigger: "Déclencheur",
-  api: "API",
-  dynamic: "Automatique",
-};
+const EVENT_KEYS = {
+  push: "push",
+  pull_request: "pullRequest",
+  pull_request_target: "pullRequest",
+  merge_request: "mergeRequest",
+  schedule: "schedule",
+  workflow_dispatch: "manual",
+  manual: "manual",
+  release: "release",
+  tag: "tag",
+  merge_group: "mergeQueue",
+  workflow_run: "workflow",
+  pipeline: "parentPipeline",
+  trigger: "trigger",
+  api: "api",
+  dynamic: "dynamic",
+} as const;
 
 export function eventLabel(event: string | null | undefined): string {
-  return event ? (EVENT_LABELS[event] ?? event) : "—";
+  if (!event) return "—";
+  const key = EVENT_KEYS[event as keyof typeof EVENT_KEYS];
+  return key ? i18n.t(`events.${key}`) : event;
 }
 
 export function initials(login: string | null | undefined): string {

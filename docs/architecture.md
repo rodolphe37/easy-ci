@@ -22,7 +22,7 @@ Easy CI is a desktop application made of a **Python backend** and a **React + Ty
 
 1. A React component calls a function of `frontend/src/lib/api.ts`, usually through a TanStack Query hook (`frontend/src/hooks/`).
 2. `api.ts` forwards the call to `window.pywebview.api.call(method, params)` in the desktop app, or to `POST /api/call` on the development server (`easy_ci.devserver`, proxied by Vite).
-3. `Api.call` in `src/easy_ci/api.py` dispatches to a handler and always returns an envelope: `{"ok": true, "data": …}` or `{"ok": false, "error": {"code", "message"}}`. Errors meant for the user are `EasyCIError` subclasses with a French message.
+3. `Api.call` in `src/easy_ci/api.py` dispatches to a handler and always returns an envelope: `{"ok": true, "data": …}` or `{"ok": false, "error": {"code", "message"}}`. Errors meant for the user are `EasyCIError` subclasses whose message is translated with `tr()` into the language sent by the UI with each call (`src/easy_ci/i18n.py`, catalog in `src/easy_ci/locales/`).
 4. Provider services fetch and **normalise** platform data (repositories, workflows, runs, jobs, logs) into a common format, so the UI never needs to know which platform it is displaying.
 
 Repositories are identified everywhere by a key `provider:full_name` (for example `gitlab:group/subgroup/project`).

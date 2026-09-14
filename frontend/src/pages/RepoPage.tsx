@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
+import i18n from "@/i18n";
 import { BranchChip, EventIcon, RunDuration, RunRow, TimeAgo } from "@/components/runs";
 import { HistoryStrip, StatusBadge, StatusIcon } from "@/components/status";
 import { Tooltip } from "@/components/ui/overlays";
@@ -81,7 +82,7 @@ export function RepoPage() {
   if (repoQuery.error && !repo) {
     return (
       <Page>
-        <EmptyState icon={<TriangleAlert />} title="Dépôt inaccessible" description={repoQuery.error.message} />
+        <EmptyState icon={<TriangleAlert />} title={i18n.t("repo.inaccessible")} description={repoQuery.error.message} />
       </Page>
     );
   }
@@ -106,7 +107,7 @@ export function RepoPage() {
             </h1>
             {repo?.private ? (
               <Badge>
-                <Lock /> Privé
+                <Lock /> {i18n.t("repo.private")}
               </Badge>
             ) : null}
           </div>
@@ -121,13 +122,13 @@ export function RepoPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Tooltip content={favorite ? "Retirer des favoris" : "Ajouter aux favoris"}>
-            <Button variant="secondary" size="icon" onClick={() => toggleFavorite(key)} aria-label="Favori">
+          <Tooltip content={favorite ? i18n.t("repos.unfavorite") : i18n.t("repos.favorite")}>
+            <Button variant="secondary" size="icon" onClick={() => toggleFavorite(key)} aria-label={i18n.t("repo.favorite")}>
               <Star className={cn(favorite && "fill-running text-running")} />
             </Button>
           </Tooltip>
-          <Tooltip content="Actualiser">
-            <Button variant="secondary" size="icon" onClick={() => void refreshRepo(key)} aria-label="Actualiser">
+          <Tooltip content={i18n.t("common.refresh")}>
+            <Button variant="secondary" size="icon" onClick={() => void refreshRepo(key)} aria-label={i18n.t("common.refresh")}>
               <RefreshCw />
             </Button>
           </Tooltip>
@@ -145,13 +146,13 @@ export function RepoPage() {
             {labels.workflows}
           </TabButton>
           <TabButton active={tab === "runs"} onClick={() => setTab("runs")} icon={<History />}>
-            Exécutions
+            {i18n.t("repo.tabs.runs")}
           </TabButton>
           <TabButton active={tab === "files"} onClick={() => setTab("files")} icon={<FileCode2 />}>
-            Fichiers CI
+            {i18n.t("repo.tabs.files")}
           </TabButton>
           <TabButton active={tab === "local"} onClick={() => setTab("local")} icon={<Laptop />} badge={localBadge} dimmed={localStatus !== undefined && !localStatus.linked}>
-            Projet local
+            {i18n.t("repo.tabs.local")}
           </TabButton>
         </div>
       </div>
@@ -172,16 +173,16 @@ export function RepoPage() {
         <Card>
           <EmptyState
             icon={<Zap />}
-            title={`Aucun pipeline ${labels.ci}`}
-            description={`Ce dépôt ne contient pas encore de configuration (${labels.config}). L'assistant analyse votre clone local et génère un pipeline adapté à sa stack.`}
+            title={i18n.t("repo.noCi.title", { ci: labels.ci })}
+            description={i18n.t("repo.noCi.description", { config: labels.config })}
             action={
               <div className="flex flex-wrap justify-center gap-2">
                 <Link to={repoPath(provider, fullName, "/generate")} className={buttonClass("primary")}>
-                  <Zap /> Générer un pipeline
+                  <Zap /> {i18n.t("nav.generate")}
                 </Link>
                 {repo ? (
                   <Button variant="secondary" onClick={() => void api.openExternal(ciUrl(repo))}>
-                    <ExternalLink /> Ouvrir {labels.label}
+                    <ExternalLink /> {i18n.t("repo.open", { provider: labels.label })}
                   </Button>
                 ) : null}
               </div>
@@ -233,7 +234,7 @@ function TabButton({
       {children}
       {count !== undefined ? <span className="rounded-full bg-surface-3 px-1.5 text-[11px] text-fg-muted tabular">{count}</span> : null}
       {badge ? <span className="rounded-full bg-running/15 px-1.5 text-[11px] font-semibold text-fg tabular">{badge}</span> : null}
-      {dimmed && !active ? <span className="size-1.5 rounded-full bg-fg-subtle/50" aria-label="non lié" /> : null}
+      {dimmed && !active ? <span className="size-1.5 rounded-full bg-fg-subtle/50" aria-label={i18n.t("repo.notLinked")} /> : null}
       <span className={cn("absolute inset-x-2 bottom-0 h-0.5 rounded-full transition-colors", active ? "bg-accent" : "bg-transparent")} />
     </button>
   );
@@ -264,13 +265,13 @@ function WorkflowsTab({
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <h3 className="truncate text-[14.5px] font-semibold">{wf.name}</h3>
-                  {wf.state !== "active" ? <Badge>Désactivé</Badge> : null}
+                  {wf.state !== "active" ? <Badge>{i18n.t("repo.disabled")}</Badge> : null}
                 </div>
                 <button
                   onClick={() => !wf.dynamic && onShowFile(wf)}
                   className={cn("mt-0.5 truncate font-mono text-[11.5px] text-fg-subtle", !wf.dynamic && "hover:text-accent hover:underline")}
                 >
-                  {wf.dynamic ? (repoRef.provider === "gitlab" ? `Configuration externe : ${wf.path}` : "Workflow géré par GitHub") : wf.path}
+                  {wf.dynamic ? (repoRef.provider === "gitlab" ? i18n.t("repo.externalConfig", { path: wf.path }) : i18n.t("repo.githubManaged")) : wf.path}
                 </button>
               </div>
               {run ? <StatusBadge state={run.state} /> : <StatusBadge state="none" />}
@@ -294,13 +295,13 @@ function WorkflowsTab({
                 </div>
               </Link>
             ) : (
-              <p className="mt-4 text-[13px] text-fg-subtle">Ce workflow n'a encore jamais été exécuté.</p>
+              <p className="mt-4 text-[13px] text-fg-subtle">{i18n.t("repo.neverRun")}</p>
             )}
 
             <div className="mt-4 flex items-center justify-between gap-3">
               <HistoryStrip history={wf.history} provider={repoRef.provider} fullName={repoRef.full_name} />
               <button onClick={() => onShowRuns(wf)} className="flex items-center gap-1 text-[12.5px] font-medium text-fg-muted transition-colors hover:text-fg">
-                Historique <ArrowRight className="size-3.5" />
+                {i18n.t("repo.history")} <ArrowRight className="size-3.5" />
               </button>
             </div>
           </Card>
@@ -314,11 +315,11 @@ function WorkflowsTab({
 /* Exécutions                                                                 */
 /* -------------------------------------------------------------------------- */
 
-const STATUS_FILTERS = [
-  { value: "", label: "Tous" },
-  { value: "failure", label: "Échecs" },
-  { value: "success", label: "Réussis" },
-  { value: "running", label: "En cours" },
+const statusFilters = () => [
+  { value: "", label: i18n.t("repos.filters.all") },
+  { value: "failure", label: i18n.t("repos.filters.failure") },
+  { value: "success", label: i18n.t("repos.filters.success") },
+  { value: "running", label: i18n.t("repos.filters.running") },
 ];
 
 function RunsTab({
@@ -351,7 +352,7 @@ function RunsTab({
       {workflows.length > 1 ? (
         <div className="flex flex-col gap-0.5">
           <WorkflowFilter active={!workflowId} onClick={() => onWorkflowChange(null)} icon={<Layers className="size-4 text-fg-subtle" />}>
-            Tous les workflows
+            {i18n.t("repo.allWorkflows")}
           </WorkflowFilter>
           {workflows.map((wf) => (
             <WorkflowFilter
@@ -368,16 +369,16 @@ function RunsTab({
 
       <div className="min-w-0">
         <div className="mb-3 flex items-center justify-between">
-          <SegmentedControl value={status} onChange={setStatus} options={STATUS_FILTERS} />
-          {total !== undefined ? <span className="text-[12.5px] text-fg-subtle tabular">{total} exécution{total > 1 ? "s" : ""}</span> : null}
+          <SegmentedControl value={status} onChange={setStatus} options={statusFilters()} />
+          {total !== undefined ? <span className="text-[12.5px] text-fg-subtle tabular">{i18n.t("repo.runsCount", { count: total })}</span> : null}
         </div>
         <Card className="overflow-hidden">
           {query.isPending ? (
             <ListSkeleton rows={6} />
           ) : query.error ? (
-            <EmptyState icon={<TriangleAlert />} title="Chargement impossible" description={query.error.message} />
+            <EmptyState icon={<TriangleAlert />} title={i18n.t("common.loadFailed")} description={query.error.message} />
           ) : runs.length === 0 ? (
-            <EmptyState icon={<History />} title="Aucune exécution" description="Aucune exécution ne correspond à ces filtres." />
+            <EmptyState icon={<History />} title={i18n.t("repo.noRuns")} description={i18n.t("repo.noRunsDescription")} />
           ) : (
             <div className="divide-y divide-line">
               {runs.map((run) => (
@@ -389,7 +390,7 @@ function RunsTab({
         {query.hasNextPage ? (
           <div className="mt-3 flex justify-center">
             <Button variant="ghost" onClick={() => void query.fetchNextPage()} loading={query.isFetchingNextPage}>
-              Charger plus
+              {i18n.t("common.loadMore")}
             </Button>
           </div>
         ) : null}
@@ -439,7 +440,7 @@ function FilesTab({
   if (workflows.length === 0) {
     return (
       <Card>
-        <EmptyState icon={<FileCode2 />} title="Aucun fichier de workflow" description="La configuration de ce dépôt est gérée en dehors du dépôt (modèle ou fichier distant)." />
+        <EmptyState icon={<FileCode2 />} title={i18n.t("repo.noFiles")} description={i18n.t("repo.noFilesDescription")} />
       </Card>
     );
   }
@@ -447,7 +448,7 @@ function FilesTab({
   return (
     <div className="grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
       <div className="flex flex-col gap-0.5">
-        <div className="mb-1 px-2.5 font-mono text-[11px] text-fg-subtle">{repoRef.provider === "github" ? ".github/workflows/" : "Racine du dépôt"}</div>
+        <div className="mb-1 px-2.5 font-mono text-[11px] text-fg-subtle">{repoRef.provider === "github" ? ".github/workflows/" : i18n.t("repo.root")}</div>
         {workflows.map((wf) => (
           <WorkflowFilter key={wf.id} active={wf.path === path} onClick={() => onSelect(wf.path)} icon={<FileCode2 className="size-4 text-fg-subtle" />}>
             <span className="font-mono text-[12.5px]">{wf.path.split("/").pop()}</span>
@@ -462,7 +463,7 @@ function FilesTab({
           </Card>
         ) : fileQuery.error ? (
           <Card>
-            <EmptyState icon={<TriangleAlert />} title="Fichier illisible" description={fileQuery.error.message} />
+            <EmptyState icon={<TriangleAlert />} title={i18n.t("repo.unreadable")} description={fileQuery.error.message} />
           </Card>
         ) : fileQuery.data ? (
           <WorkflowFileView file={fileQuery.data} providerLabel={PROVIDER_LABELS[repoRef.provider].label} repoRef={repoRef} />
@@ -477,17 +478,17 @@ function EditButton({ repoRef, path }: { repoRef: RepoRef; path: string }) {
   const base = `/repos/${repoRef.provider}/${encodeURIComponent(repoRef.full_name)}`;
   if (status?.linked && !status.error) {
     return (
-      <Tooltip content="Modifier dans le clone local, puis commiter et proposer quand vous le décidez">
+      <Tooltip content={i18n.t("repo.editTooltip")}>
         <Link to={`${base}/edit?path=${encodeURIComponent(path)}`} className={buttonClass("secondary", "sm")}>
-          <Pencil className="size-3.5" /> Modifier
+          <Pencil className="size-3.5" /> {i18n.t("repo.edit")}
         </Link>
       </Tooltip>
     );
   }
   return (
-    <Tooltip content="Les modifications se font dans le clone local : liez d'abord un dossier.">
+    <Tooltip content={i18n.t("repo.editNeedsLink")}>
       <Link to={`${base}?tab=local`} className={buttonClass("ghost", "sm")}>
-        <Pencil className="size-3.5" /> Modifier…
+        <Pencil className="size-3.5" /> {i18n.t("repo.editEllipsis")}
       </Link>
     </Tooltip>
   );
@@ -509,7 +510,7 @@ function WorkflowFileView({ file, providerLabel, repoRef }: { file: WorkflowFile
       {summary.valid ? (
         <Card className="grid gap-4 p-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
           <div>
-            <div className="mb-2 text-[11px] font-semibold tracking-wide text-fg-subtle uppercase">Déclencheurs</div>
+            <div className="mb-2 text-[11px] font-semibold tracking-wide text-fg-subtle uppercase">{i18n.t("summary.triggers")}</div>
             <div className="flex flex-wrap gap-1.5">
               {summary.triggers.map((trigger) => (
                 <Tooltip key={trigger.event} content={trigger.details.length ? trigger.details.join(" · ") : null}>
@@ -524,7 +525,7 @@ function WorkflowFileView({ file, providerLabel, repoRef }: { file: WorkflowFile
           </div>
           <div className="min-w-0">
             <div className="mb-2 text-[11px] font-semibold tracking-wide text-fg-subtle uppercase">
-              {summary.stages.length ? "Stages et jobs" : "Jobs"}
+              {summary.stages.length ? i18n.t("summary.stagesAndJobs") : i18n.t("summary.jobs")}
             </div>
             {summary.stages.length ? (
               <div className="space-y-2">
@@ -553,7 +554,7 @@ function WorkflowFileView({ file, providerLabel, repoRef }: { file: WorkflowFile
             )}
             {summary.includes.length ? (
               <div className="mt-3 text-[12px] text-fg-muted">
-                <span className="text-fg-subtle">Inclut : </span>
+                <span className="text-fg-subtle">{i18n.t("summary.includes")} </span>
                 {summary.includes.map((include, index) => (
                   <span key={include}>
                     <code className="font-mono text-[11.5px]">{include}</code>
@@ -568,7 +569,7 @@ function WorkflowFileView({ file, providerLabel, repoRef }: { file: WorkflowFile
         <Card className="flex items-start gap-3 border-failure/30 bg-failure/5 p-4">
           <StatusIcon state="failure" className="mt-0.5" />
           <div className="text-[13px]">
-            <div className="font-medium">YAML invalide{summary.error_line ? ` (ligne ${summary.error_line})` : ""}</div>
+            <div className="font-medium">{summary.error_line ? i18n.t("summary.invalidYamlLine", { line: summary.error_line }) : i18n.t("summary.invalidYaml")}</div>
             <div className="text-fg-muted">{summary.error}</div>
           </div>
         </Card>
@@ -578,7 +579,7 @@ function WorkflowFileView({ file, providerLabel, repoRef }: { file: WorkflowFile
         <div className="flex items-center gap-3 border-b border-line px-4 py-2.5">
           <FileCode2 className="size-4 text-fg-subtle" />
           <span className="font-mono text-[12.5px]">{file.path}</span>
-          <span className="text-[12px] text-fg-subtle">{lineCount} lignes</span>
+          <span className="text-[12px] text-fg-subtle">{i18n.t("logs.lines", { count: lineCount })}</span>
           <div className="ml-auto flex items-center gap-1.5">
             <EditButton repoRef={repoRef} path={file.path} />
             <Button
@@ -589,7 +590,7 @@ function WorkflowFileView({ file, providerLabel, repoRef }: { file: WorkflowFile
               }}
             >
               {copied ? <Check className="text-success" /> : <Copy />}
-              {copied ? "Copié" : "Copier"}
+              {copied ? i18n.t("common.copied") : i18n.t("common.copy")}
             </Button>
             <Button variant="ghost" size="sm" onClick={() => void api.openExternal(file.html_url)}>
               <ExternalLink /> {providerLabel}
@@ -618,15 +619,15 @@ function JobChip({ job }: { job: WorkflowFile["summary"]["jobs"][number] }) {
         <span>
           {job.runs_on ? (
             <>
-              Exécuté sur : {job.runs_on}
+              {i18n.t("summary.runsOn", { runner: job.runs_on })}
               <br />
             </>
           ) : null}
-          {job.steps} commande{job.steps > 1 ? "s" : ""}
+          {i18n.t("summary.commands", { count: job.steps })}
           {job.needs.length ? (
             <>
               <br />
-              Dépend de : {job.needs.join(", ")}
+              {i18n.t("summary.dependsOn", { jobs: job.needs.join(", ") })}
             </>
           ) : null}
           {job.uses ? (
@@ -638,7 +639,7 @@ function JobChip({ job }: { job: WorkflowFile["summary"]["jobs"][number] }) {
           {job.matrix ? (
             <>
               <br />
-              Matrice de build
+              {i18n.t("summary.matrix")}
             </>
           ) : null}
         </span>

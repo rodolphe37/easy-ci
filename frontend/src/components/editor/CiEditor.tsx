@@ -8,6 +8,7 @@ import { EditorState } from "@codemirror/state";
 import { drawSelection, EditorView, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers, placeholder } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
+import i18n from "@/i18n";
 import type { ProviderId, ValidationProblem } from "@/lib/types";
 
 export interface CiEditorHandle {
@@ -58,38 +59,16 @@ const theme = EditorView.theme({
   ".cm-searchMatch": { backgroundColor: "color-mix(in oklab, var(--running) 30%, transparent)" },
 });
 
-/** Mots-clés proposés en début de ligne, par plateforme. */
-const KEYWORDS: Record<ProviderId, [string, string][]> = {
-  github: [
-    ["name", "nom du workflow ou de l'étape"], ["on", "déclencheurs"], ["jobs", "liste des jobs"], ["runs-on", "machine d'exécution"],
-    ["steps", "étapes du job"], ["uses", "action à utiliser"], ["run", "commande shell"], ["with", "paramètres de l'action"],
-    ["env", "variables d'environnement"], ["needs", "jobs dont celui-ci dépend"], ["if", "condition"], ["strategy", "matrice de build"],
-    ["matrix", "combinaisons"], ["permissions", "droits du GITHUB_TOKEN"], ["concurrency", "exécutions concurrentes"],
-    ["timeout-minutes", "durée maximale"], ["environment", "environnement de déploiement"], ["outputs", "sorties du job"],
-    ["services", "conteneurs de service"], ["container", "conteneur du job"], ["continue-on-error", "ne pas bloquer en cas d'échec"],
-    ["workflow_dispatch", "déclenchement manuel"], ["pull_request", "déclencheur pull request"], ["push", "déclencheur push"],
-    ["schedule", "planification cron"], ["branches", "filtre de branches"], ["paths", "filtre de fichiers"], ["working-directory", "dossier de travail"],
-  ],
-  gitlab: [
-    ["stages", "ordre des stages"], ["stage", "stage du job"], ["script", "commandes du job"], ["image", "image Docker"],
-    ["before_script", "commandes préalables"], ["after_script", "commandes finales"], ["variables", "variables"], ["rules", "règles d'exécution"],
-    ["needs", "dépendances"], ["artifacts", "fichiers conservés"], ["cache", "cache entre pipelines"], ["only", "restriction (obsolète)"],
-    ["when", "moment d'exécution"], ["allow_failure", "échec non bloquant"], ["extends", "hérite d'un modèle"], ["include", "fichiers inclus"],
-    ["services", "services Docker"], ["tags", "tags du runner"], ["environment", "environnement de déploiement"], ["parallel", "exécution parallèle"],
-    ["trigger", "pipeline aval"], ["interruptible", "annulable"], ["timeout", "durée maximale"], ["retry", "nouvelles tentatives"],
-    ["workflow", "règles du pipeline"], ["default", "valeurs par défaut"], ["if", "condition d'une règle"], ["paths", "fichiers"],
-  ],
-  bitbucket: [
-    ["image", "image Docker"], ["pipelines", "pipelines"], ["default", "toutes les branches"], ["branches", "par branche"],
-    ["pull-requests", "pull requests"], ["tags", "par tag"], ["custom", "pipelines manuels"], ["step", "étape"], ["name", "nom de l'étape"],
-    ["script", "commandes"], ["caches", "caches"], ["artifacts", "fichiers transmis"], ["deployment", "environnement"],
-    ["trigger", "manual ou automatic"], ["size", "taille du runner"], ["max-time", "durée maximale"], ["parallel", "étapes parallèles"],
-    ["services", "services"], ["definitions", "définitions réutilisables"], ["after-script", "commandes finales"], ["pipe", "pipe Atlassian"],
-  ],
+/** Mots-clés proposés en début de ligne, par plateforme (descriptions dans les catalogues de traduction). */
+const KEYWORDS: Record<ProviderId, string[]> = {
+  github: ["name", "on", "jobs", "runs-on", "steps", "uses", "run", "with", "env", "needs", "if", "strategy", "matrix", "permissions", "concurrency", "timeout-minutes", "environment", "outputs", "services", "container", "continue-on-error", "workflow_dispatch", "pull_request", "push", "schedule", "branches", "paths", "working-directory"],
+  gitlab: ["stages", "stage", "script", "image", "before_script", "after_script", "variables", "rules", "needs", "artifacts", "cache", "only", "when", "allow_failure", "extends", "include", "services", "tags", "environment", "parallel", "trigger", "interruptible", "timeout", "retry", "workflow", "default", "if", "paths"],
+  bitbucket: ["image", "pipelines", "default", "branches", "pull-requests", "tags", "custom", "step", "name", "script", "caches", "artifacts", "deployment", "trigger", "size", "max-time", "parallel", "services", "definitions", "after-script", "pipe"],
 };
 
 function keywordCompletion(provider: ProviderId) {
-  const options = KEYWORDS[provider].map(([label, detail]) => ({ label, detail, type: "property", apply: `${label}: ` }));
+  const details = i18n.t(`editor.keywords.${provider}`, { returnObjects: true }) as Record<string, string>;
+  const options = KEYWORDS[provider].map((label) => ({ label, detail: details[label], type: "property", apply: `${label}: ` }));
   return (context: CompletionContext) => {
     const line = context.state.doc.lineAt(context.pos);
     const before = line.text.slice(0, context.pos - line.from);
@@ -144,7 +123,8 @@ export const CiEditor = forwardRef<
           yaml(),
           syntaxHighlighting(highlight),
           theme,
-          placeholder("Contenu du fichier YAML…"),
+          placeholder(i18n.t("editor.placeholder")),
+          EditorState.phrases.of(i18n.t("editor.phrases", { returnObjects: true }) as Record<string, string>),
           keymap.of([
             { key: "Mod-s", preventDefault: true, run: () => (callbacks.current.onSave(), true) },
             ...closeBracketsKeymap,

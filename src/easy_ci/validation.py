@@ -16,6 +16,7 @@ from typing import Any
 
 import yaml
 
+from easy_ci.i18n import N_, tr
 from easy_ci.workflow_yaml import _CiLoader
 
 ERROR = "error"
@@ -65,7 +66,7 @@ def _scalar(node: yaml.Node) -> str | None:
 
 def validate(provider: str, content: str) -> dict[str, Any]:
     if not content.strip():
-        return _result([{"severity": ERROR, "message": "Le fichier est vide.", "line": 1, "column": 1, "path": None}])
+        return _result([{"severity": ERROR, "message": tr("Le fichier est vide."), "line": 1, "column": 1, "path": None}])
     try:
         root = yaml.compose(content, Loader=_CiLoader)
         document = yaml.load(content, Loader=_CiLoader)  # noqa: S506 — chargeur dérivé de SafeLoader
@@ -85,7 +86,7 @@ def validate(provider: str, content: str) -> dict[str, Any]:
         )
     report = _Report(root)
     if not isinstance(document, dict):
-        report.error("Le fichier doit contenir un dictionnaire de clés YAML (clé: valeur).")
+        report.error(tr("Le fichier doit contenir un dictionnaire de clés YAML (clé: valeur)."))
         return _result(report.problems)
     if provider == "gitlab":
         _validate_gitlab(document, report)
@@ -104,22 +105,22 @@ def _result(problems: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 _YAML_MESSAGES = {
-    "mapping values are not allowed here": "deux-points inattendu (valeur mal indentée ou guillemets manquants)",
-    "could not find expected ':'": "« : » attendu après la clé",
-    "found character '\\t' that cannot start any token": "tabulation interdite en YAML : utilisez des espaces",
-    "expected <block end>, but found '-'": "élément de liste mal indenté",
+    "mapping values are not allowed here": N_("deux-points inattendu (valeur mal indentée ou guillemets manquants)"),
+    "could not find expected ':'": N_("« : » attendu après la clé"),
+    "found character '\\t' that cannot start any token": N_("tabulation interdite en YAML : utilisez des espaces"),
+    "expected <block end>, but found '-'": N_("élément de liste mal indenté"),
     "found undefined alias": "ancre YAML (*alias) introuvable",
-    "found duplicate anchor": "ancre YAML (&ancre) définie deux fois",
-    "expected the node content, but found '<stream end>'": "valeur manquante en fin de fichier (crochet ou guillemet non refermé ?)",
-    "found unexpected end of stream": "fin de fichier inattendue (guillemet non refermé ?)",
-    "found unexpected ':'": "« : » inattendu (entourez la valeur de guillemets)",
+    "found duplicate anchor": N_("ancre YAML (&ancre) définie deux fois"),
+    "expected the node content, but found '<stream end>'": N_("valeur manquante en fin de fichier (crochet ou guillemet non refermé ?)"),
+    "found unexpected end of stream": N_("fin de fichier inattendue (guillemet non refermé ?)"),
+    "found unexpected ':'": N_("« : » inattendu (entourez la valeur de guillemets)"),
 }
 
 
 def _translate_yaml_error(problem: str) -> str:
     for english, french in _YAML_MESSAGES.items():
         if problem.startswith(english):
-            return french
+            return tr(french)
     return problem
 
 
@@ -132,7 +133,7 @@ def _check_expressions(value: Any, report: _Report, path: tuple[Any, ...]) -> No
         for index, child in enumerate(value):
             _check_expressions(child, report, (*path, index))
     elif isinstance(value, str) and value.count("${{") > value.count("}}"):
-        report.error("Expression « ${{ » non refermée par « }} ».", *path)
+        report.error(tr("Expression « ${{ » non refermée par « }} »."), *path)
 
 
 # ---------------------------------------------------------------------------
@@ -161,11 +162,11 @@ def _validate_github(doc: dict[str, Any], report: _Report) -> None:
         if key is True:
             continue  # clé `on` lue comme booléen
         if key not in _GITHUB_TOP:
-            report.warning(f"Clé « {key} » inconnue au premier niveau d'un workflow.", key, key=True)
+            report.warning(tr("Clé « {key} » inconnue au premier niveau d'un workflow.", key=key), key, key=True)
 
     triggers = doc.get("on", doc.get(True))
     if triggers is None:
-        report.error("Déclencheur manquant : ajoutez une section « on: » (par exemple « on: push »).")
+        report.error(tr("Déclencheur manquant : ajoutez une section « on: » (par exemple « on: push »)."))
     else:
         events: list[str] = []
         if isinstance(triggers, str):
@@ -177,74 +178,74 @@ def _validate_github(doc: dict[str, Any], report: _Report) -> None:
             schedule = triggers.get("schedule")
             if schedule is not None:
                 if not isinstance(schedule, list):
-                    report.error("« schedule » doit être une liste d'éléments « - cron: … ».", "on", "schedule")
+                    report.error(tr("« schedule » doit être une liste d'éléments « - cron: … »."), "on", "schedule")
                 else:
                     for index, item in enumerate(schedule):
                         cron = item.get("cron") if isinstance(item, dict) else None
                         if not isinstance(cron, str) or len(cron.split()) != 5 or not all(_CRON_FIELD.match(f) for f in cron.split()):
-                            report.error("Expression cron invalide : 5 champs attendus (minute heure jour mois jour-semaine).", "on", "schedule", index)
+                            report.error(tr("Expression cron invalide : 5 champs attendus (minute heure jour mois jour-semaine)."), "on", "schedule", index)
         for event in events:
             if event not in _GITHUB_EVENTS:
-                report.warning(f"Événement « {event} » inconnu de GitHub Actions.", "on", event, key=True)
+                report.warning(tr("Événement « {event} » inconnu de GitHub Actions.", event=event), "on", event, key=True)
 
     jobs = doc.get("jobs")
     if jobs is None:
-        report.error("Section « jobs: » manquante : un workflow doit contenir au moins un job.")
+        report.error(tr("Section « jobs: » manquante : un workflow doit contenir au moins un job."))
         return
     if not isinstance(jobs, dict) or not jobs:
-        report.error("« jobs » doit contenir au moins un job.", "jobs")
+        report.error(tr("« jobs » doit contenir au moins un job."), "jobs")
         return
 
     for job_id, job in jobs.items():
         where = ("jobs", job_id)
         if not _JOB_ID.match(str(job_id)):
-            report.error(f"Identifiant de job « {job_id} » invalide : lettres, chiffres, « - » et « _ », sans commencer par un chiffre.", *where, key=True)
+            report.error(tr("Identifiant de job « {job_id} » invalide : lettres, chiffres, « - » et « _ », sans commencer par un chiffre.", job_id=job_id), *where, key=True)
         if not isinstance(job, dict):
-            report.error(f"Le job « {job_id} » doit être un dictionnaire.", *where)
+            report.error(tr("Le job « {job_id} » doit être un dictionnaire.", job_id=job_id), *where)
             continue
         for key in job:
             if key not in _GITHUB_JOB:
-                report.warning(f"Clé « {key} » inconnue pour un job.", *where, key, key=True)
+                report.warning(tr("Clé « {key} » inconnue pour un job.", key=key), *where, key, key=True)
         reusable = "uses" in job
         if reusable:
             if "steps" in job:
-                report.error("Un job qui appelle un workflow réutilisable (« uses ») ne peut pas avoir de « steps ».", *where, "steps", key=True)
+                report.error(tr("Un job qui appelle un workflow réutilisable (« uses ») ne peut pas avoir de « steps »."), *where, "steps", key=True)
         else:
             if "runs-on" not in job:
-                report.error(f"Le job « {job_id} » doit préciser « runs-on » (par exemple ubuntu-latest).", *where, key=True)
+                report.error(tr("Le job « {job_id} » doit préciser « runs-on » (par exemple ubuntu-latest).", job_id=job_id), *where, key=True)
             steps = job.get("steps")
             if not isinstance(steps, list) or not steps:
                 target = (*where, "steps") if "steps" in job else where
-                report.error(f"Le job « {job_id} » doit contenir une liste « steps » non vide.", *target, key=True)
+                report.error(tr("Le job « {job_id} » doit contenir une liste « steps » non vide.", job_id=job_id), *target, key=True)
             else:
                 _validate_github_steps(job_id, steps, report)
         for needed in _as_list(job.get("needs")):
             if needed not in jobs:
-                report.error(f"« needs » référence un job inexistant : « {needed} ».", *where, "needs")
+                report.error(tr("« needs » référence un job inexistant : « {needed} ».", needed=needed), *where, "needs")
         timeout = job.get("timeout-minutes")
         if timeout is not None and not isinstance(timeout, (int, float)) and not (isinstance(timeout, str) and "${{" in timeout):
-            report.error("« timeout-minutes » doit être un nombre.", *where, "timeout-minutes")
+            report.error(tr("« timeout-minutes » doit être un nombre."), *where, "timeout-minutes")
 
     cycle = _find_cycle({str(k): [str(n) for n in _as_list(v.get("needs"))] for k, v in jobs.items() if isinstance(v, dict)})
     if cycle:
-        report.error(f"Dépendances circulaires entre jobs : {' → '.join(cycle)}.", "jobs", cycle[0], "needs")
+        report.error(tr("Dépendances circulaires entre jobs : {value}.", value=' → '.join(cycle)), "jobs", cycle[0], "needs")
 
 
 def _validate_github_steps(job_id: str, steps: list[Any], report: _Report) -> None:
     for index, step in enumerate(steps):
         where = ("jobs", job_id, "steps", index)
         if not isinstance(step, dict):
-            report.error("Chaque étape doit être un dictionnaire (« - uses: … » ou « - run: … »).", *where)
+            report.error(tr("Chaque étape doit être un dictionnaire (« - uses: … » ou « - run: … »)."), *where)
             continue
         has_uses, has_run = "uses" in step, "run" in step
         if has_uses == has_run:
-            report.error("Une étape doit contenir soit « uses », soit « run » (pas les deux).", *where)
+            report.error(tr("Une étape doit contenir soit « uses », soit « run » (pas les deux)."), *where)
         uses = step.get("uses")
         if isinstance(uses, str) and not uses.startswith(("./", "docker://")) and "@" not in uses:
-            report.error(f"Version manquante pour l'action « {uses} » : ajoutez « @v4 », un tag ou un SHA.", *where, "uses")
+            report.error(tr("Version manquante pour l'action « {uses} » : ajoutez « @v4 », un tag ou un SHA.", uses=uses), *where, "uses")
         for key in step:
             if key not in _GITHUB_STEP:
-                report.warning(f"Clé « {key} » inconnue pour une étape.", *where, key, key=True)
+                report.warning(tr("Clé « {key} » inconnue pour une étape.", key=key), *where, key, key=True)
 
 
 # ---------------------------------------------------------------------------
@@ -266,7 +267,7 @@ def _validate_gitlab(doc: dict[str, Any], report: _Report) -> None:
     has_include = bool(doc.get("include"))
     declared = doc.get("stages")
     if declared is not None and not isinstance(declared, list):
-        report.error("« stages » doit être une liste.", "stages")
+        report.error(tr("« stages » doit être une liste."), "stages")
     stages = [".pre", *(str(s) for s in declared), ".post"] if isinstance(declared, list) else _GITLAB_DEFAULT_STAGES
     all_keys = {str(k) for k in doc}
     jobs = {
@@ -275,51 +276,51 @@ def _validate_gitlab(doc: dict[str, Any], report: _Report) -> None:
         if str(key) not in _GITLAB_GLOBAL and not str(key).startswith(".") and isinstance(value, dict)
     }
     if not jobs and not has_include:
-        report.error("Aucun job défini : ajoutez au moins un job avec un « script ».")
+        report.error(tr("Aucun job défini : ajoutez au moins un job avec un « script »."))
 
     for key, value in doc.items():
         name = str(key)
         if name in _GITLAB_GLOBAL or name.startswith("."):
             continue
         if not isinstance(value, dict):
-            report.error(f"« {name} » n'est ni un mot-clé global ni un job valide (un job doit être un dictionnaire).", name, key=True)
+            report.error(tr("« {name} » n'est ni un mot-clé global ni un job valide (un job doit être un dictionnaire).", name=name), name, key=True)
 
     for name, job in jobs.items():
         where = (name,)
         for key in job:
             if key not in _GITLAB_JOB:
-                report.warning(f"Mot-clé « {key} » inconnu pour un job GitLab.", name, key, key=True)
+                report.warning(tr("Mot-clé « {key} » inconnu pour un job GitLab.", key=key), name, key, key=True)
         if not any(field in job for field in ("script", "run", "trigger", "extends")):
-            report.error(f"Le job « {name} » doit contenir un « script » (ou « trigger » / « extends »).", *where, key=True)
+            report.error(tr("Le job « {name} » doit contenir un « script » (ou « trigger » / « extends »).", name=name), *where, key=True)
         script = job.get("script")
         if script is not None and not isinstance(script, (str, list)):
-            report.error("« script » doit être une commande ou une liste de commandes.", name, "script")
+            report.error(tr("« script » doit être une commande ou une liste de commandes."), name, "script")
         if isinstance(script, list) and not script:
-            report.error("« script » ne peut pas être vide.", name, "script")
+            report.error(tr("« script » ne peut pas être vide."), name, "script")
         stage = job.get("stage")
         if stage is not None and str(stage) not in stages:
-            report.error(f"Stage « {stage} » non déclaré dans « stages » ({', '.join(stages[1:-1]) or 'aucun'}).", name, "stage")
+            report.error(tr("Stage « {stage} » non déclaré dans « stages » ({value}).", stage=stage, value=', '.join(stages[1:-1]) or 'aucun'), name, "stage")
         if "rules" in job and ("only" in job or "except" in job):
-            report.error("« rules » ne peut pas être combiné avec « only » ou « except ».", name, "rules", key=True)
+            report.error(tr("« rules » ne peut pas être combiné avec « only » ou « except »."), name, "rules", key=True)
         when = job.get("when")
         if when is not None and when not in _GITLAB_WHEN:
-            report.error(f"Valeur de « when » invalide : « {when} » ({', '.join(sorted(_GITLAB_WHEN))}).", name, "when")
+            report.error(tr("Valeur de « when » invalide : « {when} » ({value}).", when=when, value=', '.join(sorted(_GITLAB_WHEN))), name, "when")
         for rule_index, rule in enumerate(_as_list(job.get("rules"))):
             if isinstance(rule, dict) and rule.get("when") is not None and rule["when"] not in _GITLAB_WHEN:
-                report.error(f"Valeur de « when » invalide dans une règle : « {rule['when']} ».", name, "rules", rule_index, "when")
+                report.error(tr("Valeur de « when » invalide dans une règle : « {value} ».", value=rule['when']), name, "rules", rule_index, "when")
         for extended in _as_list(job.get("extends")):
             if str(extended) not in all_keys:
-                (report.warning if has_include else report.error)(f"« extends » référence « {extended} », introuvable dans ce fichier.", name, "extends")
+                (report.warning if has_include else report.error)(tr("« extends » référence « {extended} », introuvable dans ce fichier.", extended=extended), name, "extends")
         for need_index, need in enumerate(_as_list(job.get("needs"))):
             target = need.get("job") if isinstance(need, dict) else need
             if isinstance(need, dict) and (need.get("project") or need.get("pipeline")):
                 continue
             if target is not None and str(target) not in jobs:
-                (report.warning if has_include else report.error)(f"« needs » référence un job inexistant : « {target} ».", name, "needs", need_index)
+                (report.warning if has_include else report.error)(tr("« needs » référence un job inexistant : « {target} ».", target=target), name, "needs", need_index)
 
     cycle = _find_cycle({name: [str(n.get("job") if isinstance(n, dict) else n) for n in _as_list(job.get("needs"))] for name, job in jobs.items()})
     if cycle:
-        report.error(f"Dépendances circulaires entre jobs : {' → '.join(cycle)}.", cycle[0], "needs")
+        report.error(tr("Dépendances circulaires entre jobs : {value}.", value=' → '.join(cycle)), cycle[0], "needs")
 
 
 # ---------------------------------------------------------------------------
@@ -338,17 +339,17 @@ _BITBUCKET_SIZES = {"1x", "2x", "4x", "8x", "16x", "32x"}
 def _validate_bitbucket(doc: dict[str, Any], report: _Report) -> None:
     for key in doc:
         if key not in _BITBUCKET_TOP:
-            report.warning(f"Clé « {key} » inconnue au premier niveau de bitbucket-pipelines.yml.", key, key=True)
+            report.warning(tr("Clé « {key} » inconnue au premier niveau de bitbucket-pipelines.yml.", key=key), key, key=True)
     pipelines = doc.get("pipelines")
     if pipelines is None:
-        report.error("Section « pipelines: » manquante.")
+        report.error(tr("Section « pipelines: » manquante."))
         return
     if not isinstance(pipelines, dict) or not pipelines:
-        report.error("« pipelines » doit contenir au moins une section (default, branches, pull-requests…).", "pipelines")
+        report.error(tr("« pipelines » doit contenir au moins une section (default, branches, pull-requests…)."), "pipelines")
         return
     for section, config in pipelines.items():
         if section not in _BITBUCKET_SECTIONS:
-            report.error(f"Section « {section} » inconnue (attendu : {', '.join(sorted(_BITBUCKET_SECTIONS))}).", "pipelines", section, key=True)
+            report.error(tr("Section « {section} » inconnue (attendu : {value}).", section=section, value=', '.join(sorted(_BITBUCKET_SECTIONS))), "pipelines", section, key=True)
             continue
         if section == "default":
             _validate_bitbucket_items(config, report, ("pipelines", "default"))
@@ -356,19 +357,19 @@ def _validate_bitbucket(doc: dict[str, Any], report: _Report) -> None:
             for pattern, items in config.items():
                 _validate_bitbucket_items(items, report, ("pipelines", section, pattern))
         else:
-            report.error(f"« {section} » doit associer des motifs (branches, tags…) à des listes d'étapes.", "pipelines", section)
+            report.error(tr("« {section} » doit associer des motifs (branches, tags…) à des listes d'étapes.", section=section), "pipelines", section)
 
 
 def _validate_bitbucket_items(items: Any, report: _Report, path: tuple[Any, ...]) -> None:
     if isinstance(items, dict) and "steps" in items:  # pipelines personnalisés avec variables
         items = items["steps"]
     if not isinstance(items, list) or not items:
-        report.error("Une liste d'étapes (« - step: … ») est attendue.", *path)
+        report.error(tr("Une liste d'étapes (« - step: … ») est attendue."), *path)
         return
     for index, item in enumerate(items):
         where = (*path, index)
         if not isinstance(item, dict):
-            report.error("Chaque élément doit être « step », « parallel » ou « stage ».", *where)
+            report.error(tr("Chaque élément doit être « step », « parallel » ou « stage »."), *where)
         elif "step" in item:
             _validate_bitbucket_step(item["step"], report, (*where, "step"))
         elif "parallel" in item:
@@ -379,28 +380,28 @@ def _validate_bitbucket_items(items: Any, report: _Report, path: tuple[Any, ...]
             stage = item["stage"]
             _validate_bitbucket_items(stage.get("steps") if isinstance(stage, dict) else None, report, (*where, "stage", "steps"))
         elif "variables" not in item:
-            report.error("Élément inconnu : « step », « parallel » ou « stage » attendu.", *where)
+            report.error(tr("Élément inconnu : « step », « parallel » ou « stage » attendu."), *where)
 
 
 def _validate_bitbucket_step(step: Any, report: _Report, path: tuple[Any, ...]) -> None:
     if not isinstance(step, dict):
-        report.error("« step » doit être un dictionnaire.", *path)
+        report.error(tr("« step » doit être un dictionnaire."), *path)
         return
     script = step.get("script")
     if not isinstance(script, list) or not script:
-        report.error("Chaque étape doit contenir un « script » (liste de commandes non vide).", *path, key=True)
+        report.error(tr("Chaque étape doit contenir un « script » (liste de commandes non vide)."), *path, key=True)
     for key in step:
         if key not in _BITBUCKET_STEP:
-            report.warning(f"Clé « {key} » inconnue pour une étape.", *path, key, key=True)
+            report.warning(tr("Clé « {key} » inconnue pour une étape.", key=key), *path, key, key=True)
     size = step.get("size")
     if size is not None and str(size) not in _BITBUCKET_SIZES:
-        report.error(f"Taille « {size} » invalide ({', '.join(sorted(_BITBUCKET_SIZES))}).", *path, "size")
+        report.error(tr("Taille « {size} » invalide ({value}).", size=size, value=', '.join(sorted(_BITBUCKET_SIZES))), *path, "size")
     trigger = step.get("trigger")
     if trigger is not None and trigger not in ("manual", "automatic"):
-        report.error("« trigger » doit valoir « manual » ou « automatic ».", *path, "trigger")
+        report.error(tr("« trigger » doit valoir « manual » ou « automatic »."), *path, "trigger")
     max_time = step.get("max-time")
     if max_time is not None and not isinstance(max_time, int):
-        report.error("« max-time » doit être un nombre de minutes.", *path, "max-time")
+        report.error(tr("« max-time » doit être un nombre de minutes."), *path, "max-time")
 
 
 # ---------------------------------------------------------------------------

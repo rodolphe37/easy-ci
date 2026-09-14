@@ -3,6 +3,7 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
+import i18n from "@/i18n";
 import { cn } from "@/lib/utils";
 
 export const TooltipProvider = TooltipPrimitive.Provider;
@@ -125,7 +126,7 @@ export function Modal({
                 <DialogPrimitive.Description className="mt-1 text-[12.5px] leading-relaxed text-fg-muted">{description}</DialogPrimitive.Description>
               ) : null}
             </div>
-            <DialogPrimitive.Close className="flex size-7 items-center justify-center rounded-md text-fg-subtle hover:bg-surface-2 hover:text-fg" aria-label="Fermer">
+            <DialogPrimitive.Close className="flex size-7 items-center justify-center rounded-md text-fg-subtle hover:bg-surface-2 hover:text-fg" aria-label={i18n.t("common.close")}>
               <X className="size-4" />
             </DialogPrimitive.Close>
           </div>

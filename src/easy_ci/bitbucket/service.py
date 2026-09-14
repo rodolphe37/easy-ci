@@ -13,7 +13,8 @@ from easy_ci import logs
 from easy_ci.bitbucket import normalize
 from easy_ci.errors import EasyCIError, ForbiddenError, NotFoundError
 from easy_ci.http import ApiClient
-from easy_ci.providers import BITBUCKET, PROVIDER_INFO, RECENT_RUNS, build_scan, empty_scan
+from easy_ci.i18n import tr
+from easy_ci.providers import BITBUCKET, RECENT_RUNS, build_scan, capabilities, empty_scan
 from easy_ci.state import FAILURE, QUEUED, RUNNING
 from easy_ci.workflow_yaml import summarize_bitbucket_pipelines
 
@@ -38,7 +39,7 @@ class BitbucketClient(ApiClient):
         elif email and api_token:
             super().__init__(base_url, label="Bitbucket", auth=(email, api_token), transport=transport, timeout=timeout)
         else:
-            raise EasyCIError("Renseignez l'e-mail du compte Atlassian et l'API token, ou un access token.")
+            raise EasyCIError(tr("Renseignez l'e-mail du compte Atlassian et l'API token, ou un access token."))
 
 
 def _uuid(value: str) -> str:
@@ -145,7 +146,7 @@ class BitbucketService:
         return {
             "run": normalize.pipeline(raw, full_name, commit),
             "jobs": [normalize.step(item, full_name, raw) for item in steps],
-            "capabilities": PROVIDER_INFO[BITBUCKET]["capabilities"],
+            "capabilities": capabilities(BITBUCKET),
         }
 
     def get_job_log(self, full_name: str, job_id: str) -> dict[str, Any]:
@@ -187,7 +188,7 @@ class BitbucketService:
         else:
             payload_target = {key: target[key] for key in ("type", "ref_type", "ref_name", "selector") if key in target}
         if not payload_target.get("ref_name") and payload_target.get("type") != "pipeline_pullrequest_target":
-            raise EasyCIError("Ce pipeline ne peut pas être relancé depuis Easy CI (cible inconnue). Relancez-le depuis Bitbucket.")
+            raise EasyCIError(tr("Ce pipeline ne peut pas être relancé depuis Easy CI (cible inconnue). Relancez-le depuis Bitbucket."))
         created = self._client.post(f"/repositories/{full_name}/pipelines/", json={"target": payload_target}) or {}
         return {"run_id": created.get("uuid", run_id)}
 
@@ -233,7 +234,7 @@ class BitbucketService:
     def _split_job_id(job_id: str) -> tuple[str, str]:
         pipeline_uuid, sep, step_uuid = job_id.partition(":")
         if not sep:
-            raise EasyCIError("Identifiant de step Bitbucket invalide.")
+            raise EasyCIError(tr("Identifiant de step Bitbucket invalide."))
         return pipeline_uuid, step_uuid
 
     def _config_exists(self, full_name: str, branch: str) -> bool:

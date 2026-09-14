@@ -1,20 +1,13 @@
 import { Link } from "react-router";
+import i18n from "@/i18n";
 import { runPath } from "@/lib/providers";
 import type { HistoryEntry, ProviderId, RunStateName } from "@/lib/types";
 import { cn, timeAgo } from "@/lib/utils";
 import { Tooltip } from "./ui/overlays";
 
-export const STATE_LABELS: Record<RunStateName, string> = {
-  success: "Réussi",
-  failure: "Échec",
-  running: "En cours",
-  queued: "En attente",
-  cancelled: "Annulé",
-  skipped: "Ignoré",
-  action_required: "Action requise",
-  neutral: "Neutre",
-  none: "Pas de CI",
-};
+export function stateLabel(state: RunStateName): string {
+  return i18n.t(`states.${state}`);
+}
 
 export const STATE_COLORS: Record<RunStateName, string> = {
   success: "var(--success)",
@@ -35,7 +28,7 @@ export function isActive(state: RunStateName | undefined | null) {
 /** Icône de statut dessinée à la main : nette à toutes les tailles, forme distincte pour chaque état. */
 export function StatusIcon({ state, className }: { state: RunStateName; className?: string }) {
   const color = STATE_COLORS[state];
-  const common = { viewBox: "0 0 16 16", className: cn("size-4 shrink-0", className), "aria-label": STATE_LABELS[state], role: "img" as const };
+  const common = { viewBox: "0 0 16 16", className: cn("size-4 shrink-0", className), "aria-label": stateLabel(state), role: "img" as const };
 
   switch (state) {
     case "success":
@@ -110,7 +103,7 @@ export function StatusBadge({ state, className, size = "md" }: { state: RunState
       style={{ background: `color-mix(in oklab, ${STATE_COLORS[state]} 13%, transparent)` }}
     >
       <StatusIcon state={state} className={size === "lg" ? "size-4.5" : size === "sm" ? "size-3.5" : "size-4"} />
-      {STATE_LABELS[state]}
+      {stateLabel(state)}
     </span>
   );
 }
@@ -131,7 +124,7 @@ export function HistoryStrip({
 }) {
   const padding = Math.max(0, slots - history.length);
   return (
-    <div className={cn("flex h-5 items-end gap-[2px]", className)} aria-label="Historique des exécutions">
+    <div className={cn("flex h-5 items-end gap-[2px]", className)} aria-label={i18n.t("states.history")}>
       {Array.from({ length: padding }).map((_, i) => (
         <span key={`pad-${i}`} className="h-1.5 w-1.5 rounded-[2px] bg-surface-3" />
       ))}
@@ -145,7 +138,7 @@ export function HistoryStrip({
               <span className="flex items-center gap-1.5">
                 <StatusIcon state={entry.state} className="size-3.5" />
                 <span className="font-medium">#{entry.run_number}</span>
-                <span className="text-fg-muted">{STATE_LABELS[entry.state]} · {timeAgo(entry.created_at)}</span>
+                <span className="text-fg-muted">{stateLabel(entry.state)} · {timeAgo(entry.created_at)}</span>
               </span>
             }
           >

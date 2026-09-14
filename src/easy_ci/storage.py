@@ -21,6 +21,7 @@ LEGACY_GITHUB_ACCOUNT = "github-token"
 
 DEFAULT_SETTINGS: dict[str, Any] = {
     "theme": "system",  # system | light | dark
+    "language": "system",  # system | fr | en
     "refresh_interval": 60,  # secondes, 0 = manuel
     "favorites": [],  # clés « fournisseur:chemin »
     "added_repositories": [],  # dépôts suivis en plus de ceux découverts automatiquement

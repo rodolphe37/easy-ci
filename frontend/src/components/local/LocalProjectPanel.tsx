@@ -25,8 +25,10 @@ import {
   Zap,
 } from "lucide-react";
 import { useState, type FormEvent, type ReactNode } from "react";
+import { Trans } from "react-i18next";
 import { Link, useNavigate } from "react-router";
 import { errorMessage, useLocalActions, useLocalProjects, useLocalStatus } from "@/hooks/local";
+import i18n from "@/i18n";
 import { useSettings } from "@/hooks/session";
 import { useNow } from "@/hooks/useNow";
 import { api, ApiError } from "@/lib/api";
@@ -42,14 +44,20 @@ import { FolderField } from "./FolderField";
 
 type LinkedStatus = Extract<LocalStatus, { linked: true }>;
 
-export const CI_STATE_INFO: Record<CiFileState, { label: string; description: string; tone: "success" | "running" | "accent" | "failure" | "muted" }> = {
-  synced: { label: "Synchronisé", description: "Identique à la branche distante.", tone: "success" },
-  uncommitted: { label: "Modifié localement", description: "Modification en cours, pas encore commitée.", tone: "running" },
-  untracked: { label: "Nouveau, non suivi", description: "Fichier créé localement, jamais commité.", tone: "running" },
-  unpushed: { label: "Commité, non poussé", description: "Commit local pas encore envoyé sur la branche distante.", tone: "accent" },
-  outdated: { label: "En retard", description: "La branche distante contient une version plus récente : mettez à jour.", tone: "running" },
-  diverged: { label: "Divergé", description: "Modifié à la fois localement et sur la branche distante.", tone: "failure" },
+const CI_STATE_TONES: Record<CiFileState, "success" | "running" | "accent" | "failure" | "muted"> = {
+  synced: "success",
+  uncommitted: "running",
+  untracked: "running",
+  unpushed: "accent",
+  outdated: "running",
+  diverged: "failure",
 };
+
+export const CI_FILE_STATES = Object.keys(CI_STATE_TONES) as CiFileState[];
+
+export function ciStateInfo(state: CiFileState) {
+  return { label: i18n.t(`local.ciStates.${state}.label`), description: i18n.t(`local.ciStates.${state}.description`), tone: CI_STATE_TONES[state] };
+}
 
 const TONES = {
   success: "border-success/25 bg-success/10 text-fg",
@@ -61,7 +69,7 @@ const TONES = {
 const DOTS = { success: "bg-success", running: "bg-running", accent: "bg-accent", failure: "bg-failure", muted: "bg-fg-subtle" };
 
 export function CiStateBadge({ state }: { state: CiFileState }) {
-  const info = CI_STATE_INFO[state];
+  const info = ciStateInfo(state);
   return (
     <Tooltip content={info.description}>
       <Badge className={cn("gap-1.5", TONES[info.tone])}>
@@ -90,7 +98,7 @@ export function LocalProjectPanel({ repo }: { repo: Repository }) {
   if (statusQuery.error) {
     return (
       <Card>
-        <EmptyState icon={<TriangleAlert />} title="État local indisponible" description={errorMessage(statusQuery.error)} />
+        <EmptyState icon={<TriangleAlert />} title={i18n.t("local.panel.statusUnavailable")} description={errorMessage(statusQuery.error)} />
       </Card>
     );
   }
@@ -115,10 +123,9 @@ function NotLinked({ repo }: { repo: Repository }) {
             <Laptop className="size-5" />
           </div>
           <div>
-            <h3 className="text-[15px] font-semibold">Aucun dossier local lié</h3>
+            <h3 className="text-[15px] font-semibold">{i18n.t("local.panel.notLinkedTitle")}</h3>
             <p className="mt-1 text-[13px] leading-relaxed text-fg-muted">
-              Reliez ce dépôt à son clone sur votre machine. Easy CI y suivra la branche, les commits à récupérer ou à pousser, et l'état des fichiers CI. Les
-              modifications de pipelines seront faites dans ce dossier.
+              {i18n.t("local.panel.notLinkedDescription")}
             </p>
           </div>
         </div>
@@ -126,7 +133,7 @@ function NotLinked({ repo }: { repo: Repository }) {
         {overview?.git_version === null ? (
           <div className="mt-5 flex items-start gap-2.5 rounded-xl border border-failure/30 bg-failure/[0.06] p-3.5 text-[13px] text-fg-muted">
             <TriangleAlert className="mt-0.5 size-4 shrink-0 text-failure" />
-            Git n'est pas installé sur cette machine (ou n'est pas dans le PATH). Installez-le puis relancez Easy CI.
+            {i18n.t("local.panel.gitMissing")}
           </div>
         ) : null}
 
@@ -135,8 +142,8 @@ function NotLinked({ repo }: { repo: Repository }) {
           onChange={setMode}
           className="mt-5"
           options={[
-            { value: "link", label: <><Link2 />Lier un dossier existant</> },
-            { value: "clone", label: <><Download />Cloner le dépôt</> },
+            { value: "link", label: <><Link2 />{i18n.t("local.panel.linkExisting")}</> },
+            { value: "clone", label: <><Download />{i18n.t("local.panel.cloneRepository")}</> },
           ]}
         />
         <div className="mt-4">{mode === "link" ? <LinkForm repo={repo} pickerAvailable={overview?.picker_available ?? false} /> : <CloneForm repo={repo} pickerAvailable={overview?.picker_available ?? false} defaultParent={overview?.roots[0]?.path ?? ""} />}</div>
@@ -144,27 +151,26 @@ function NotLinked({ repo }: { repo: Repository }) {
 
       <Card className="p-5 text-[13px] leading-relaxed text-fg-muted">
         <div className="mb-2 flex items-center gap-2 font-semibold text-fg">
-          <FolderGit2 className="size-4 text-accent" /> Détection automatique
+          <FolderGit2 className="size-4 text-accent" /> {i18n.t("local.panel.autoDetection")}
         </div>
         {noRoots ? (
           <p>
-            Indiquez le dossier où se trouvent vos projets (par exemple <code className="font-mono text-[12px] text-fg">~/Developer</code>) : Easy CI y repérera tous
-            vos clones et les reliera automatiquement à leurs dépôts.
+            <Trans i18nKey="local.panel.noRoots" components={{ code: <code className="font-mono text-[12px] text-fg" /> }} />
           </p>
         ) : (
           <p>
-            Easy CI parcourt {overview?.roots.length === 1 ? "le dossier" : "les dossiers"}{" "}
+            {i18n.t("local.panel.scans", { count: overview?.roots.length ?? 0 })}{" "}
             {overview?.roots.map((root, index) => (
               <span key={root.path}>
                 <code className="font-mono text-[12px] text-fg">{root.display_path}</code>
                 {index < overview.roots.length - 1 ? ", " : ""}
               </span>
             ))}{" "}
-            sans y trouver de clone de ce dépôt. Clonez-le, ou liez un dossier situé ailleurs.
+            {i18n.t("local.panel.noCloneFound")}
           </p>
         )}
         <Link to="/settings#local" className={buttonClass("secondary", "sm", "mt-3")}>
-          {noRoots ? "Ajouter un dossier de projets" : "Gérer les dossiers"} <ChevronRight className="size-3.5" />
+          {noRoots ? i18n.t("local.panel.addRoot") : i18n.t("local.panel.manageRoots")} <ChevronRight className="size-3.5" />
         </Link>
       </Card>
     </div>
@@ -184,7 +190,7 @@ function LinkForm({ repo, pickerAvailable }: { repo: Repository; pickerAvailable
   return (
     <form onSubmit={submit} className="space-y-3">
       <label htmlFor="link-path" className="block text-[12.5px] font-medium text-fg-muted">
-        Dossier du clone local
+        {i18n.t("local.panel.clonePath")}
       </label>
       <FolderField
         id="link-path"
@@ -194,24 +200,24 @@ function LinkForm({ repo, pickerAvailable }: { repo: Repository; pickerAvailable
           link.reset();
         }}
         pickerAvailable={pickerAvailable}
-        pickerTitle={`Dossier local de ${repo.full_name}`}
+        pickerTitle={i18n.t("local.panel.pickerTitle", { name: repo.full_name })}
         placeholder={`~/Developer/${repo.name}`}
       />
       {mismatch ? (
         <div className="flex items-start gap-2.5 rounded-xl border border-running/30 bg-running/[0.07] p-3 text-[12.5px] text-fg-muted animate-fade-in">
           <TriangleAlert className="mt-0.5 size-4 shrink-0 text-running" />
           <div className="flex-1">
-            {mismatch} Vérifiez le dossier choisi.
+            {mismatch} {i18n.t("local.panel.checkFolder")}
             <div className="mt-2">
               <Button size="sm" variant="secondary" onClick={(event) => submit(event, true)} loading={link.isPending}>
-                Lier quand même
+                {i18n.t("local.panel.linkAnyway")}
               </Button>
             </div>
           </div>
         </div>
       ) : null}
       <Button type="submit" variant="primary" loading={link.isPending && !mismatch} disabled={!path.trim()}>
-        <Link2 /> Lier ce dossier
+        <Link2 /> {i18n.t("local.panel.linkFolder")}
       </Button>
     </form>
   );
@@ -232,9 +238,9 @@ function CloneForm({ repo, pickerAvailable, defaultParent }: { repo: Repository;
       className="space-y-3"
     >
       <label htmlFor="clone-parent" className="block text-[12.5px] font-medium text-fg-muted">
-        Cloner dans le dossier
+        {i18n.t("local.panel.cloneInto")}
       </label>
-      <FolderField id="clone-parent" value={parent} onChange={setParent} pickerAvailable={pickerAvailable} pickerTitle="Dossier où cloner le dépôt" />
+      <FolderField id="clone-parent" value={parent} onChange={setParent} pickerAvailable={pickerAvailable} pickerTitle={i18n.t("local.panel.clonePickerTitle")} />
       <div className="flex flex-wrap items-center gap-3">
         <SegmentedControl<"https" | "ssh">
           value={protocol}
@@ -245,16 +251,16 @@ function CloneForm({ repo, pickerAvailable, defaultParent }: { repo: Repository;
           ]}
         />
         <span className="text-[12px] text-fg-subtle">
-          {protocol === "https" ? "Utilise le gestionnaire d'identifiants de Git." : "Utilise votre clé SSH."}
+          {protocol === "https" ? i18n.t("local.panel.httpsHint") : i18n.t("local.panel.sshHint")}
         </span>
       </div>
       {destination ? (
         <p className="text-[12.5px] text-fg-muted">
-          Destination : <code className="font-mono text-[12px] text-fg">{destination}</code>
+          {i18n.t("local.panel.destination")} <code className="font-mono text-[12px] text-fg">{destination}</code>
         </p>
       ) : null}
       <Button type="submit" variant="primary" loading={clone.isPending} disabled={!parent.trim()}>
-        <Download /> {clone.isPending ? "Clonage en cours…" : `Cloner ${repo.name}`}
+        <Download /> {clone.isPending ? i18n.t("local.panel.cloning") : i18n.t("local.panel.clone", { name: repo.name })}
       </Button>
     </form>
   );
@@ -284,7 +290,7 @@ function Linked({ repo, status, refreshing, onRefresh }: { repo: Repository; sta
             <code className="mt-1 block font-mono text-[12.5px] text-fg-muted">{status.display_path}</code>
             <div className="mt-4 flex gap-2">
               <Button variant="secondary" onClick={() => unlink.mutate(repo.key)} loading={unlink.isPending}>
-                <Unlink /> Délier et choisir un autre dossier
+                <Unlink /> {i18n.t("local.panel.unlinkAndChoose")}
               </Button>
             </div>
           </div>
@@ -297,7 +303,7 @@ function Linked({ repo, status, refreshing, onRefresh }: { repo: Repository; sta
   const behind = status.behind ?? 0;
   const ciFiles = status.ci_files ?? [];
   const otherChanges = (status.changes ?? []).filter((change) => !ciFiles.some((file) => file.path === change.path));
-  const pullBlocked = !status.upstream ? "La branche locale ne suit aucune branche distante." : status.dirty ? "Des modifications locales ne sont pas commitées." : ahead > 0 && behind > 0 ? "Branches divergentes : fusionnez depuis votre terminal." : behind === 0 ? "Déjà à jour." : null;
+  const pullBlocked = !status.upstream ? i18n.t("local.panel.pullBlocked.noUpstream") : status.dirty ? i18n.t("local.panel.pullBlocked.dirty") : ahead > 0 && behind > 0 ? i18n.t("local.panel.pullBlocked.diverged") : behind === 0 ? i18n.t("local.panel.pullBlocked.upToDate") : null;
   const editor = overview?.editors.find((e) => e.id === settings?.preferred_editor) ?? overview?.editors[0];
   const busy = sync.isPending;
   const providerLabel = PROVIDER_LABELS[repo.provider].label;
@@ -313,13 +319,13 @@ function Linked({ repo, status, refreshing, onRefresh }: { repo: Repository; sta
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <code className="truncate font-mono text-[13.5px] font-medium text-fg">{status.display_path}</code>
-              <Badge>{overview?.projects.find((p) => p.key === repo.key)?.source === "manual" ? "Lié manuellement" : "Détecté automatiquement"}</Badge>
+              <Badge>{overview?.projects.find((p) => p.key === repo.key)?.source === "manual" ? i18n.t("local.panel.linkedManually") : i18n.t("local.panel.detectedAutomatically")}</Badge>
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] text-fg-muted">
               <span className="inline-flex items-center gap-1.5">
                 <GitBranch className="size-3.5 text-fg-subtle" />
-                <span className="font-mono text-fg">{status.detached ? "HEAD détachée" : status.branch}</span>
-                {status.upstream ? <span className="text-fg-subtle">→ {status.upstream}</span> : <span className="text-running">sans branche distante</span>}
+                <span className="font-mono text-fg">{status.detached ? i18n.t("publish.card.detached") : status.branch}</span>
+                {status.upstream ? <span className="text-fg-subtle">→ {status.upstream}</span> : <span className="text-running">{i18n.t("local.panel.noUpstream")}</span>}
               </span>
               {status.last_commit ? (
                 <span className="inline-flex min-w-0 items-center gap-1.5">
@@ -333,12 +339,12 @@ function Linked({ repo, status, refreshing, onRefresh }: { repo: Repository; sta
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
-            <Tooltip content="Interroge le serveur Git sans modifier votre copie de travail (git fetch).">
+            <Tooltip content={i18n.t("local.panel.fetchTooltip")}>
               <Button onClick={() => sync.mutate({ key: repo.key, pull: false })} loading={busy && sync.variables?.pull === false}>
-                <RefreshCw /> Récupérer
+                <RefreshCw /> {i18n.t("local.panel.fetch")}
               </Button>
             </Tooltip>
-            <Tooltip content={pullBlocked ?? `Met à jour la branche en avance rapide (${behind} commit${behind > 1 ? "s" : ""}).`}>
+            <Tooltip content={pullBlocked ?? i18n.t("local.panel.pullTooltip", { count: behind })}>
               <span>
                 <Button
                   variant={behind > 0 && !pullBlocked ? "primary" : "secondary"}
@@ -346,37 +352,37 @@ function Linked({ repo, status, refreshing, onRefresh }: { repo: Repository; sta
                   loading={busy && sync.variables?.pull === true}
                   disabled={Boolean(pullBlocked)}
                 >
-                  <ArrowDownToLine /> Mettre à jour
+                  <ArrowDownToLine /> {i18n.t("local.panel.pull")}
                 </Button>
               </span>
             </Tooltip>
             <Menu>
               <MenuTrigger asChild>
-                <Button variant="secondary" size="icon" aria-label="Plus d'actions">
+                <Button variant="secondary" size="icon" aria-label={i18n.t("common.moreActions")}>
                   <MoreHorizontal />
                 </Button>
               </MenuTrigger>
               <MenuContent>
                 <MenuItem icon={<FolderOpen />} onSelect={() => open.mutate({ key: repo.key, target: "folder" })}>
-                  Afficher dans {overview?.file_manager ?? "le Finder"}
+                  {i18n.t("local.panel.showIn", { place: overview?.file_manager ?? "Finder" })}
                 </MenuItem>
                 <MenuItem
                   icon={<Code2 />}
                   disabled={!editor}
-                  description={editor ? undefined : "Aucun éditeur reconnu"}
+                  description={editor ? undefined : i18n.t("local.panel.noEditor")}
                   onSelect={() => open.mutate({ key: repo.key, target: "editor", editorId: editor?.id })}
                 >
-                  Ouvrir dans {editor?.label ?? "l'éditeur"}
+                  {editor ? i18n.t("local.panel.openIn", { editor: editor.label }) : i18n.t("local.panel.openInEditor")}
                 </MenuItem>
                 <MenuItem icon={<SquareTerminal />} onSelect={() => open.mutate({ key: repo.key, target: "terminal" })}>
-                  Ouvrir un terminal
+                  {i18n.t("local.panel.openTerminal")}
                 </MenuItem>
                 <MenuSeparator />
                 <MenuItem icon={<RefreshCw />} onSelect={onRefresh}>
-                  Actualiser l'état
+                  {i18n.t("local.panel.refreshStatus")}
                 </MenuItem>
-                <MenuItem icon={<Unlink />} description="Le dossier n'est ni modifié ni supprimé" destructive onSelect={() => unlink.mutate(repo.key)}>
-                  Délier ce dossier
+                <MenuItem icon={<Unlink />} description={i18n.t("local.panel.unlinkDescription")} destructive onSelect={() => unlink.mutate(repo.key)}>
+                  {i18n.t("local.panel.unlink")}
                 </MenuItem>
               </MenuContent>
             </Menu>
@@ -386,32 +392,32 @@ function Linked({ repo, status, refreshing, onRefresh }: { repo: Repository; sta
         <div className="mt-5 grid gap-3 sm:grid-cols-4">
           <Metric
             icon={<ArrowDown />}
-            label="À récupérer"
+            label={i18n.t("local.panel.metrics.behind")}
             value={behind}
             tone={behind > 0 ? "running" : "muted"}
-            hint={behind > 0 ? `commit${behind > 1 ? "s" : ""} sur ${status.upstream}` : "à jour"}
+            hint={behind > 0 ? i18n.t("local.panel.metrics.behindHint", { count: behind, upstream: status.upstream }) : i18n.t("local.panel.metrics.upToDate")}
           />
-          <Metric icon={<ArrowUp />} label="À pousser" value={ahead} tone={ahead > 0 ? "accent" : "muted"} hint={ahead > 0 ? `commit${ahead > 1 ? "s" : ""} local${ahead > 1 ? "aux" : ""}` : "rien en attente"} />
+          <Metric icon={<ArrowUp />} label={i18n.t("local.panel.metrics.ahead")} value={ahead} tone={ahead > 0 ? "accent" : "muted"} hint={ahead > 0 ? i18n.t("local.panel.metrics.aheadHint", { count: ahead }) : i18n.t("local.panel.metrics.nothingPending")} />
           <Metric
             icon={<FileCode2 />}
-            label="Non commités"
+            label={i18n.t("local.panel.metrics.uncommitted")}
             value={status.changes_count ?? 0}
             tone={status.dirty ? "running" : "muted"}
-            hint={status.dirty ? "fichier(s) modifié(s)" : "copie de travail propre"}
+            hint={status.dirty ? i18n.t("local.panel.metrics.modifiedFiles") : i18n.t("local.panel.metrics.clean")}
           />
           <Metric
             icon={<RefreshCw className={cn(refreshing && "animate-spin")} />}
-            label="Dernière récupération"
-            text={status.last_fetch_at ? timeAgo(new Date(status.last_fetch_at * 1000).toISOString(), now) : "jamais"}
+            label={i18n.t("local.panel.metrics.lastFetch")}
+            text={status.last_fetch_at ? timeAgo(new Date(status.last_fetch_at * 1000).toISOString(), now) : i18n.t("local.panel.metrics.never")}
             tone="muted"
-            hint={settings?.auto_fetch_minutes ? `automatique toutes les ${settings.auto_fetch_minutes} min` : "automatique désactivée"}
+            hint={settings?.auto_fetch_minutes ? i18n.t("local.panel.metrics.autoEvery", { minutes: settings.auto_fetch_minutes }) : i18n.t("local.panel.metrics.autoOff")}
           />
         </div>
 
         {!status.remote_matches ? (
           <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-running/30 bg-running/[0.07] p-3 text-[12.5px] text-fg-muted">
             <TriangleAlert className="mt-0.5 size-4 shrink-0 text-running" />
-            Aucun remote de ce dossier ne pointe vers {repo.full_name} sur {providerLabel} : les comparaisons se font avec {status.compare_ref ?? "aucune branche distante"}.
+            {i18n.t("local.panel.remoteMismatch", { name: repo.full_name, provider: providerLabel, ref: status.compare_ref ?? i18n.t("local.panel.noRemoteBranch") })}
           </div>
         ) : null}
       </Card>
@@ -422,21 +428,21 @@ function Linked({ repo, status, refreshing, onRefresh }: { repo: Repository; sta
       <Card className="overflow-hidden">
         <div className="flex items-center gap-2.5 border-b border-line px-4 py-3">
           <FileCode2 className="size-4 text-fg-subtle" />
-          <h3 className="text-[13.5px] font-semibold">Fichiers CI locaux</h3>
-          <span className="text-[12.5px] text-fg-subtle">comparés à {status.compare_ref ?? "—"}</span>
-          <Tooltip content="Assistant : analyse la stack du projet et génère un pipeline">
+          <h3 className="text-[13.5px] font-semibold">{i18n.t("local.panel.ciFiles")}</h3>
+          <span className="text-[12.5px] text-fg-subtle">{i18n.t("local.panel.comparedTo", { ref: status.compare_ref ?? "—" })}</span>
+          <Tooltip content={i18n.t("local.panel.generateTooltip")}>
             <Link to={generatePath} className={buttonClass(ciFiles.some((f) => f.local) ? "ghost" : "primary", "sm", "ml-auto")}>
-              <Zap className="size-3.5" /> {ciFiles.some((f) => f.local) ? "Générer" : "Générer la configuration CI"}
+              <Zap className="size-3.5" /> {ciFiles.some((f) => f.local) ? i18n.t("local.panel.generate") : i18n.t("local.panel.generateCi")}
             </Link>
           </Tooltip>
           <Link to={editPath()} className={buttonClass("ghost", "sm")}>
             {ciFiles.some((f) => f.local) ? <Pencil className="size-3.5" /> : <FilePlus2 className="size-3.5" />}
-            {ciFiles.some((f) => f.local) ? "Ouvrir l'éditeur" : "Écrire à la main"}
+            {ciFiles.some((f) => f.local) ? i18n.t("local.panel.openEditor") : i18n.t("local.panel.writeByHand")}
           </Link>
         </div>
         {ciFiles.length === 0 ? (
           <div className="px-4 py-6 text-[13px] text-fg-muted">
-            Aucun fichier {PROVIDER_LABELS[repo.provider].config} dans ce dossier ni sur la branche distante.
+            {i18n.t("local.panel.noCiFiles", { config: PROVIDER_LABELS[repo.provider].config })}
           </div>
         ) : (
           <div className="divide-y divide-line">
@@ -451,10 +457,10 @@ function Linked({ repo, status, refreshing, onRefresh }: { repo: Repository; sta
                   >
                     <ChevronRight className={cn("size-3.5 shrink-0 text-fg-subtle transition-transform", expanded && "rotate-90", !hasDiff && "opacity-0")} />
                     <code className="min-w-0 flex-1 truncate font-mono text-[12.5px]">{file.path}</code>
-                    {!file.local ? <span className="text-[12px] text-fg-subtle">absent localement</span> : null}
+                    {!file.local ? <span className="text-[12px] text-fg-subtle">{i18n.t("local.panel.missingLocally")}</span> : null}
                     <CiStateBadge state={file.state} />
                     {file.local ? (
-                      <Tooltip content="Modifier dans le dossier local">
+                      <Tooltip content={i18n.t("local.panel.editLocally")}>
                         <span
                           role="link"
                           tabIndex={0}
@@ -482,14 +488,14 @@ function Linked({ repo, status, refreshing, onRefresh }: { repo: Repository; sta
           <details>
             <summary className="flex cursor-pointer list-none items-center gap-2.5 px-4 py-3 text-[13.5px] font-semibold select-none [&::-webkit-details-marker]:hidden">
               <ChevronRight className="size-3.5 text-fg-subtle" />
-              Autres modifications non commitées
+              {i18n.t("local.panel.otherChanges")}
               <span className="rounded-full bg-surface-3 px-1.5 text-[11px] font-medium text-fg-muted tabular">{otherChanges.length}</span>
             </summary>
             <ul className="divide-y divide-line border-t border-line">
               {otherChanges.slice(0, 50).map((change) => (
                 <li key={change.path} className="flex items-center gap-3 px-4 py-1.5 text-[12.5px]">
                   <code className="min-w-0 flex-1 truncate font-mono">{change.path}</code>
-                  <span className="text-fg-subtle">{CHANGE_LABELS[change.status] ?? change.status}</span>
+                  <span className="text-fg-subtle">{isChangeKind(change.status) ? i18n.t(`local.changes.${change.status}`) : change.status}</span>
                 </li>
               ))}
             </ul>
@@ -500,24 +506,18 @@ function Linked({ repo, status, refreshing, onRefresh }: { repo: Repository; sta
       <div className="flex items-start gap-2.5 rounded-xl border border-line bg-surface-2/50 p-3.5 text-[12.5px] leading-relaxed text-fg-muted">
         <Info className="mt-0.5 size-4 shrink-0 text-accent" />
         <p>
-          Easy CI n'envoie jamais rien sans votre accord : les fichiers CI sont modifiés dans ce dossier, commités sur une branche locale, puis envoyés et
-          proposés en pull request uniquement quand vous cliquez sur « Envoyer » et « Créer ». La mise à jour automatique, si vous l'activez, n'avance la branche
-          que si aucune modification locale n'est en cours.
+          {i18n.t("local.panel.consentNote")}
         </p>
       </div>
     </div>
   );
 }
 
-const CHANGE_LABELS: Record<string, string> = {
-  modified: "modifié",
-  added: "ajouté",
-  deleted: "supprimé",
-  renamed: "renommé",
-  copied: "copié",
-  untracked: "non suivi",
-  conflict: "en conflit",
-};
+const CHANGE_KINDS = ["modified", "added", "deleted", "renamed", "copied", "untracked", "conflict"] as const;
+
+function isChangeKind(status: string): status is (typeof CHANGE_KINDS)[number] {
+  return (CHANGE_KINDS as readonly string[]).includes(status);
+}
 
 function Metric({ icon, label, value, text, hint, tone }: { icon: ReactNode; label: string; value?: number; text?: string; hint: string; tone: "running" | "accent" | "muted" }) {
   return (
@@ -543,7 +543,7 @@ function CiFileDiff({ repoKey, path }: { repoKey: string; path: string }) {
     <div className="border-t border-line bg-surface-2/30 px-4 py-3 animate-fade-in">
       {query.isPending ? (
         <div className="flex items-center gap-2 text-[12.5px] text-fg-muted">
-          <Spinner className="size-3.5" /> Comparaison…
+          <Spinner className="size-3.5" /> {i18n.t("local.panel.comparing")}
         </div>
       ) : query.error ? (
         <p className="text-[12.5px] text-failure">{errorMessage(query.error)}</p>
@@ -551,7 +551,7 @@ function CiFileDiff({ repoKey, path }: { repoKey: string; path: string }) {
         <DiffViewer diff={query.data.diff} />
       ) : (
         <p className="flex items-center gap-2 text-[12.5px] text-fg-muted">
-          <Check className="size-3.5 text-success" /> Aucune différence de contenu avec {query.data?.compare_ref}.
+          <Check className="size-3.5 text-success" /> {i18n.t("local.panel.noDifference", { ref: query.data?.compare_ref })}
         </p>
       )}
     </div>

@@ -14,6 +14,8 @@ from typing import Any
 
 import yaml
 
+from easy_ci.i18n import tr
+
 
 class _CiLoader(yaml.SafeLoader):
     """Chargeur sûr qui tolère les balises propres à GitLab (`!reference [...]`)."""
@@ -38,7 +40,7 @@ def _load(content: str) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
         mark = getattr(exc, "problem_mark", None)
         return None, _invalid(str(getattr(exc, "problem", None) or exc), mark.line + 1 if mark else None)
     if not isinstance(document, dict):
-        return None, _invalid("Le fichier ne contient pas de configuration CI.", None)
+        return None, _invalid(tr("Le fichier ne contient pas de configuration CI."), None)
     return document, None
 
 
@@ -227,7 +229,7 @@ def _gitlab_triggers(document: dict[str, Any], workflow: dict[str, Any]) -> list
             if "$CI_COMMIT_TAG" in condition:
                 add("tag")
             if "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH" in condition:
-                add("push", "branche par défaut")
+                add("push", tr("branche par défaut"))
             elif "$CI_COMMIT_BRANCH" in condition and "$CI_PIPELINE_SOURCE" not in condition:
                 add("push")
 
@@ -243,7 +245,7 @@ def _gitlab_triggers(document: dict[str, Any], workflow: dict[str, Any]) -> list
                     else:
                         add("push", only)
     if not events:
-        add("push", "toutes les branches")
+        add("push", tr("toutes les branches"))
     return [{"event": event, "details": details} for event, details in events.items()]
 
 
@@ -261,7 +263,7 @@ def summarize_bitbucket_pipelines(content: str) -> dict[str, Any]:
     assert document is not None
     pipelines = document.get("pipelines")
     if not isinstance(pipelines, dict):
-        return _invalid("Section « pipelines » absente du fichier.", None)
+        return _invalid(tr("Section « pipelines » absente du fichier."), None)
 
     triggers: dict[str, list[str]] = {}
     jobs: list[dict[str, Any]] = []
@@ -294,7 +296,7 @@ def summarize_bitbucket_pipelines(content: str) -> dict[str, Any]:
                         "runs_on": (image.get("name") if isinstance(image, dict) else image) or (", ".join(map(str, _as_list(runs_on))) if runs_on else None),
                         "needs": [],
                         "steps": len(_as_list(step.get("script"))),
-                        "uses": f"déploiement : {step['deployment']}" if step.get("deployment") else None,
+                        "uses": tr("déploiement : {value}", value=step['deployment']) if step.get("deployment") else None,
                         "matrix": False,
                     }
                 )
@@ -307,7 +309,7 @@ def summarize_bitbucket_pipelines(content: str) -> dict[str, Any]:
     for section, config in pipelines.items():
         event = _BITBUCKET_SECTIONS.get(str(section), str(section))
         if section == "default":
-            add_trigger(event, "toutes les branches")
+            add_trigger(event, tr("toutes les branches"))
             stages.append("default")
             collect(config, "default")
         elif isinstance(config, dict):

@@ -10,7 +10,7 @@ from easy_ci import logs
 from easy_ci.errors import NotFoundError
 from easy_ci.github import normalize
 from easy_ci.github.client import GitHubClient
-from easy_ci.providers import GITHUB, PROVIDER_INFO, build_scan, empty_scan
+from easy_ci.providers import GITHUB, build_scan, capabilities, empty_scan
 from easy_ci.workflow_yaml import summarize_workflow
 
 
@@ -84,7 +84,7 @@ class GitHubService:
     def get_run(self, full_name: str, run_id: str) -> dict[str, Any]:
         run = normalize.run(self._client.get_json(f"/repos/{full_name}/actions/runs/{run_id}"))
         raw_jobs = self._client.paginate(f"/repos/{full_name}/actions/runs/{run_id}/jobs", {"per_page": 100, "filter": "latest"}, key="jobs")
-        return {"run": run, "jobs": [normalize.job(j) for j in raw_jobs], "capabilities": PROVIDER_INFO[GITHUB]["capabilities"]}
+        return {"run": run, "jobs": [normalize.job(j) for j in raw_jobs], "capabilities": capabilities(GITHUB)}
 
     def get_job_log(self, full_name: str, job_id: str) -> dict[str, Any]:
         with self._log_lock:

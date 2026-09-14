@@ -1,5 +1,7 @@
 import { ArrowRight, Lock, Sparkles } from "lucide-react";
 import { useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
+import { LanguageMenu } from "@/components/LanguageSwitcher";
 import { ConnectAccountForm } from "@/components/ConnectAccountForm";
 import { ProviderGuide } from "@/components/docs/DocsContent";
 import { Modal } from "@/components/ui/overlays";
@@ -9,6 +11,7 @@ import { PROVIDER_LABELS } from "@/lib/providers";
 import type { ProviderId, Session } from "@/lib/types";
 
 export function ConnectPage({ session }: { session: Session | undefined }) {
+  const { t } = useTranslation();
   const [guide, setGuide] = useState<ProviderId | null>(null);
   const { startDemo } = useSessionActions();
   const restoreErrors = session?.restore_errors ?? [];
@@ -16,6 +19,9 @@ export function ConnectPage({ session }: { session: Session | undefined }) {
   return (
     <div className="relative flex h-full overflow-hidden">
       <Backdrop />
+      <div className="absolute top-4 right-4 z-20">
+        <LanguageMenu />
+      </div>
 
       <div className="scrollbar-thin relative z-10 flex flex-1 items-center justify-center overflow-y-auto p-8">
         <div className="w-full max-w-[420px] animate-fade-in">
@@ -24,13 +30,10 @@ export function ConnectPage({ session }: { session: Session | undefined }) {
             <span className="text-[18px] font-semibold tracking-tight">Easy CI</span>
           </div>
           <h1 className="mt-7 text-[26px] leading-tight font-semibold tracking-tight">
-            Vos pipelines CI/CD,
-            <br />
-            <span className="bg-[linear-gradient(90deg,#1fa2ff,#6d5dfc_55%,#9b5cf6)] bg-clip-text text-transparent">enfin sous contrôle.</span>
+            <Trans i18nKey="connect.headline" components={{ br: <br />, accent: <span className="bg-[linear-gradient(90deg,#1fa2ff,#6d5dfc_55%,#9b5cf6)] bg-clip-text text-transparent" /> }} />
           </h1>
           <p className="mt-3 text-[14px] leading-relaxed text-fg-muted">
-            Connectez GitHub, GitLab ou Bitbucket pour détecter automatiquement les pipelines de vos dépôts et suivre chaque exécution en direct.
-            Vous pourrez ajouter les autres plateformes ensuite.
+            {t("connect.intro")}
           </p>
 
           {restoreErrors.length ? (
@@ -49,19 +52,19 @@ export function ConnectPage({ session }: { session: Session | undefined }) {
 
           <div className="my-6 flex items-center gap-3 text-[12px] text-fg-subtle">
             <div className="h-px flex-1 bg-line" />
-            ou
+            {t("connect.or")}
             <div className="h-px flex-1 bg-line" />
           </div>
 
           <Button size="lg" variant="outline" onClick={() => startDemo.mutate()} loading={startDemo.isPending} className="group w-full">
             <Sparkles className="text-accent" />
-            Explorer en mode démo
+            {t("connect.demo")}
             <ArrowRight className="text-fg-subtle transition-transform group-hover:translate-x-0.5" />
           </Button>
 
           <p className="mt-8 flex items-start gap-2 text-[12px] leading-relaxed text-fg-subtle">
             <Lock className="mt-0.5 size-3.5 shrink-0" />
-            Les identifiants sont stockés dans le trousseau sécurisé de votre système et ne sont envoyés qu'à la plateforme concernée.
+            {t("connect.privacy")}
           </p>
         </div>
       </div>
@@ -71,8 +74,8 @@ export function ConnectPage({ session }: { session: Session | undefined }) {
       <Modal
         open={guide !== null}
         onOpenChange={(open) => !open && setGuide(null)}
-        title={guide ? `Connecter ${PROVIDER_LABELS[guide].label}` : ""}
-        description="Créer un token, choisir les droits et se connecter."
+        title={guide ? t("connect.guideTitle", { provider: PROVIDER_LABELS[guide].label }) : ""}
+        description={t("connect.guideDescription")}
         className="w-[min(760px,calc(100vw-48px))]"
       >
         <div className="scrollbar-thin max-h-[min(640px,72vh)] overflow-y-auto px-6 pb-6">{guide ? <ProviderGuide provider={guide} /> : null}</div>

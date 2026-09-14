@@ -14,9 +14,10 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
+import i18n from "@/i18n";
 import { LogViewer, plainText, type LogViewerHandle } from "@/components/LogViewer";
 import { BranchChip, EventIcon, MetaItem, RunDuration, TimeAgo } from "@/components/runs";
-import { isActive, STATE_COLORS, STATE_LABELS, StatusBadge, StatusIcon } from "@/components/status";
+import { isActive, STATE_COLORS, stateLabel, StatusBadge, StatusIcon } from "@/components/status";
 import { Menu, MenuContent, MenuItem, MenuTrigger, Tooltip } from "@/components/ui/overlays";
 import { Avatar, Badge, Button, Card, EmptyState, Skeleton, Spinner } from "@/components/ui/primitives";
 import { useNow } from "@/hooks/useNow";
@@ -59,7 +60,7 @@ export function RunPage() {
     if (previous && isActive(previous) && !isActive(run.state)) {
       void queryClient.invalidateQueries({ queryKey: ["scan", key] });
       const notify = run.state === "success" ? toast.success : run.state === "failure" ? toast.error : toast;
-      notify(`${run.name} #${run.run_number} : ${STATE_LABELS[run.state]}`, { description: firstLine(run.commit_message) });
+      notify(`${run.name} #${run.run_number} : ${stateLabel(run.state)}`, { description: firstLine(run.commit_message) });
     }
   }, [run, key, queryClient]);
 
@@ -90,7 +91,7 @@ export function RunPage() {
     return (
       <Page>
         <Card>
-          <EmptyState icon={<TriangleAlert />} title="Exécution introuvable" description={runQuery.error.message} />
+          <EmptyState icon={<TriangleAlert />} title={i18n.t("run.notFound")} description={runQuery.error.message} />
         </Card>
       </Page>
     );
@@ -140,7 +141,7 @@ export function RunPage() {
               }}
             />
           ) : (
-            <EmptyState icon={<Spinner />} title="En attente des jobs" description="La plateforme prépare l'exécution." />
+            <EmptyState icon={<Spinner />} title={i18n.t("run.waitingJobs")} description={i18n.t("run.waitingJobsDescription")} />
           )}
         </Card>
       </div>
@@ -187,7 +188,7 @@ function RunHeader({
         await queryClient.invalidateQueries({ queryKey: ["run", key] });
       }
     } catch (error) {
-      toast.error("Action impossible", { description: error instanceof ApiError ? error.message : String(error) });
+      toast.error(i18n.t("common.actionFailed"), { description: error instanceof ApiError ? error.message : String(error) });
     } finally {
       setBusy(null);
     }
@@ -211,7 +212,7 @@ function RunHeader({
               {run.name}
             </Link>
             <span className="text-fg-subtle">#{run.run_number}</span>
-            {run.run_attempt > 1 ? <Badge>Tentative {run.run_attempt}</Badge> : null}
+            {run.run_attempt > 1 ? <Badge>{i18n.t("run.attempt", { attempt: run.run_attempt })}</Badge> : null}
             <StatusBadge state={run.state} size="sm" />
           </div>
           <h1 className="mt-1 truncate text-[20px] font-semibold tracking-tight">{firstLine(run.commit_message) || run.title}</h1>
@@ -228,7 +229,7 @@ function RunHeader({
               {shortSha(run.head_sha)}
             </MetaItem>
             <MetaItem>
-              Démarré <TimeAgo date={run.started_at ?? run.created_at} />
+              {i18n.t("run.started")} <TimeAgo date={run.started_at ?? run.created_at} />
             </MetaItem>
             <RunDuration run={run} className="text-fg-muted" />
           </div>
@@ -237,32 +238,32 @@ function RunHeader({
         <div className="flex shrink-0 items-center gap-2">
           {active ? (
             capabilities.cancel ? (
-              <Button variant="danger" onClick={() => void perform("cancel", () => api.cancelRun(repoRef, run.id), "Annulation demandée")} loading={busy === "cancel"}>
-                <CircleStop /> Annuler
+              <Button variant="danger" onClick={() => void perform("cancel", () => api.cancelRun(repoRef, run.id), i18n.t("run.cancelRequested"))} loading={busy === "cancel"}>
+                <CircleStop /> {i18n.t("common.cancel")}
               </Button>
             ) : null
           ) : capabilities.rerun_all || canRerunFailed ? (
             <Menu>
               <MenuTrigger asChild>
                 <Button variant={run.state === "failure" ? "primary" : "secondary"} loading={busy === "rerun"}>
-                  <RotateCcw /> Relancer <ChevronDown className="-mr-1 opacity-70" />
+                  <RotateCcw /> {i18n.t("run.rerun")} <ChevronDown className="-mr-1 opacity-70" />
                 </Button>
               </MenuTrigger>
               <MenuContent>
                 {canRerunFailed ? (
                   <MenuItem
                     icon={<RotateCcw />}
-                    description="Seuls les jobs en échec et ceux qui en dépendent"
-                    onSelect={() => void perform("rerun", () => api.rerunRun(repoRef, run.id, true), "Relance des jobs en échec demandée")}
+                    description={i18n.t("run.rerunFailedDescription")}
+                    onSelect={() => void perform("rerun", () => api.rerunRun(repoRef, run.id, true), i18n.t("run.rerunFailedRequested"))}
                   >
-                    Relancer les jobs en échec
+                    {i18n.t("run.rerunFailed")}
                   </MenuItem>
                 ) : null}
                 {capabilities.rerun_all ? (
                   <MenuItem
                     icon={<RotateCcw />}
                     description={capabilities.rerun_all_description}
-                    onSelect={() => void perform("rerun", () => api.rerunRun(repoRef, run.id, false), "Relance demandée")}
+                    onSelect={() => void perform("rerun", () => api.rerunRun(repoRef, run.id, false), i18n.t("run.rerunRequested"))}
                   >
                     {capabilities.rerun_all_label}
                   </MenuItem>
@@ -270,8 +271,8 @@ function RunHeader({
               </MenuContent>
             </Menu>
           ) : null}
-          <Tooltip content={`Ouvrir sur ${providerLabel}`}>
-            <Button variant="secondary" size="icon" onClick={() => void api.openExternal(run.html_url)} aria-label={`Ouvrir sur ${providerLabel}`}>
+          <Tooltip content={i18n.t("common.openOn", { provider: providerLabel })}>
+            <Button variant="secondary" size="icon" onClick={() => void api.openExternal(run.html_url)} aria-label={i18n.t("common.openOn", { provider: providerLabel })}>
               <ExternalLink />
             </Button>
           </Tooltip>
@@ -284,7 +285,7 @@ function RunHeader({
             <div className="relative h-full rounded-full bg-running transition-[width] duration-700" style={{ width: `${Math.max(4, (done / jobs.length) * 100)}%` }} />
           </div>
           <span className="text-[12px] text-fg-muted tabular">
-            {done}/{jobs.length} jobs terminés
+            {i18n.t("run.jobsDone", { done, total: jobs.length })}
           </span>
         </div>
       ) : null}
@@ -328,8 +329,8 @@ function ErrorSummary({
     <Card className="mt-5 shrink-0 overflow-hidden border-failure/25 animate-fade-in">
       <div className="flex items-center gap-2.5 border-b border-failure/15 bg-failure/[0.06] px-4 py-2.5">
         <FileWarning className="size-4 text-failure" />
-        <h2 className="text-[13.5px] font-semibold">{jobs.length === 1 ? "1 job en échec" : `${jobs.length} jobs en échec`}</h2>
-        <span className="text-[12.5px] text-fg-muted">— voici ce qui s'est mal passé</span>
+        <h2 className="text-[13.5px] font-semibold">{i18n.t("run.failedJobs", { count: jobs.length })}</h2>
+        <span className="text-[12.5px] text-fg-muted">— {i18n.t("run.whatWentWrong")}</span>
       </div>
       <div className="divide-y divide-line">
         {jobs.map((job, index) => {
@@ -346,7 +347,7 @@ function ErrorSummary({
                   <StatusIcon state="failure" className="size-3.5" />
                   <span className="truncate text-[13.5px] font-semibold">{job.name}</span>
                   {job.stage ? <Badge>{job.stage}</Badge> : null}
-                  {job.conclusion === "timed_out" ? <Badge>Délai dépassé</Badge> : null}
+                  {job.conclusion === "timed_out" ? <Badge>{i18n.t("run.timedOut")}</Badge> : null}
                 </div>
                 <ul className="mt-2 space-y-1.5">
                   {capabilities.annotations && annotationQueries[index]?.isPending ? (
@@ -356,13 +357,13 @@ function ErrorSummary({
                   ) : (
                     <li className="text-[12.5px] text-fg-muted">
                       {excerpt?.inferred
-                        ? "Aucun message d'erreur explicite : voici les dernières lignes du log avant l'arrêt."
-                        : "Aucune annotation, consultez l'extrait du log."}
+                        ? i18n.t("run.noExplicitError")
+                        : i18n.t("run.noAnnotation")}
                     </li>
                   )}
                 </ul>
                 <Button variant="secondary" size="sm" className="mt-3" onClick={() => onOpen(job, excerpt?.line)}>
-                  <ScrollText className="size-3.5" /> Voir dans les logs
+                  <ScrollText className="size-3.5" /> {i18n.t("run.viewInLogs")}
                 </Button>
               </div>
               <LogExcerpt log={log} loading={logQueries[index]?.isPending} onLineClick={(line) => onOpen(job, line)} />
@@ -450,7 +451,7 @@ function JobsPanel({
 
   return (
     <Card className="scrollbar-thin flex min-h-0 flex-col overflow-y-auto p-1.5">
-      {jobs.length === 0 ? <div className="px-2.5 py-2 text-[12.5px] text-fg-muted">Aucun job pour le moment.</div> : null}
+      {jobs.length === 0 ? <div className="px-2.5 py-2 text-[12.5px] text-fg-muted">{i18n.t("run.noJobs")}</div> : null}
       {groups.map((group, groupIndex) => (
         <div key={group.stage ?? "jobs"} className={cn(groupIndex > 0 && "mt-2")}>
           <div className="flex items-center gap-2 px-2.5 pt-1.5 pb-1.5 text-[11px] font-semibold tracking-wide text-fg-subtle uppercase">
@@ -477,8 +478,8 @@ function JobsPanel({
                   <StatusIcon state={job.allow_failure ? "action_required" : job.state} />
                   <span className={cn("min-w-0 flex-1 truncate text-[13px]", isSelected ? "font-semibold" : "font-medium")}>{job.name}</span>
                   {job.allow_failure ? (
-                    <Tooltip content="Échec autorisé : ce job a échoué mais ne bloque pas le pipeline.">
-                      <Badge className="border-running/30 bg-running/10 text-fg">autorisé</Badge>
+                    <Tooltip content={i18n.t("run.allowFailureTooltip")}>
+                      <Badge className="border-running/30 bg-running/10 text-fg">{i18n.t("run.allowed")}</Badge>
                     </Tooltip>
                   ) : null}
                   <JobDuration job={job} />
@@ -532,7 +533,7 @@ function StageState({ jobs }: { jobs: Job[] }) {
 
 function JobDuration({ job }: { job: Job }) {
   const now = useNow();
-  if (job.state === "queued") return <span className="shrink-0 text-[11.5px] text-fg-subtle">en attente</span>;
+  if (job.state === "queued") return <span className="shrink-0 text-[11.5px] text-fg-subtle">{i18n.t("run.queuedShort")}</span>;
   if (job.state === "skipped") return null;
   const seconds = job.state === "running" ? elapsedSeconds(job.started_at, null, now) : job.duration_s;
   return <span className="shrink-0 text-[11.5px] text-fg-subtle tabular">{formatDuration(seconds)}</span>;
@@ -603,8 +604,8 @@ function JobPanel({
       ) : null}
       <div className="ml-auto flex items-center gap-2">
         <JobDuration job={job} />
-        <Tooltip content={`Voir ce job sur ${providerLabel}`}>
-          <Button variant="ghost" size="icon-sm" onClick={() => void api.openExternal(job.html_url)} aria-label={`Voir sur ${providerLabel}`}>
+        <Tooltip content={i18n.t("run.viewJobOn", { provider: providerLabel })}>
+          <Button variant="ghost" size="icon-sm" onClick={() => void api.openExternal(job.html_url)} aria-label={i18n.t("run.viewJobOn", { provider: providerLabel })}>
             <ExternalLink />
           </Button>
         </Tooltip>
@@ -618,11 +619,11 @@ function JobPanel({
         {header}
         <EmptyState
           icon={<Info />}
-          title={job.state === "skipped" ? "Job ignoré" : "Job annulé"}
+          title={job.state === "skipped" ? i18n.t("run.jobSkipped") : i18n.t("run.jobCancelled")}
           description={
             job.state === "skipped"
-              ? "Ce job n'a pas été exécuté, généralement parce qu'un job dont il dépend a échoué ou que ses règles ne s'appliquent pas."
-              : "L'exécution a été annulée avant le démarrage de ce job."
+              ? i18n.t("run.jobSkippedDescription")
+              : i18n.t("run.jobCancelledDescription")
           }
         />
       </>
@@ -647,11 +648,11 @@ function JobPanel({
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 text-[13px] text-fg-muted">
             <Spinner />
-            {log && !log.available ? `${providerLabel} publie le log…` : "Chargement du log…"}
+            {log && !log.available ? i18n.t("run.logPublishing", { provider: providerLabel }) : i18n.t("run.logLoading")}
           </div>
         )
       ) : logQuery.error ? (
-        <EmptyState icon={<TriangleAlert />} title="Log indisponible" description={logQuery.error.message} />
+        <EmptyState icon={<TriangleAlert />} title={i18n.t("run.logUnavailable")} description={logQuery.error.message} />
       ) : log?.available ? (
         <LogViewer ref={logRef} log={log} className="flex-1" />
       ) : null}
@@ -668,8 +669,8 @@ function LiveSteps({ job, providerLabel }: { job: Job; providerLabel: string }) 
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
         <StatusIcon state="queued" className="size-8" />
-        <div className="text-[14px] font-semibold">En attente d'un runner</div>
-        <p className="max-w-sm text-[13px] text-fg-muted">Le job démarrera dès qu'un runner sera disponible ou que ses dépendances seront terminées.</p>
+        <div className="text-[14px] font-semibold">{i18n.t("run.waitingRunner")}</div>
+        <p className="max-w-sm text-[13px] text-fg-muted">{i18n.t("run.waitingRunnerDescription")}</p>
       </div>
     );
   }
@@ -679,13 +680,13 @@ function LiveSteps({ job, providerLabel }: { job: Job; providerLabel: string }) 
       <div className="mx-auto max-w-2xl">
         <div className="mb-5 flex items-center gap-4">
           <div className="flex-1">
-            <div className="text-[13px] font-medium">{current ? current.name : "Préparation…"}</div>
+            <div className="text-[13px] font-medium">{current ? current.name : i18n.t("run.preparing")}</div>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-3">
               <div className="h-full rounded-full bg-running transition-[width] duration-700" style={{ width: `${Math.max(3, (done / Math.max(1, job.steps.length)) * 100)}%` }} />
             </div>
           </div>
           <span className="text-[12.5px] text-fg-muted tabular">
-            {done}/{job.steps.length} étapes
+            {i18n.t("run.stepsDone", { done, total: job.steps.length })}
           </span>
         </div>
 
@@ -708,7 +709,7 @@ function LiveSteps({ job, providerLabel }: { job: Job; providerLabel: string }) 
 
         <div className="mt-6 flex items-start gap-2.5 rounded-xl border border-line bg-surface-2/50 p-3.5 text-[12.5px] text-fg-muted">
           <Info className="mt-0.5 size-4 shrink-0 text-accent" />
-          <p>Les étapes se mettent à jour en direct. {providerLabel} ne publie le log complet qu'à la fin du job : il s'affichera ici automatiquement.</p>
+          <p>{i18n.t("run.liveStepsHint", { provider: providerLabel })}</p>
         </div>
       </div>
     </div>

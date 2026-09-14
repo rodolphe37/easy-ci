@@ -1,4 +1,5 @@
 import { useParams } from "react-router";
+import i18n from "@/i18n";
 import type { ProviderId } from "./types";
 import { cn } from "./utils";
 
@@ -6,7 +7,7 @@ export const PROVIDER_IDS: ProviderId[] = ["github", "gitlab", "bitbucket"];
 
 /** Libellés disponibles hors session (écran de connexion, liens) ; la session fournit les capacités. */
 export const PROVIDER_LABELS: Record<ProviderId, { label: string; ci: string; config: string; workflows: string; run: string }> = {
-  github: { label: "GitHub", ci: "GitHub Actions", config: ".github/workflows", workflows: "Workflows", run: "Exécution" },
+  github: { label: "GitHub", ci: "GitHub Actions", config: ".github/workflows", workflows: "Workflows", get run() { return i18n.t("nav.run"); } },
   gitlab: { label: "GitLab", ci: "GitLab CI/CD", config: ".gitlab-ci.yml", workflows: "Pipelines", run: "Pipeline" },
   bitbucket: { label: "Bitbucket", ci: "Bitbucket Pipelines", config: "bitbucket-pipelines.yml", workflows: "Pipelines", run: "Pipeline" },
 };

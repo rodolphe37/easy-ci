@@ -1,9 +1,10 @@
 import { Archive, Laptop, BookOpen, EyeOff, ExternalLink, FolderGit2, GitFork, Lock, MoreHorizontal, Plus, Search, Star, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
 import { AddRepositoryDialog } from "@/components/AddRepositoryDialog";
 import { TimeAgo } from "@/components/runs";
-import { HistoryStrip, StatusIcon, STATE_LABELS } from "@/components/status";
+import { HistoryStrip, StatusIcon, stateLabel } from "@/components/status";
 import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger, Tooltip } from "@/components/ui/overlays";
 import { Badge, Button, buttonClass, Card, EmptyState, Input, Kbd, SegmentedControl, Skeleton } from "@/components/ui/primitives";
 import { useLocalProjects } from "@/hooks/local";
@@ -21,6 +22,7 @@ type Filter = "all" | "failure" | "running" | "success" | "favorites" | "none";
 const SEVERITY = ["failure", "running", "queued", "action_required", "cancelled", "success", "neutral", "skipped", "none"];
 
 export function ReposPage() {
+  const { t } = useTranslation();
   const { entries: allEntries, isLoadingRepos, reposErrors, accounts } = useScans();
   const { settings, isFavorite } = useSettings();
   const [query, setQuery] = useState("");
@@ -86,17 +88,17 @@ export function ReposPage() {
     <Page>
       <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-[22px] font-semibold tracking-tight">Dépôts</h1>
+          <h1 className="text-[22px] font-semibold tracking-tight">{t("nav.repositories")}</h1>
           <p className="mt-1 text-[13.5px] text-fg-muted">
-            Tous les dépôts accessibles avec vos comptes sont ajoutés automatiquement, avec leurs pipelines CI/CD.
+            {t("repos.intro")}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Link to="/docs?section=repositories" className={buttonClass("ghost")}>
-            <BookOpen /> Comment ça marche ?
+            <BookOpen /> {t("repos.howItWorks")}
           </Link>
           <Button variant="primary" onClick={() => setAdding(true)}>
-            <Plus /> Ajouter un dépôt
+            <Plus /> {t("addRepository.title")}
           </Button>
         </div>
       </div>
@@ -105,7 +107,7 @@ export function ReposPage() {
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <Input
           icon={<Search />}
-          placeholder="Filtrer les dépôts…"
+          placeholder={t("repos.filterPlaceholder")}
           data-page-search
           value={query}
           onChange={(event) => setQuery(event.target.value)}
@@ -116,12 +118,12 @@ export function ReposPage() {
           value={filter}
           onChange={setFilter}
           options={[
-            { value: "all", label: "Tous", count: counts.all },
-            { value: "failure", label: <><StatusIcon state="failure" />Échecs</>, count: counts.failure },
-            { value: "running", label: <><StatusIcon state="running" />En cours</>, count: counts.running },
-            { value: "success", label: <><StatusIcon state="success" />Réussis</>, count: counts.success },
-            { value: "favorites", label: <><Star />Favoris</>, count: counts.favorites },
-            { value: "none", label: "Sans CI", count: counts.none },
+            { value: "all", label: t("repos.filters.all"), count: counts.all },
+            { value: "failure", label: <><StatusIcon state="failure" />{t("repos.filters.failure")}</>, count: counts.failure },
+            { value: "running", label: <><StatusIcon state="running" />{t("repos.filters.running")}</>, count: counts.running },
+            { value: "success", label: <><StatusIcon state="success" />{t("repos.filters.success")}</>, count: counts.success },
+            { value: "favorites", label: <><Star />{t("shell.favorites")}</>, count: counts.favorites },
+            { value: "none", label: t("repos.filters.none"), count: counts.none },
           ]}
         />
         {accounts.length > 1 ? (
@@ -129,7 +131,7 @@ export function ReposPage() {
             value={providerFilter}
             onChange={setProviderFilter}
             options={[
-              { value: "all", label: "Toutes plateformes" },
+              { value: "all", label: t("repos.allPlatforms") },
               ...PROVIDER_IDS.filter((p) => accounts.some((a) => a.provider === p)).map((p) => ({
                 value: p,
                 label: (
@@ -144,14 +146,14 @@ export function ReposPage() {
           />
         ) : null}
         <div className="ml-auto flex items-center gap-2 text-[12.5px] text-fg-muted">
-          Trier par
+          {t("repos.sortBy")}
           <SegmentedControl
             value={sort}
             onChange={setSort}
             options={[
-              { value: "activity", label: "Activité" },
-              { value: "status", label: "Statut" },
-              { value: "name", label: "Nom" },
+              { value: "activity", label: t("repos.sort.activity") },
+              { value: "status", label: t("repos.sort.status") },
+              { value: "name", label: t("repos.sort.name") },
             ]}
           />
         </div>
@@ -163,25 +165,25 @@ export function ReposPage() {
         ) : reposErrors.length && reposErrors.length === accounts.length ? (
           <EmptyState
             icon={<FolderGit2 />}
-            title="Impossible de charger les dépôts"
+            title={t("overview.loadFailed")}
             description={reposErrors.map((e) => `${PROVIDER_LABELS[e.provider].label} : ${e.error.message}`).join(" · ")}
           />
         ) : entries.length === 0 ? (
           <EmptyState
             icon={<FolderGit2 />}
-            title="Aucun dépôt accessible"
-            description="Votre token ne donne accès à aucun dépôt. Vérifiez ses droits (repo, read:org) ou ajoutez un dépôt manuellement."
+            title={t("repos.noneAccessible")}
+            description={t("repos.noneAccessibleDescription")}
             action={
               <Button variant="primary" onClick={() => setAdding(true)}>
-                <Plus /> Ajouter un dépôt
+                <Plus /> {t("addRepository.title")}
               </Button>
             }
           />
         ) : visible.length === 0 ? (
           <EmptyState
             icon={<Search />}
-            title="Aucun dépôt ne correspond"
-            description={query ? `Aucun résultat pour « ${query} » avec ce filtre.` : "Essayez un autre filtre."}
+            title={t("repos.noMatch")}
+            description={query ? t("repos.noMatchQuery", { query }) : t("repos.noMatchFilter")}
           />
         ) : (
           <div className="divide-y divide-line">
@@ -195,9 +197,9 @@ export function ReposPage() {
       {hiddenCount ? (
         <p className="mt-3 flex items-center justify-center gap-1.5 text-[12.5px] text-fg-subtle">
           <EyeOff className="size-3.5" />
-          {hiddenCount} dépôt{hiddenCount > 1 ? "s" : ""} masqué{hiddenCount > 1 ? "s" : ""} ·
+          {t("repos.hiddenCount", { count: hiddenCount })} ·
           <Link to="/settings#repositories" className="font-medium text-fg-muted hover:text-accent">
-            Gérer
+            {t("repos.manage")}
           </Link>
         </p>
       ) : null}
@@ -206,6 +208,7 @@ export function ReposPage() {
 }
 
 function RepoRow({ entry }: { entry: RepoEntry }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { isFavorite, toggleFavorite } = useSettings();
   const { hide, remove } = useRepositoryActions();
@@ -244,18 +247,18 @@ function RepoRow({ entry }: { entry: RepoEntry }) {
             <span className="font-semibold">{repo.name}</span>
           </span>
           {repo.private ? (
-            <Tooltip content="Dépôt privé">
+            <Tooltip content={t("repos.private")}>
               <Lock className="size-3 shrink-0 text-fg-subtle" />
             </Tooltip>
           ) : null}
           {repo.fork ? <GitFork className="size-3 shrink-0 text-fg-subtle" /> : null}
           {repo.archived ? (
             <Badge>
-              <Archive /> Archivé
+              <Archive /> {t("repos.archived")}
             </Badge>
           ) : null}
           {localProject ? (
-            <Tooltip content={`Clone local : ${localProject.display_path}`}>
+            <Tooltip content={t("repos.localClone", { path: localProject.display_path })}>
               <span
                 className="inline-flex shrink-0 items-center text-fg-subtle hover:text-accent"
                 onClick={(event) => {
@@ -268,8 +271,8 @@ function RepoRow({ entry }: { entry: RepoEntry }) {
             </Tooltip>
           ) : null}
           {repo.added_manually ? (
-            <Tooltip content="Ajouté manuellement">
-              <Badge className="border-accent/20 bg-accent-soft text-accent">Ajouté</Badge>
+            <Tooltip content={t("repos.addedManually")}>
+              <Badge className="border-accent/20 bg-accent-soft text-accent">{t("repos.added")}</Badge>
             </Tooltip>
           ) : null}
           {repo.language ? <span className="hidden text-[12px] text-fg-subtle sm:inline">{repo.language}</span> : null}
@@ -280,7 +283,7 @@ function RepoRow({ entry }: { entry: RepoEntry }) {
           ) : error ? (
             <span className="text-[12px] text-failure">{error.message}</span>
           ) : noCi ? (
-            <span className="text-[12px] text-fg-subtle">Aucun pipeline détecté</span>
+            <span className="text-[12px] text-fg-subtle">{t("repos.noPipeline")}</span>
           ) : (
             workflows.slice(0, 4).map((wf) => (
               <span
@@ -303,7 +306,7 @@ function RepoRow({ entry }: { entry: RepoEntry }) {
       <div className="w-28 text-right text-[12px] text-fg-muted">
         {scan?.last_run ? (
           <>
-            <div className="font-medium text-fg">{STATE_LABELS[scan.state]}</div>
+            <div className="font-medium text-fg">{stateLabel(scan.state)}</div>
             <TimeAgo date={scan.last_run.created_at} className="text-fg-subtle" />
           </>
         ) : repo.pushed_at ? (
@@ -311,7 +314,7 @@ function RepoRow({ entry }: { entry: RepoEntry }) {
         ) : null}
       </div>
 
-      <Tooltip content={favorite ? "Retirer des favoris" : "Ajouter aux favoris"}>
+      <Tooltip content={favorite ? t("repos.unfavorite") : t("repos.favorite")}>
         <button
           onClick={(event) => {
             event.stopPropagation();
@@ -321,7 +324,7 @@ function RepoRow({ entry }: { entry: RepoEntry }) {
             "flex size-7 items-center justify-center rounded-md transition-all hover:bg-surface-3",
             favorite ? "text-running" : "text-fg-subtle opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
           )}
-          aria-label={favorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+          aria-label={favorite ? t("repos.unfavorite") : t("repos.favorite")}
         >
           <Star className={cn("size-4", favorite && "fill-current")} />
         </button>
@@ -332,7 +335,7 @@ function RepoRow({ entry }: { entry: RepoEntry }) {
           <button
             onClick={(event) => event.stopPropagation()}
             className="flex size-7 items-center justify-center rounded-md text-fg-subtle opacity-0 transition-all group-hover:opacity-100 hover:bg-surface-3 hover:text-fg focus-visible:opacity-100 data-[state=open]:opacity-100"
-            aria-label="Plus d'actions"
+            aria-label={t("common.moreActions")}
           >
             <MoreHorizontal className="size-4" />
           </button>
@@ -340,16 +343,16 @@ function RepoRow({ entry }: { entry: RepoEntry }) {
         <MenuContent>
           <div onClick={(event) => event.stopPropagation()}>
             <MenuItem icon={<ExternalLink />} onSelect={() => void api.openExternal(ciUrl(repo))}>
-              Ouvrir sur {PROVIDER_LABELS[repo.provider].label}
+              {t("common.openOn", { provider: PROVIDER_LABELS[repo.provider].label })}
             </MenuItem>
             <MenuSeparator />
             {repo.added_manually ? (
-              <MenuItem icon={<Trash2 />} description="Il n'apparaîtra plus dans Easy CI" destructive onSelect={() => remove.mutate(repo.key)}>
-                Ne plus suivre
+              <MenuItem icon={<Trash2 />} description={t("repos.untrackDescription")} destructive onSelect={() => remove.mutate(repo.key)}>
+                {t("repos.untrack")}
               </MenuItem>
             ) : (
-              <MenuItem icon={<EyeOff />} description="Réaffichable depuis les paramètres" onSelect={() => hide(repo.key)}>
-                Masquer ce dépôt
+              <MenuItem icon={<EyeOff />} description={t("repos.hideDescription")} onSelect={() => hide(repo.key)}>
+                {t("repos.hide")}
               </MenuItem>
             )}
           </div>

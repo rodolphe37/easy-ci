@@ -24,6 +24,7 @@ if not (PACKAGE / "web" / "index.html").exists():
 datas = [
     (str(PACKAGE / "web"), "easy_ci/web"),
     (str(PACKAGE / "resources"), "easy_ci/resources"),
+    (str(PACKAGE / "locales"), "easy_ci/locales"),
 ]
 
 # pywebview choisit son moteur de rendu dynamiquement : PyInstaller ne peut pas le deviner.

@@ -94,6 +94,6 @@ export function UpdatesProvider({ children }: { children: ReactNode }) {
 
 export function useUpdates() {
   const context = useContext(UpdatesContext);
-  if (!context) throw new Error("useUpdates doit être utilisé dans <UpdatesProvider>");
+  if (!context) throw new Error("useUpdates must be used within <UpdatesProvider>");
   return context;
 }

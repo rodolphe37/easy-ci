@@ -73,18 +73,22 @@ Run the same checks as CI:
 npm --prefix frontend run typecheck
 ```
 
+```bash
+npm --prefix frontend run i18n:check
+```
+
 And please make sure that:
 
 - **Tests** cover new behaviour and bug fixes (a failing test first is ideal).
 - **UI changes** were checked in both light and dark themes; include a screenshot or short recording in the PR.
-- **User-facing text** is written in French for now, consistent with the rest of the interface (an English translation is planned; don't add English strings in the UI yet).
+- **User-facing text** is translated in French and English. Interface strings live in `frontend/src/i18n/locales/fr.json` and `en.json` (same keys in both, used with `t("…")`); engine messages are written in French inside `tr("…")` (or `N_("…")` for constants) and translated in `src/easy_ci/locales/en.json`. The in-app documentation has one file per language in `frontend/src/components/docs/`. `npm --prefix frontend run i18n:check` and `tests/test_i18n.py` catch missing translations.
 - **Documentation** is updated when behaviour changes: in-app docs, README (English and French) and [CHANGELOG.md](CHANGELOG.md) under *Unreleased*.
 - **No new network destinations** or data collection: tokens are only sent to their own platform, and nothing is pushed without an explicit user action. Discuss any change to this in an issue first.
 - The PR does **one thing**; unrelated refactors belong in separate PRs.
 
 ## Coding guidelines
 
-- **Python**: type hints, standard library first, small focused modules. Formatting and lint rules are in `pyproject.toml` (Ruff). Providers normalise their data into the common format consumed by the UI; errors raised to the UI are `EasyCIError` subclasses with a clear French message.
+- **Python**: type hints, standard library first, small focused modules. Formatting and lint rules are in `pyproject.toml` (Ruff). Providers normalise their data into the common format consumed by the UI; errors raised to the UI are `EasyCIError` subclasses with a clear message wrapped in `tr()`.
 - **TypeScript/React**: strict typing, TanStack Query for server state, the shared primitives in `frontend/src/components/ui/`, Tailwind design tokens from `index.css` (no hard-coded colours).
 - **Comments** explain *why*, not *what*. Existing code comments are in French; follow the language of the file you edit.
 - **Pipeline generation** stays deterministic (templates, no AI): same options, same output. Every generated file must pass `validation.validate` — see `tests/test_generation.py`.
@@ -128,7 +132,7 @@ Merci de votre intérêt ! Signalements de bugs, corrections de documentation, t
 
 1. Pour un bug ou une idée, ouvrez une [issue](https://github.com/rodolphe37/easy-ci/issues/new/choose) (en français ou en anglais). Pour une modification importante, discutons de l'approche avant de coder. Les failles de sécurité se signalent en privé ([SECURITY.md](SECURITY.md)).
 2. Installez l'environnement : Python 3.11+, Node.js 20+, Git, puis `pip install -e ".[dev]"` et `npm --prefix frontend ci` (voir ci-dessus). Le **mode démo** permet de tout tester sans compte.
-3. Avant la pull request, lancez `pytest`, `ruff check src tests scripts packaging` et `npm --prefix frontend run typecheck`.
-4. Ajoutez des tests, vérifiez l'interface en thème clair et sombre (capture dans la PR), rédigez les textes de l'interface en français, mettez à jour la documentation intégrée, les README et le [CHANGELOG](CHANGELOG.md) (*Unreleased*).
+3. Avant la pull request, lancez `pytest`, `ruff check src tests scripts packaging`, `npm --prefix frontend run typecheck` et `npm --prefix frontend run i18n:check`.
+4. Ajoutez des tests, vérifiez l'interface en thème clair et sombre (capture dans la PR), ajoutez les textes de l'interface en français et en anglais (`frontend/src/i18n/locales/*.json`, `tr()` et `src/easy_ci/locales/en.json` côté moteur), mettez à jour la documentation intégrée, les README et le [CHANGELOG](CHANGELOG.md) (*Unreleased*).
 5. Respectez les principes du projet : aucune nouvelle destination réseau ni collecte de données, rien n'est envoyé sans action explicite de l'utilisateur, génération de pipelines déterministe (sans IA).
 6. Messages de commit au format [Conventional Commits](https://www.conventionalcommits.org/fr/) (`feat:`, `fix:`, `docs:`…), une PR par sujet.

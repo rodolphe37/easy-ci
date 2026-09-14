@@ -1,6 +1,7 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
+import i18n from "@/i18n";
 import { api, ApiError } from "@/lib/api";
 import type { LocalOverview, LocalStatus, SyncResult } from "@/lib/types";
 import { useSettings } from "./session";
@@ -19,7 +20,7 @@ export function useLocalProjects() {
   const scan = useMutation({
     mutationFn: api.scanLocalProjects,
     onSuccess: (overview) => queryClient.setQueryData(OVERVIEW_KEY, overview),
-    onError: (error) => toast.error("Détection impossible", { description: errorMessage(error) }),
+    onError: (error) => toast.error(i18n.t("local.toasts.detectFailed"), { description: errorMessage(error) }),
   });
 
   const byKey = useMemo(() => new Map((query.data?.projects ?? []).map((project) => [project.key, project])), [query.data]);
@@ -45,58 +46,55 @@ export function useLocalActions() {
     toast.error(title, { description: errorMessage(error) });
   };
 
-  const addRoot = useMutation({ mutationFn: api.addLocalRoot, onSuccess: applyOverview, onError: onError("Dossier non ajouté") });
-  const removeRoot = useMutation({ mutationFn: api.removeLocalRoot, onSuccess: applyOverview, onError: onError("Action impossible") });
+  const addRoot = useMutation({ mutationFn: api.addLocalRoot, onSuccess: applyOverview, onError: onError(i18n.t("local.toasts.rootNotAdded")) });
+  const removeRoot = useMutation({ mutationFn: api.removeLocalRoot, onSuccess: applyOverview, onError: onError(i18n.t("common.actionFailed")) });
   const link = useMutation({
     mutationFn: ({ key, path, force }: { key: string; path: string; force?: boolean }) => api.linkLocalProject(key, path, force),
     onSuccess: (status) => {
       applyStatus(status);
-      toast.success("Dossier local lié", { description: status.linked ? status.display_path : undefined });
+      toast.success(i18n.t("local.toasts.linked"), { description: status.linked ? status.display_path : undefined });
     },
-    onError: onError("Liaison impossible"),
+    onError: onError(i18n.t("local.toasts.linkFailed")),
   });
   const unlink = useMutation({
     mutationFn: api.unlinkLocalProject,
     onSuccess: (overview, key) => {
       applyOverview(overview);
       queryClient.setQueryData(["local-status", key], { key, linked: false });
-      toast("Dossier local délié", { description: "Le dossier n'est ni modifié ni supprimé." });
+      toast(i18n.t("local.toasts.unlinked"), { description: i18n.t("local.toasts.unlinkedDescription") });
     },
-    onError: onError("Action impossible"),
+    onError: onError(i18n.t("common.actionFailed")),
   });
   const clone = useMutation({
     mutationFn: ({ key, parent, protocol }: { key: string; parent: string; protocol: "https" | "ssh" }) => api.cloneRepository(key, parent, protocol),
     onSuccess: (status) => {
       applyStatus(status);
-      toast.success("Dépôt cloné", { description: status.linked ? status.display_path : undefined });
+      toast.success(i18n.t("local.toasts.cloned"), { description: status.linked ? status.display_path : undefined });
     },
-    onError: onError("Clonage impossible"),
+    onError: onError(i18n.t("local.toasts.cloneFailed")),
   });
   const sync = useMutation({
     mutationFn: ({ key, pull }: { key: string; pull: boolean }) => api.syncLocalProject(key, pull),
     onSuccess: (result: SyncResult, { pull }) => {
       applyStatus(result.status);
-      if (!pull) toast.success("Récupération terminée");
-      else if (result.pulled) toast.success("Branche mise à jour");
-      else toast(SKIP_MESSAGES[result.skipped_reason ?? "up_to_date"]);
+      if (!pull) toast.success(i18n.t("local.toasts.fetched"));
+      else if (result.pulled) toast.success(i18n.t("local.toasts.pulled"));
+      else toast(skipMessage(result.skipped_reason ?? "up_to_date"));
     },
-    onError: onError("Synchronisation impossible"),
+    onError: onError(i18n.t("local.toasts.syncFailed")),
   });
   const open = useMutation({
     mutationFn: ({ key, target, editorId }: { key: string; target: "folder" | "editor" | "terminal"; editorId?: string | null }) =>
       api.openLocalProject(key, target, editorId),
-    onError: onError("Ouverture impossible"),
+    onError: onError(i18n.t("local.toasts.openFailed")),
   });
 
   return { addRoot, removeRoot, link, unlink, clone, sync, open };
 }
 
-export const SKIP_MESSAGES: Record<NonNullable<SyncResult["skipped_reason"]>, string> = {
-  up_to_date: "Déjà à jour : aucun nouveau commit sur la branche distante.",
-  dirty: "Mise à jour non faite : des modifications locales ne sont pas commitées.",
-  diverged: "Mise à jour non faite : vous avez aussi des commits locaux non poussés (branches divergentes).",
-  no_upstream: "Mise à jour non faite : la branche locale ne suit aucune branche distante.",
-};
+export function skipMessage(reason: NonNullable<SyncResult["skipped_reason"]>): string {
+  return i18n.t(`local.skip.${reason}`);
+}
 
 /**
  * Récupération automatique en arrière-plan pour tous les projets liés.
@@ -129,7 +127,7 @@ export function useAutoFetch() {
         try {
           const result = await api.syncLocalProject(key, pull);
           queryClient.setQueryData(["local-status", key], result.status);
-          if (result.pulled) toast.success("Projet local mis à jour", { description: key.slice(key.indexOf(":") + 1) });
+          if (result.pulled) toast.success(i18n.t("local.toasts.autoPulled"), { description: key.slice(key.indexOf(":") + 1) });
           return Date.now();
         } catch {
           return Date.now(); // réseau ou authentification : l'utilisateur verra l'erreur en synchronisant à la main

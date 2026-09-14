@@ -18,6 +18,7 @@ from typing import Any
 from easy_ci.errors import EasyCIError, FileConflictError
 from easy_ci.generation.demo_projects import demo_project_tree
 from easy_ci.generation.files import MemoryFiles
+from easy_ci.i18n import N_, tr
 from easy_ci.local.service import CI_PATTERNS, _matches_pattern
 from easy_ci.providers import split_repo_key
 
@@ -42,7 +43,7 @@ class DemoProject:
     ahead: int = 0
     other_changes: list[dict[str, str]] = field(default_factory=list)
     files: dict[str, DemoFile] = field(default_factory=dict)
-    commit: tuple[str, str, float] = ("a1f09c3", "chore: mise à jour", 3)
+    commit: tuple[str, str, float] = ("a1f09c3", N_("chore: mise à jour"), 3)
     source: str = "scan"
     fetched_at: float = 0.0
 
@@ -75,7 +76,7 @@ class DemoLocalProjects:
         self._unmatched = [{"path": "/Users/demo/Developer/notes", "display_path": f"{_ROOT}/notes", "remotes": []}]
         self._projects: dict[str, DemoProject] = {}
 
-        storefront = self._add("github:acme/storefront", "storefront", "main", "origin/main", behind=2, commit=("a1f09c3", "feat: nouveau tunnel de commande", 3))
+        storefront = self._add("github:acme/storefront", "storefront", "main", "origin/main", behind=2, commit=("a1f09c3", tr("feat: nouveau tunnel de commande"), 3))
         deploy = storefront.files.get(".github/workflows/deploy.yml")
         if deploy and deploy.remote:
             deploy.remote = deploy.remote.replace("    environment: staging\n", "    environment:\n      name: staging\n      url: https://staging.acme.dev\n")
@@ -87,7 +88,7 @@ class DemoLocalProjects:
             "fix/ledger-concurrency",
             "origin/fix/ledger-concurrency",
             behind=0,
-            commit=("7d2e4b1", "fix(ledger): verrou sur les transferts concurrents", 1),
+            commit=("7d2e4b1", tr("fix(ledger): verrou sur les transferts concurrents"), 1),
         )
         payments.other_changes = [{"path": "internal/ledger/ledger.go", "status": "modified"}]
         ci = payments.files.get(".github/workflows/ci.yml")
@@ -97,7 +98,7 @@ class DemoLocalProjects:
                 "      - run: go mod download\n      - run: go test -race -cover -count=1 ./...\n        env:\n          TZ: Europe/Paris",
             )
 
-        billing = self._add("gitlab:platform/backend/billing-service", "billing-service", "ci/cache-pip", "origin/ci/cache-pip", behind=0, commit=("c93b0fa", "ci: cache pip et tests parallèles", 0.5))
+        billing = self._add("gitlab:platform/backend/billing-service", "billing-service", "ci/cache-pip", "origin/ci/cache-pip", behind=0, commit=("c93b0fa", tr("ci: cache pip et tests parallèles"), 0.5))
         gitlab_ci = billing.files.get(".gitlab-ci.yml")
         if gitlab_ci and gitlab_ci.content:
             changed = gitlab_ci.content.replace(
@@ -108,7 +109,7 @@ class DemoLocalProjects:
             billing.ahead = 1
 
         # Projet sans CI : point de départ idéal pour l'assistant de génération.
-        self._add("github:acme/handbook", "handbook", "main", "origin/main", behind=0, commit=("5e8d21a", "docs: guide d'accueil des nouveaux arrivants", 72))
+        self._add("github:acme/handbook", "handbook", "main", "origin/main", behind=0, commit=("5e8d21a", tr("docs: guide d'accueil des nouveaux arrivants"), 72))
 
     def _add(self, key: str, folder: str, branch: str, upstream: str | None, behind: int, commit: tuple[str, str, float]) -> DemoProject:
         _, repo = split_repo_key(key)
@@ -120,7 +121,7 @@ class DemoLocalProjects:
 
     def overview(self) -> dict[str, Any]:
         return {
-            "git_version": "2.50.1 (démo)",
+            "git_version": tr("2.50.1 (démo)"),
             "roots": deepcopy(self._roots),
             "projects": [
                 {"key": p.key, "path": p.path, "display_path": p.display_path, "source": p.source, "exists": True, "candidates": [p.path]}
@@ -136,7 +137,7 @@ class DemoLocalProjects:
         }
 
     def pick_folder(self, title: str = "") -> str | None:
-        raise EasyCIError("En mode démo, saisissez un chemin : les dossiers sont fictifs.")
+        raise EasyCIError(tr("En mode démo, saisissez un chemin : les dossiers sont fictifs."))
 
     def add_root(self, path: str) -> dict[str, Any]:
         if not any(root["display_path"] == path for root in self._roots):
@@ -171,7 +172,7 @@ class DemoLocalProjects:
     def _project(self, key: str) -> DemoProject:
         project = self._projects.get(key)
         if project is None:
-            raise EasyCIError("Aucun dossier local n'est lié à ce dépôt.")
+            raise EasyCIError(tr("Aucun dossier local n'est lié à ce dépôt."))
         return project
 
     @staticmethod
@@ -195,6 +196,7 @@ class DemoLocalProjects:
         ]
         changes = ci_changes + deepcopy(project.other_changes)
         sha, message, hours = project.commit
+        message = tr(message)
         return {
             "key": key,
             "linked": True,
@@ -210,7 +212,7 @@ class DemoLocalProjects:
             "dirty": bool(changes),
             "changes": changes,
             "changes_count": len(changes),
-            "last_commit": {"sha": (sha * 6)[:40], "message": message, "author": "Utilisateur démo", "date": _iso(time.time() - hours * 3600)},
+            "last_commit": {"sha": (sha * 6)[:40], "message": message, "author": tr("Utilisateur démo"), "date": _iso(time.time() - hours * 3600)},
             "last_fetch_at": project.fetched_at,
             "remote_matches": True,
             "remotes": [{"name": "origin", "url": f"git@example.com:{split_repo_key(key)[1]}.git"}],
@@ -254,7 +256,7 @@ class DemoLocalProjects:
         return {"path": file_path, "compare_ref": project.upstream, "local": file.content, "remote": file.remote, "diff": diff}
 
     def open(self, key: str, target: str, editor_id: str | None = None) -> None:
-        raise EasyCIError("En mode démo, les dossiers affichés sont fictifs : rien à ouvrir.")
+        raise EasyCIError(tr("En mode démo, les dossiers affichés sont fictifs : rien à ouvrir."))
 
     def project_path(self, key: str) -> None:
         return None
@@ -272,7 +274,7 @@ class DemoLocalProjects:
     def _check_path(self, key: str, file_path: str) -> None:
         provider, _ = split_repo_key(key)
         if not any(_matches_pattern(file_path, pattern) for pattern in CI_PATTERNS[provider]):
-            raise EasyCIError(f"« {file_path} » n'est pas un fichier de configuration CI {provider} modifiable ici.")
+            raise EasyCIError(tr("« {file_path} » n'est pas un fichier de configuration CI {provider} modifiable ici.", file_path=file_path, provider=provider))
 
     def read_ci_file(self, key: str, file_path: str) -> dict[str, Any]:
         project = self._project(key)
@@ -295,7 +297,7 @@ class DemoLocalProjects:
         file = project.files.get(file_path)
         current = _hash(file.content) if file and file.content is not None else None
         if not overwrite and current != expected_hash:
-            raise FileConflictError(f"« {file_path} » existe déjà dans le dossier local." if expected_hash is None else f"« {file_path} » a été modifié en dehors d'Easy CI.")
+            raise FileConflictError(tr("« {file_path} » existe déjà dans le dossier local.", file_path=file_path) if expected_hash is None else tr("« {file_path} » a été modifié en dehors d'Easy CI.", file_path=file_path))
         if not content.endswith("\n"):
             content += "\n"
         if file is None:
@@ -321,17 +323,17 @@ class DemoLocalProjects:
     def commit_ci(self, key: str, paths: list[str], message: str, new_branch: str | None = None) -> dict[str, Any]:
         project = self._project(key)
         if not message.strip():
-            raise EasyCIError("Saisissez un message de commit.")
+            raise EasyCIError(tr("Saisissez un message de commit."))
         if not paths:
-            raise EasyCIError("Sélectionnez au moins un fichier à commiter.")
+            raise EasyCIError(tr("Sélectionnez au moins un fichier à commiter."))
         for path in paths:
             file = project.files.get(path)
             if file is None or file.content == file.committed:
-                raise EasyCIError(f"Aucune modification à commiter pour : {path}.")
+                raise EasyCIError(tr("Aucune modification à commiter pour : {path}.", path=path))
         if new_branch:
             new_branch = new_branch.strip()
             if not re.fullmatch(r"[A-Za-z0-9._/-]+", new_branch) or new_branch.endswith("/") or ".." in new_branch:
-                raise EasyCIError(f"« {new_branch} » n'est pas un nom de branche valide.")
+                raise EasyCIError(tr("« {new_branch} » n'est pas un nom de branche valide.", new_branch=new_branch))
             project.branch, project.upstream, project.ahead, project.behind = new_branch, None, 0, 0
         for path in paths:
             project.files[path].committed = project.files[path].content

@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from easy_ci.errors import EasyCIError
+from easy_ci.i18n import tr
 
 # (identifiant, nom affiché, application macOS, commande en ligne)
 _EDITORS: list[tuple[str, str, str, str]] = [
@@ -44,13 +45,13 @@ def file_manager_label() -> str:
     if sys.platform == "darwin":
         return "Finder"
     if sys.platform.startswith("win"):
-        return "l'Explorateur"
-    return "le gestionnaire de fichiers"
+        return tr("l'Explorateur")
+    return tr("le gestionnaire de fichiers")
 
 
 def open_path(path: Path, target: str, editor_id: str | None = None) -> None:
     if not path.is_dir():
-        raise EasyCIError(f"Le dossier « {path} » n'existe plus.")
+        raise EasyCIError(tr("Le dossier « {path} » n'existe plus.", path=path))
     try:
         if target == "folder":
             _open_folder(path)
@@ -59,7 +60,7 @@ def open_path(path: Path, target: str, editor_id: str | None = None) -> None:
         elif target == "editor":
             _open_editor(path, editor_id)
         else:
-            raise EasyCIError(f"Action d'ouverture inconnue : {target}")
+            raise EasyCIError(tr("Action d'ouverture inconnue : {target}", target=target))
     except OSError as exc:
         raise EasyCIError(f"Ouverture impossible : {exc}") from exc
 
@@ -87,7 +88,7 @@ def _open_terminal(path: Path) -> None:
             if shutil.which(terminal):
                 _spawn([terminal], cwd=str(path))
                 return
-        raise EasyCIError("Aucun terminal trouvé sur ce système.")
+        raise EasyCIError(tr("Aucun terminal trouvé sur ce système."))
 
 
 def _open_editor(path: Path, editor_id: str | None) -> None:
@@ -100,4 +101,4 @@ def _open_editor(path: Path, editor_id: str | None) -> None:
         if shutil.which(command):
             _spawn([command, str(path)])
             return
-    raise EasyCIError("Aucun éditeur de code reconnu n'est installé (VS Code, Cursor, Zed, Sublime Text, JetBrains…).")
+    raise EasyCIError(tr("Aucun éditeur de code reconnu n'est installé (VS Code, Cursor, Zed, Sublime Text, JetBrains…)."))

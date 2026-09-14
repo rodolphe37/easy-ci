@@ -23,6 +23,7 @@ from typing import Any
 import httpx
 
 from easy_ci import __version__
+from easy_ci.i18n import tr
 
 log = logging.getLogger(__name__)
 
@@ -90,7 +91,7 @@ def upgrade_instructions(system: str | None = None, method: str | None = None) -
     system = system or platform.system()
     method = method or install_method(system)
     if method == "source":
-        return [{"label": "Depuis les sources", "command": "git pull && pip install -e . && npm --prefix frontend run build"}]
+        return [{"label": tr("Depuis les sources"), "command": "git pull && pip install -e . && npm --prefix frontend run build"}]
     if system == "Darwin":
         brew = {"label": "Homebrew", "command": "brew upgrade --cask easy-ci"}
         script = {"label": "Script d'installation", "command": f"curl -fsSL {INSTALL_SCRIPT_MACOS} | bash"}
@@ -133,13 +134,13 @@ class UpdateChecker:
             with self._client_factory() as client:
                 response = client.get(LATEST_RELEASE_API_URL, headers=headers)
             if response.status_code == 404:
-                return {**base, "error": "Aucune version publique trouvée (dépôt privé ou pas encore de version)."}
+                return {**base, "error": tr("Aucune version publique trouvée (dépôt privé ou pas encore de version).")}
             if response.status_code in (403, 429):
-                return {**base, "error": "Limite de requêtes GitHub atteinte : nouvel essai plus tard."}
+                return {**base, "error": tr("Limite de requêtes GitHub atteinte : nouvel essai plus tard.")}
             response.raise_for_status()
             payload = response.json()
         except (httpx.HTTPError, ValueError) as exc:
             log.info("Vérification des mises à jour impossible : %s", exc)
-            return {**base, "error": "Vérification impossible (connexion à GitHub)."}
+            return {**base, "error": tr("Vérification impossible (connexion à GitHub).")}
         latest = parse_latest_release(payload, self.current_version)
         return {**base, "available": latest is not None, "latest": latest}

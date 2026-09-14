@@ -4,8 +4,8 @@ import { Link } from "react-router";
 import { useNow } from "@/hooks/useNow";
 import { ProviderIcon, runPath } from "@/lib/providers";
 import type { ProviderId, Run } from "@/lib/types";
-import { cn, elapsedSeconds, eventLabel, formatDuration, shortSha, timeAgo } from "@/lib/utils";
-import { isActive, StatusIcon } from "./status";
+import { cn, elapsedSeconds, eventLabel, formatDate, formatDuration, shortSha, timeAgo } from "@/lib/utils";
+import { isActive, stateLabel, StatusIcon } from "./status";
 import { Tooltip } from "./ui/overlays";
 import { Avatar } from "./ui/primitives";
 
@@ -37,7 +37,7 @@ export function RunDuration({ run, className }: { run: Pick<Run, "state" | "star
   return (
     <span className={cn("inline-flex items-center gap-1 tabular", active && "text-fg", className)}>
       <Timer className="size-3.5 text-fg-subtle" />
-      {run.state === "queued" ? "En attente" : formatDuration(seconds)}
+      {run.state === "queued" ? stateLabel("queued") : formatDuration(seconds)}
     </span>
   );
 }
@@ -45,7 +45,7 @@ export function RunDuration({ run, className }: { run: Pick<Run, "state" | "star
 export function TimeAgo({ date, className }: { date: string | null | undefined; className?: string }) {
   const now = useNow();
   return (
-    <Tooltip content={date ? new Date(date).toLocaleString("fr-FR") : null}>
+    <Tooltip content={date ? formatDate(date) : null}>
       <span className={cn("tabular whitespace-nowrap", className)}>{timeAgo(date, now)}</span>
     </Tooltip>
   );

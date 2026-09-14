@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import i18n from "@/i18n";
 
 interface DiffLine {
   kind: "add" | "remove" | "context" | "hunk" | "meta";
@@ -46,7 +47,7 @@ export function DiffViewer({ diff, className }: { diff: string; className?: stri
         <span className="font-medium text-success tabular">+{added}</span>
         <span className="font-medium text-failure tabular">−{removed}</span>
         <span className="ml-auto text-fg-subtle">
-          <span className="text-failure">−</span> distant · <span className="text-success">+</span> local
+          <span className="text-failure">−</span> {i18n.t("local.diffRemote")} · <span className="text-success">+</span> {i18n.t("local.diffLocal")}
         </span>
       </div>
       <div className="scrollbar-thin max-h-[420px] overflow-auto bg-log py-1 font-mono text-[12px] leading-5">

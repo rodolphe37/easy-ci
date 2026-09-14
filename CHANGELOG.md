@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- English interface: the app follows the system language (French or English, English otherwise) and can be switched in *Settings › Appearance* or from the sign-in screen. Built-in documentation, error messages, validation results and generated pipeline comments are translated too.
+- `npm run i18n:check` (run in CI) flags hard-coded interface text and catalog mismatches.
+
 ## [0.2.0] - 2026-09-14
 
 ### Added
@@ -40,7 +45,7 @@ First public version.
 - **CI file editing** in the local clone: CodeMirror YAML editor with keyword completion, live per-platform validation with positioned errors, official GitLab CI Lint, job preview, diff, conflict protection, local commit on a new branch, push and pull/merge request creation on explicit action.
 - **Pipeline generation** from the detected stack (Node.js, Python, Go, Rust, Java/Kotlin, Android, PHP, Ruby, .NET, monorepos): five-step wizard with live validated preview — steps, version matrix, cache, triggers, Docker image and deployment — written to the local clone. Deterministic templates, no AI.
 - **Demo mode** with simulated repositories, running pipelines and local clones.
-- Built-in French documentation, light and dark themes, native window with app icons for macOS, Windows and Linux.
+- Built-in documentation, light and dark themes, native window with app icons for macOS, Windows and Linux.
 - Project CI/CD: lint and tests on Linux, macOS and Windows, standalone PyInstaller apps for macOS (Apple Silicon and Intel), Windows and Linux, automated GitHub Releases with SHA-256 checksums.
 
 [Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.2.0...HEAD

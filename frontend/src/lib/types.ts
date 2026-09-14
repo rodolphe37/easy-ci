@@ -57,10 +57,12 @@ export interface Session {
   gh_cli_available: boolean;
   providers: Record<ProviderId, ProviderInfo>;
   app_version: string;
+  system_language: "fr" | "en";
 }
 
 export interface Settings {
   theme: "system" | "light" | "dark";
+  language: "system" | "fr" | "en";
   refresh_interval: number;
   favorites: string[];
   added_repositories: string[];

@@ -24,6 +24,7 @@ def run_self_check() -> int:
         "frozen": bool(getattr(sys, "frozen", False)),
         "web": (package / "web" / "index.html").is_file(),
         "resources": all((package / "resources" / name).is_file() for name in ("icon.png", "icon.icns", "icon.ico")),
+        "locales": (package / "locales" / "en.json").is_file(),
     }
     gui = GUI_MODULES.get(sys.platform, "webview.platforms.qt")
     for label, module in (("webview", "webview"), ("gui", gui), ("keyring", "keyring"), ("yaml", "yaml"), ("httpx", "httpx")):

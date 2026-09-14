@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { BookOpen, CircleArrowUp, FolderGit2, LayoutDashboard, RefreshCw, Search, Settings as SettingsIcon, Sparkles, Star } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, NavLink, Outlet, useLocation, useMatches } from "react-router";
 import { StatusIcon } from "@/components/status";
 import { Avatar, Badge, Button, Kbd, Logo } from "@/components/ui/primitives";
@@ -10,6 +11,7 @@ import { useAutoFetch } from "@/hooks/local";
 import { useScans } from "@/hooks/scans";
 import { useUpdates } from "@/hooks/updates";
 import { useSession, useSessionActions, useSettings } from "@/hooks/session";
+import i18n from "@/i18n";
 import { api } from "@/lib/api";
 import { PROVIDER_LABELS, ProviderIcon, repoPath } from "@/lib/providers";
 import { cn, formatNumber, timeAgo } from "@/lib/utils";
@@ -52,6 +54,7 @@ export function AppShell() {
 /* -------------------------------------------------------------------------- */
 
 function Sidebar({ onSearch }: { onSearch: () => void }) {
+  const { t } = useTranslation();
   const { data: session } = useSession();
   const { settings } = useSettings();
   const { entries, byKey } = useScans();
@@ -66,7 +69,7 @@ function Sidebar({ onSearch }: { onSearch: () => void }) {
       <div className="flex h-13 items-center gap-2.5 px-4">
         <Logo />
         <span className="text-[14.5px] font-semibold tracking-tight">Easy CI</span>
-        {session?.mode === "demo" ? <Badge className="ml-auto border-accent/25 bg-accent-soft text-accent">Démo</Badge> : null}
+        {session?.mode === "demo" ? <Badge className="ml-auto border-accent/25 bg-accent-soft text-accent">{t("shell.demoBadge")}</Badge> : null}
       </div>
 
       <div className="px-3 pb-2">
@@ -75,7 +78,7 @@ function Sidebar({ onSearch }: { onSearch: () => void }) {
           className="flex h-8 w-full items-center gap-2 rounded-lg border border-line bg-surface px-2.5 text-[13px] text-fg-subtle transition-colors hover:border-line-strong hover:text-fg-muted"
         >
           <Search className="size-3.5" />
-          <span>Rechercher…</span>
+          <span>{t("shell.search")}</span>
           <span className="ml-auto flex gap-0.5">
             <Kbd>⌘</Kbd>
             <Kbd>K</Kbd>
@@ -85,27 +88,27 @@ function Sidebar({ onSearch }: { onSearch: () => void }) {
 
       <nav className="flex flex-col gap-0.5 px-3 py-2">
         <SidebarLink to="/" icon={<LayoutDashboard />} end>
-          Vue d'ensemble
+          {t("nav.overview")}
         </SidebarLink>
         <SidebarLink to="/repos" icon={<FolderGit2 />} count={failing || undefined}>
-          Dépôts
+          {t("nav.repositories")}
         </SidebarLink>
         <SidebarLink to="/settings" icon={<SettingsIcon />}>
-          Paramètres
+          {t("nav.settings")}
         </SidebarLink>
         <SidebarLink to="/docs" icon={<BookOpen />}>
-          Documentation
+          {t("nav.docs")}
         </SidebarLink>
       </nav>
 
       <div className="mt-3 flex min-h-0 flex-1 flex-col px-3">
         <div className="mb-1 flex items-center gap-1.5 px-2 text-[11px] font-semibold tracking-wide text-fg-subtle uppercase">
-          <Star className="size-3" /> Favoris
+          <Star className="size-3" /> {t("shell.favorites")}
         </div>
         <div className="scrollbar-thin -mx-1 flex-1 overflow-y-auto px-1">
           {favorites.length === 0 ? (
             <p className="px-2 py-1.5 text-[12px] leading-relaxed text-fg-subtle">
-              Ajoutez des dépôts en favoris avec l'étoile pour les retrouver ici.
+              {t("shell.favoritesEmpty")}
             </p>
           ) : (
             favorites.map((entry) => (
@@ -150,7 +153,7 @@ function SidebarLink({ to, icon, children, end, count }: { to: string; icon: Rea
           <span className={cn("transition-colors", isActive ? "text-accent" : "text-fg-subtle group-hover:text-fg-muted")}>{icon}</span>
           {children}
           {count ? (
-            <Tooltip content={`${count} dépôt${count > 1 ? "s" : ""} en échec`}>
+            <Tooltip content={i18n.t("shell.failingRepos", { count })}>
               <span className="ml-auto flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-failure px-1 text-[10.5px] font-semibold text-white">
                 {count}
               </span>
@@ -172,7 +175,7 @@ function UpdateBanner() {
     >
       <CircleArrowUp className="size-4 shrink-0 text-accent" />
       <span className="min-w-0 flex-1 leading-tight">
-        <span className="block text-[12.5px] font-medium">Mise à jour disponible</span>
+        <span className="block text-[12.5px] font-medium">{i18n.t("shell.updateAvailable")}</span>
         <span className="block text-[11.5px] text-fg-muted">Easy CI {pending.version}</span>
       </span>
     </button>
@@ -198,12 +201,12 @@ function SidebarFooter() {
         return (
           <Tooltip
             key={rate.provider}
-            content={`Quota API ${label} : ${formatNumber(rate.remaining)} requêtes restantes${rate.reset_at ? `, réinitialisé ${timeAgo(new Date(rate.reset_at * 1000).toISOString())}` : ""}`}
+            content={rate.reset_at ? i18n.t("shell.quotaTooltipReset", { provider: label, remaining: formatNumber(rate.remaining), reset: timeAgo(new Date(rate.reset_at * 1000).toISOString()) }) : i18n.t("shell.quotaTooltip", { provider: label, remaining: formatNumber(rate.remaining) })}
           >
             <div className="mb-2.5 px-1">
               <div className="mb-1 flex items-center justify-between gap-2 text-[11px] text-fg-subtle">
                 <span className="inline-flex items-center gap-1">
-                  <ProviderIcon provider={rate.provider} className="size-3" mono /> Quota {label}
+                  <ProviderIcon provider={rate.provider} className="size-3" mono /> {i18n.t("shell.quota", { provider: label })}
                 </span>
                 <span className="tabular">
                   {formatNumber(rate.remaining)} / {formatNumber(rate.limit)}
@@ -224,7 +227,7 @@ function SidebarFooter() {
         <div className="min-w-0 flex-1 leading-tight">
           <div className="truncate text-[13px] font-medium">{session?.user?.name}</div>
           <div className="truncate text-[11.5px] text-fg-subtle">
-            {session?.mode === "demo" ? "Mode démo" : `${accounts.length} compte${accounts.length > 1 ? "s" : ""} connecté${accounts.length > 1 ? "s" : ""}`}
+            {session?.mode === "demo" ? i18n.t("shell.demoMode") : i18n.t("shell.accountsConnected", { count: accounts.length })}
           </div>
         </div>
         <div className="flex -space-x-1">
@@ -244,6 +247,7 @@ function SidebarFooter() {
 /* -------------------------------------------------------------------------- */
 
 function Topbar({ onSearch }: { onSearch: () => void }) {
+  const { t } = useTranslation();
   const matches = useMatches();
   const { isRefreshing, refreshAll, lastUpdatedAt, scanned, total } = useScans();
   const { data: session } = useSession();
@@ -271,7 +275,7 @@ function Topbar({ onSearch }: { onSearch: () => void }) {
 
   return (
     <header className="relative flex h-13 shrink-0 items-center gap-3 border-b border-line bg-canvas/80 px-6 backdrop-blur">
-      <nav className="flex min-w-0 items-center gap-1.5 text-[13.5px]" aria-label="Fil d'Ariane">
+      <nav className="flex min-w-0 items-center gap-1.5 text-[13.5px]" aria-label={t("shell.breadcrumb")}>
         {crumbs.map((crumb, index) => {
           const last = index === crumbs.length - 1;
           return (
@@ -293,26 +297,26 @@ function Topbar({ onSearch }: { onSearch: () => void }) {
         {session?.mode === "demo" ? (
           <div className="mr-2 flex items-center gap-2 rounded-full border border-accent/25 bg-accent-soft py-1 pr-1 pl-3 text-[12.5px]">
             <Sparkles className="size-3.5 text-accent" />
-            <span className="hidden font-medium text-fg lg:inline">Mode démo : données fictives</span>
+            <span className="hidden font-medium text-fg lg:inline">{t("shell.demoBanner")}</span>
             <Button variant="primary" size="sm" className="h-6.5 rounded-full px-3" onClick={() => logout.mutate()} loading={logout.isPending}>
-              Connecter un compte
+              {t("palette.connectAccount")}
             </Button>
           </div>
         ) : null}
         <span className="hidden items-center gap-2 text-[12px] text-fg-subtle md:flex">
           {scanning ? (
             <span className="tabular">
-              Analyse des dépôts… {scanned}/{total}
+              {t("shell.scanning", { scanned, total })}
             </span>
           ) : lastUpdatedAt ? (
             <>
               <span className="size-1.5 rounded-full bg-success" />
-              <span>Actualisé {timeAgo(new Date(lastUpdatedAt).toISOString(), now)}</span>
+              <span>{t("shell.updated", { time: timeAgo(new Date(lastUpdatedAt).toISOString(), now) })}</span>
             </>
           ) : null}
         </span>
-        <Tooltip content={<span className="flex items-center gap-2">Tout actualiser <Kbd>R</Kbd></span>}>
-          <Button variant="ghost" size="icon" onClick={() => void refreshAll()} aria-label="Tout actualiser">
+        <Tooltip content={<span className="flex items-center gap-2">{t("palette.refreshAll")} <Kbd>R</Kbd></span>}>
+          <Button variant="ghost" size="icon" onClick={() => void refreshAll()} aria-label={t("palette.refreshAll")}>
             <RefreshCw className={cn(isRefreshing && "animate-spin")} />
           </Button>
         </Tooltip>

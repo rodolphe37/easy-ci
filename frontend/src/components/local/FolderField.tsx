@@ -1,6 +1,7 @@
 import { FolderOpen } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import i18n from "@/i18n";
 import { errorMessage } from "@/hooks/local";
 import { api } from "@/lib/api";
 import { Button, Input } from "../ui/primitives";
@@ -31,7 +32,7 @@ export function FolderField({
       const selected = await api.pickFolder(pickerTitle);
       if (selected) onChange(selected);
     } catch (error) {
-      toast.error("Sélection impossible", { description: errorMessage(error) });
+      toast.error(i18n.t("local.pickFailed"), { description: errorMessage(error) });
     } finally {
       setPicking(false);
     }
@@ -52,7 +53,7 @@ export function FolderField({
       />
       {pickerAvailable ? (
         <Button type="button" onClick={() => void pick()} loading={picking} className="h-9">
-          Parcourir…
+          {i18n.t("local.browse")}
         </Button>
       ) : null}
     </div>

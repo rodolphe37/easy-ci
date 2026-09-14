@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from easy_ci.errors import EasyCIError
+from easy_ci.i18n import tr
 
 DEFAULT_TIMEOUT = 20
 NETWORK_TIMEOUT = 120
@@ -57,7 +58,7 @@ def git_version() -> str | None:
 def run_git(args: list[str], cwd: Path | str | None = None, *, timeout: int = DEFAULT_TIMEOUT, check: bool = True) -> GitResult:
     binary = git_path()
     if not binary:
-        raise GitNotInstalledError("Git n'est pas installé ou introuvable dans le PATH.")
+        raise GitNotInstalledError(tr("Git n'est pas installé ou introuvable dans le PATH."))
     env = {
         **os.environ,
         # Jamais de question interactive : l'app n'a pas de terminal pour y répondre.
@@ -69,9 +70,9 @@ def run_git(args: list[str], cwd: Path | str | None = None, *, timeout: int = DE
     try:
         completed = subprocess.run([binary, *args], cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout, env=env, **SUBPROCESS_FLAGS)
     except subprocess.TimeoutExpired as exc:
-        raise GitError(f"La commande git {args[0]} a dépassé le délai de {timeout} s.") from exc
+        raise GitError(tr("La commande git {value} a dépassé le délai de {timeout} s.", value=args[0], timeout=timeout)) from exc
     except OSError as exc:
-        raise GitError(f"Impossible d'exécuter git : {exc}") from exc
+        raise GitError(tr("Impossible d'exécuter git : {exc}", exc=exc)) from exc
     result = GitResult(completed.returncode, completed.stdout, completed.stderr)
     if check and result.returncode != 0:
         raise GitError(explain_git_error(args, result.stderr or result.stdout))
@@ -85,23 +86,22 @@ def explain_git_error(args: list[str], output: str) -> str:
     command = args[0] if args else "git"
     if "could not read username" in lower or "terminal prompts disabled" in lower or "authentication failed" in lower:
         return (
-            "Git n'a pas pu s'authentifier auprès du serveur. Configurez un accès SSH ou un gestionnaire d'identifiants Git "
-            "(par exemple « gh auth setup-git » pour GitHub), puis réessayez."
+            tr("Git n'a pas pu s'authentifier auprès du serveur. Configurez un accès SSH ou un gestionnaire d'identifiants Git (par exemple « gh auth setup-git » pour GitHub), puis réessayez.")
         )
     if "permission denied (publickey)" in lower or "host key verification failed" in lower:
-        return "Accès SSH refusé : votre clé SSH n'est pas chargée ou n'est pas autorisée sur ce dépôt."
+        return tr("Accès SSH refusé : votre clé SSH n'est pas chargée ou n'est pas autorisée sur ce dépôt.")
     if "not possible to fast-forward" in lower or "diverging branches" in lower or "have diverged" in lower:
-        return "Votre branche locale et la branche distante ont divergé : fusionnez ou rebasez depuis votre terminal."
+        return tr("Votre branche locale et la branche distante ont divergé : fusionnez ou rebasez depuis votre terminal.")
     if "would be overwritten" in lower or "please commit your changes or stash them" in lower:
-        return "Des modifications locales non commitées bloquent la mise à jour. Commitez-les ou mettez-les de côté (stash)."
+        return tr("Des modifications locales non commitées bloquent la mise à jour. Commitez-les ou mettez-les de côté (stash).")
     if "no tracking information" in lower or "no upstream" in lower:
-        return "La branche locale ne suit aucune branche distante."
+        return tr("La branche locale ne suit aucune branche distante.")
     if "already exists and is not an empty directory" in lower:
-        return "Le dossier de destination existe déjà et n'est pas vide."
+        return tr("Le dossier de destination existe déjà et n'est pas vide.")
     if "could not resolve host" in lower or "unable to access" in lower:
-        return "Serveur Git injoignable. Vérifiez votre connexion."
+        return tr("Serveur Git injoignable. Vérifiez votre connexion.")
     last_line = text.splitlines()[-1] if text else "erreur inconnue"
-    return f"git {command} a échoué : {last_line.removeprefix('fatal: ').removeprefix('error: ')}"
+    return tr("git {command} a échoué : {value}", command=command, value=last_line.removeprefix('fatal: ').removeprefix('error: '))
 
 
 # ---------------------------------------------------------------------------

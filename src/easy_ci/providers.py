@@ -6,6 +6,7 @@ from collections import defaultdict
 from datetime import UTC, datetime
 from typing import Any, Protocol
 
+from easy_ci.i18n import N_, tr
 from easy_ci.state import NONE, aggregate_state
 
 GITHUB = "github"
@@ -23,15 +24,15 @@ PROVIDER_INFO: dict[str, dict[str, Any]] = {
         "label": "GitHub",
         "ci_label": "GitHub Actions",
         "workflow_label": "Workflows",
-        "run_label": "Exécution",
+        "run_label": N_("Exécution"),
         "config_hint": ".github/workflows/*.yml",
         "default_host": "https://github.com",
         "token_url": "https://github.com/settings/tokens/new?scopes=repo,workflow,read:org&description=Easy%20CI",
         "capabilities": {
             "rerun_failed": True,
             "rerun_all": True,
-            "rerun_all_label": "Relancer tous les jobs",
-            "rerun_all_description": "Nouvelle tentative de toute l'exécution",
+            "rerun_all_label": N_("Relancer tous les jobs"),
+            "rerun_all_description": N_("Nouvelle tentative de toute l'exécution"),
             "cancel": True,
             "live_logs": False,
             "annotations": True,
@@ -50,8 +51,8 @@ PROVIDER_INFO: dict[str, dict[str, Any]] = {
         "capabilities": {
             "rerun_failed": True,
             "rerun_all": True,
-            "rerun_all_label": "Lancer un nouveau pipeline",
-            "rerun_all_description": "Nouveau pipeline sur la même branche (dernier commit)",
+            "rerun_all_label": N_("Lancer un nouveau pipeline"),
+            "rerun_all_description": N_("Nouveau pipeline sur la même branche (dernier commit)"),
             "cancel": True,
             "live_logs": True,
             "annotations": True,
@@ -70,8 +71,8 @@ PROVIDER_INFO: dict[str, dict[str, Any]] = {
         "capabilities": {
             "rerun_failed": False,
             "rerun_all": True,
-            "rerun_all_label": "Lancer un nouveau pipeline",
-            "rerun_all_description": "Nouveau pipeline sur la même branche (dernier commit)",
+            "rerun_all_label": N_("Lancer un nouveau pipeline"),
+            "rerun_all_description": N_("Nouveau pipeline sur la même branche (dernier commit)"),
             "cancel": True,
             "live_logs": True,
             "annotations": False,
@@ -164,3 +165,16 @@ def build_scan(full_name: str, workflows: list[dict[str, Any]], runs: list[dict[
         "last_run": runs[0] if runs else None,
         "scanned_at": now_iso(),
     }
+
+
+_TRANSLATED_CAPABILITIES = ("rerun_all_label", "rerun_all_description")
+
+
+def capabilities(provider: str) -> dict[str, Any]:
+    """Capacités d'un fournisseur, libellés traduits dans la langue courante."""
+    caps = dict(PROVIDER_INFO[provider]["capabilities"])
+    return {key: tr(value) if key in _TRANSLATED_CAPABILITIES else value for key, value in caps.items()}
+
+
+def provider_info() -> dict[str, dict[str, Any]]:
+    return {provider: {**info, "run_label": tr(info["run_label"]), "capabilities": capabilities(provider)} for provider, info in PROVIDER_INFO.items()}

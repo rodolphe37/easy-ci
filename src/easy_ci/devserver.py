@@ -34,7 +34,7 @@ def make_handler(api: Api) -> type[BaseHTTPRequestHandler]:
             except ValueError:
                 self._send(400, {"ok": False, "error": {"code": "bad_request", "message": "JSON invalide"}})
                 return
-            self._send(200, api.call(payload.get("method", ""), payload.get("params")))
+            self._send(200, api.call(payload.get("method", ""), payload.get("params"), payload.get("language")))
 
         def _send(self, status: int, body: dict) -> None:
             data = json.dumps(body, ensure_ascii=False).encode("utf-8")

@@ -29,10 +29,11 @@ from easy_ci.generation.render import generate as generate_pipeline
 from easy_ci.github.client import GitHubClient
 from easy_ci.github.service import GitHubService
 from easy_ci.gitlab.service import GitLabClient, GitLabService, normalize_host
+from easy_ci.i18n import N_, set_language, system_language, tr
 from easy_ci.local.demo import DemoLocalProjects
 from easy_ci.local.git import SUBPROCESS_FLAGS
 from easy_ci.local.service import LocalProjectsService
-from easy_ci.providers import GITHUB, GITLAB, PROVIDER_INFO, PROVIDERS, repo_key, split_repo_key
+from easy_ci.providers import GITHUB, GITLAB, PROVIDER_INFO, PROVIDERS, provider_info, repo_key, split_repo_key
 from easy_ci.refs import parse_repository_reference
 from easy_ci.storage import CredentialStore, SettingsStore
 from easy_ci.updates import UpdateChecker
@@ -61,8 +62,8 @@ def _bitbucket(credentials: dict[str, str]) -> BitbucketService:
 DEFAULT_FACTORIES: dict[str, ServiceFactory] = {"github": _github, "gitlab": _gitlab, "bitbucket": _bitbucket}
 
 _REQUIRED_FIELDS = {
-    "github": (("token",), "Saisissez un token GitHub."),
-    "gitlab": (("token",), "Saisissez un token GitLab."),
+    "github": (("token",), N_("Saisissez un token GitHub.")),
+    "gitlab": (("token",), N_("Saisissez un token GitLab.")),
     "bitbucket": ((), ""),
 }
 
@@ -158,10 +159,12 @@ class Api:
 
     # -- Dispatch ---------------------------------------------------------
 
-    def call(self, method: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+    def call(self, method: str, params: dict[str, Any] | None = None, language: str | None = None) -> dict[str, Any]:
+        # Les messages renvoyés (erreurs, validation, génération) suivent la langue de l'interface.
+        set_language(language)
         handler = self._handlers.get(method)
         if handler is None:
-            return {"ok": False, "error": {"code": "unknown_method", "message": f"Méthode inconnue : {method}"}}
+            return {"ok": False, "error": {"code": "unknown_method", "message": tr("Méthode inconnue : {method}", method=method)}}
         params = params or {}
         try:
             return {"ok": True, "data": handler(**params)}
@@ -178,7 +181,7 @@ class Api:
             return {"ok": False, "error": {"code": "bad_request", "message": str(exc)}}
         except Exception as exc:  # garde-fou : l'interface doit toujours recevoir une réponse
             log.exception("Erreur inattendue dans %s", method)
-            return {"ok": False, "error": {"code": "internal", "message": f"Erreur inattendue : {exc}"}}
+            return {"ok": False, "error": {"code": "internal", "message": tr("Erreur inattendue : {error}", error=exc)}}
 
     # -- Projets locaux ---------------------------------------------------
 
@@ -200,7 +203,7 @@ class Api:
         provider, full_name = split_repo_key(key)
         service = self._service(provider)
         if not hasattr(service, "lint_ci") or (self._demo is None and provider != GITLAB):
-            raise EasyCIError("La validation officielle n'est disponible que pour GitLab (CI Lint).")
+            raise EasyCIError(tr("La validation officielle n'est disponible que pour GitLab (CI Lint)."))
         return service.lint_ci(full_name, content)
 
     def detect_project(self, key: str) -> dict[str, Any]:
@@ -260,17 +263,17 @@ class Api:
         provider, full_name = split_repo_key(key)
         title = title.strip()
         if not title:
-            raise EasyCIError("Saisissez un titre.")
+            raise EasyCIError(tr("Saisissez un titre."))
         status = self._local_projects().status(key)
         branch = status.get("branch")
         if not branch:
-            raise EasyCIError("Aucune branche locale : impossible de créer une pull request.")
+            raise EasyCIError(tr("Aucune branche locale : impossible de créer une pull request."))
         if not status.get("upstream") or status.get("ahead", 0) > 0:
-            raise EasyCIError("Envoyez d'abord la branche (bouton « Envoyer ») pour que la plateforme connaisse vos commits.")
+            raise EasyCIError(tr("Envoyez d'abord la branche (bouton « Envoyer ») pour que la plateforme connaisse vos commits."))
         service = self._service(provider)
         base = base or service.get_repository(full_name).get("default_branch")
         if base == branch:
-            raise EasyCIError(f"La branche « {branch} » est déjà la branche cible : créez une branche dédiée pour proposer une modification.")
+            raise EasyCIError(tr("La branche « {branch} » est déjà la branche cible : créez une branche dédiée pour proposer une modification.", branch=branch))
         existing = service.find_pull_request(full_name, branch)
         if existing:
             return {**existing, "already_existed": True}
@@ -285,7 +288,7 @@ class Api:
             return self._demo
         account = self._accounts.get(provider)
         if account is None:
-            raise NotAuthenticatedError(f"Aucun compte {_PROVIDER_NAMES[provider]} connecté.")
+            raise NotAuthenticatedError(tr("Aucun compte {provider_name} connecté.", provider_name=_PROVIDER_NAMES[provider]))
         return account.service
 
     def _session(self) -> dict[str, Any]:
@@ -304,8 +307,9 @@ class Api:
             "user": accounts[0]["user"] if accounts else None,
             "restore_errors": [{"provider": p, "message": m} for p, m in self._restore_errors.items()],
             "gh_cli_available": shutil.which("gh") is not None,
-            "providers": PROVIDER_INFO,
+            "providers": provider_info(),
             "app_version": __version__,
+            "system_language": system_language(),
         }
 
     def get_session(self) -> dict[str, Any]:
@@ -326,7 +330,7 @@ class Api:
                 self._restore_errors.pop(provider, None)
             except AuthError:
                 self._credentials.clear(provider)
-                self._restore_errors[provider] = f"Les identifiants {_PROVIDER_NAMES[provider]} ont expiré ou ont été révoqués. Reconnectez le compte."
+                self._restore_errors[provider] = tr("Les identifiants {provider_name} ont expiré ou ont été révoqués. Reconnectez le compte.", provider_name=_PROVIDER_NAMES[provider])
             except (NetworkError, EasyCIError) as exc:
                 # Identifiants conservés : une nouvelle tentative aura lieu au prochain chargement.
                 self._restore_errors[provider] = str(exc)
@@ -337,9 +341,9 @@ class Api:
         cleaned = {key: str(value).strip() for key, value in credentials.items() if value is not None and str(value).strip()}
         required, message = _REQUIRED_FIELDS[provider]
         if any(field not in cleaned for field in required):
-            raise AuthError(message)
+            raise AuthError(tr(message))
         if provider == "bitbucket" and "access_token" not in cleaned and not {"email", "api_token"} <= cleaned.keys():
-            raise AuthError("Saisissez l'e-mail de votre compte Atlassian et un API token (ou un access token).")
+            raise AuthError(tr("Saisissez l'e-mail de votre compte Atlassian et un API token (ou un access token)."))
         if provider == GITLAB:
             cleaned["host"] = normalize_host(cleaned.get("host"))
 
@@ -374,11 +378,11 @@ class Api:
     def login_with_gh_cli(self) -> dict[str, Any]:
         gh = shutil.which("gh")
         if not gh:
-            raise AuthError("GitHub CLI (gh) n'est pas installé.")
+            raise AuthError(tr("GitHub CLI (gh) n'est pas installé."))
         result = subprocess.run([gh, "auth", "token"], capture_output=True, text=True, timeout=10, **SUBPROCESS_FLAGS)
         token = result.stdout.strip()
         if result.returncode != 0 or not token:
-            raise AuthError("GitHub CLI n'est pas connecté. Lancez « gh auth login » puis réessayez.")
+            raise AuthError(tr("GitHub CLI n'est pas connecté. Lancez « gh auth login » puis réessayez."))
         return self.connect_account(GITHUB, {"token": token})
 
     def start_demo(self) -> dict[str, Any]:
@@ -439,10 +443,10 @@ class Api:
         try:
             repository = service.get_repository(full_name)
         except (NotFoundError, ForbiddenError) as exc:
-            hint = "" if self._demo is not None else " Vérifiez l'orthographe et que vos identifiants donnent accès à ce dépôt."
-            raise EasyCIError(f"Dépôt « {full_name} » introuvable ou inaccessible sur {_PROVIDER_NAMES[provider]}.{hint}") from exc
+            hint = "" if self._demo is not None else tr(" Vérifiez l'orthographe et que vos identifiants donnent accès à ce dépôt.")
+            raise EasyCIError(tr("Dépôt « {full_name} » introuvable ou inaccessible sur {provider_name}.{hint}", full_name=full_name, provider_name=_PROVIDER_NAMES[provider], hint=hint)) from exc
         if repository.get("provider", provider) != provider:
-            raise EasyCIError(f"« {full_name} » n'est pas un dépôt {_PROVIDER_NAMES[provider]}.")
+            raise EasyCIError(tr("« {full_name} » n'est pas un dépôt {provider_name}.", full_name=full_name, provider_name=_PROVIDER_NAMES[provider]))
 
         key = repo_key(provider, repository["full_name"])
         settings = self._settings.load()
@@ -462,5 +466,5 @@ class Api:
     @staticmethod
     def open_external(url: str) -> bool:
         if not url.startswith(("https://", "http://")):
-            raise EasyCIError("Seuls les liens web peuvent être ouverts.")
+            raise EasyCIError(tr("Seuls les liens web peuvent être ouverts."))
         return webbrowser.open(url)

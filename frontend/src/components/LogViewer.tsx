@@ -14,8 +14,9 @@ import {
   X,
 } from "lucide-react";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type CSSProperties } from "react";
+import i18n from "@/i18n";
 import type { JobLog, LogLine, LogSegment } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import { Tooltip } from "./ui/overlays";
 import { Button, Kbd } from "./ui/primitives";
 
@@ -228,7 +229,7 @@ export const LogViewer = forwardRef<LogViewerHandle, { log: AvailableLog; classN
               if (event.key === "Enter") goToMatch(event.shiftKey ? -1 : 1);
               if (event.key === "Escape") setQuery("");
             }}
-            placeholder="Rechercher dans le log"
+            placeholder={i18n.t("logs.search")}
             className="min-w-0 flex-1 bg-transparent text-[12.5px] outline-none placeholder:text-fg-subtle"
           />
           {normalizedQuery.length >= 2 ? (
@@ -237,21 +238,21 @@ export const LogViewer = forwardRef<LogViewerHandle, { log: AvailableLog; classN
             <Kbd className="h-4 text-[10px]">⌘F</Kbd>
           )}
           {query ? (
-            <button onClick={() => setQuery("")} className="text-fg-subtle hover:text-fg" aria-label="Effacer">
+            <button onClick={() => setQuery("")} className="text-fg-subtle hover:text-fg" aria-label={i18n.t("logs.clear")}>
               <X className="size-3.5" />
             </button>
           ) : null}
         </div>
-        <Button variant="ghost" size="icon-sm" onClick={() => goToMatch(-1)} disabled={!matches.length} aria-label="Précédent">
+        <Button variant="ghost" size="icon-sm" onClick={() => goToMatch(-1)} disabled={!matches.length} aria-label={i18n.t("common.previous")}>
           <ArrowUp />
         </Button>
-        <Button variant="ghost" size="icon-sm" onClick={() => goToMatch(1)} disabled={!matches.length} aria-label="Suivant">
+        <Button variant="ghost" size="icon-sm" onClick={() => goToMatch(1)} disabled={!matches.length} aria-label={i18n.t("common.next")}>
           <ArrowDown />
         </Button>
 
         <div className="ml-auto flex items-center gap-1">
           {live ? (
-            <Tooltip content={follow ? "Le log défile automatiquement. Remontez pour le figer." : "Reprendre le défilement automatique"}>
+            <Tooltip content={follow ? i18n.t("logs.followOn") : i18n.t("logs.followOff")}>
               <button
                 onClick={() => {
                   setFollow(true);
@@ -266,26 +267,26 @@ export const LogViewer = forwardRef<LogViewerHandle, { log: AvailableLog; classN
                   {follow ? <span className="absolute inset-0 animate-ping rounded-full bg-running opacity-60" /> : null}
                   <span className="relative size-2 rounded-full bg-running" />
                 </span>
-                {follow ? "En direct" : "Suivre"}
+                {follow ? i18n.t("logs.live") : i18n.t("logs.follow")}
               </button>
             </Tooltip>
           ) : null}
           {log.errors.length ? (
             <Button variant="danger" size="sm" onClick={goToError}>
               <TriangleAlert className="size-3.5" />
-              {log.errors.length > 1 ? `Erreur ${errorIndex + 1}/${log.errors.length}` : "Aller à l'erreur"}
+              {log.errors.length > 1 ? i18n.t("logs.errorN", { index: errorIndex + 1, total: log.errors.length }) : i18n.t("logs.goToError")}
             </Button>
           ) : null}
-          <ToolbarToggle label="Horodatage" active={timestamps} onClick={() => setTimestamps((v) => !v)} icon={<Clock />} />
-          <ToolbarToggle label="Retour à la ligne" active={wrap} onClick={() => setWrap((v) => !v)} icon={<WrapText />} />
+          <ToolbarToggle label={i18n.t("logs.timestamps")} active={timestamps} onClick={() => setTimestamps((v) => !v)} icon={<Clock />} />
+          <ToolbarToggle label={i18n.t("logs.wrap")} active={wrap} onClick={() => setWrap((v) => !v)} icon={<WrapText />} />
           <ToolbarToggle
-            label={allCollapsed ? "Tout déplier" : "Tout replier"}
+            label={allCollapsed ? i18n.t("logs.expandAll") : i18n.t("logs.collapseAll")}
             active={false}
             onClick={() => setOverrides(new Map(log.groups.map((g) => [g.id, !allCollapsed])))}
             icon={allCollapsed ? <ChevronsUpDown /> : <ChevronsDownUp />}
           />
           <ToolbarToggle
-            label="Copier le log"
+            label={i18n.t("logs.copy")}
             active={false}
             onClick={() => void navigator.clipboard.writeText(log.lines.map(plainText).join("\n")).then(() => setCopied(true))}
             icon={copied ? <Check className="text-success" /> : <Copy />}
@@ -295,7 +296,7 @@ export const LogViewer = forwardRef<LogViewerHandle, { log: AvailableLog; classN
 
       {log.truncated ? (
         <div className="border-b border-line bg-running/10 px-4 py-1.5 text-[12px] text-fg-muted">
-          Log volumineux : seules les {log.line_count.toLocaleString("fr-FR")} dernières lignes sont affichées.
+          {i18n.t("logs.truncated", { count: log.line_count, formatted: formatNumber(log.line_count) })}
         </div>
       ) : null}
 
@@ -352,19 +353,19 @@ export const LogViewer = forwardRef<LogViewerHandle, { log: AvailableLog; classN
                       {group?.has_error ? <span className="size-1.5 rounded-full bg-failure" /> : null}
                       <Highlighted text={group?.title ?? plainText(line)} query={normalizedQuery} />
                       {isCollapsed && group ? (
-                        <span className="ml-2 font-normal text-fg-subtle">{group.end - group.line} ligne{group.end - group.line > 1 ? "s" : ""}</span>
+                        <span className="ml-2 font-normal text-fg-subtle">{i18n.t("logs.lines", { count: group.end - group.line })}</span>
                       ) : null}
                     </span>
                   ) : line.kind === "error" ? (
                     <>
-                      <span className="mr-2 rounded bg-failure px-1 py-px text-[10.5px] font-semibold text-white">Erreur</span>
+                      <span className="mr-2 rounded bg-failure px-1 py-px text-[10.5px] font-semibold text-white">{i18n.t("logs.errorBadge")}</span>
                       {line.segments.map((segment, i) => (
                         <Highlighted key={i} text={segment.t} query={normalizedQuery} />
                       ))}
                     </>
                   ) : line.kind === "warning" ? (
                     <>
-                      <span className="mr-2 rounded bg-running px-1 py-px text-[10.5px] font-semibold text-black">Attention</span>
+                      <span className="mr-2 rounded bg-running px-1 py-px text-[10.5px] font-semibold text-black">{i18n.t("logs.warningBadge")}</span>
                       {line.segments.map((segment, i) => (
                         <Highlighted key={i} text={segment.t} query={normalizedQuery} />
                       ))}

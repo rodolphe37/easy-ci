@@ -94,9 +94,7 @@ Easy CI brings all of that into a single desktop app: every pipeline of every re
 
 - **One-command install** on macOS, Linux and Windows, with **new version detection** and the right upgrade command for your install method.
 - **Demo mode** to try everything without an account, command palette (`⌘K` / `Ctrl+K`), light and dark themes, **built-in documentation**.
-
-> [!NOTE]
-> The user interface and built-in documentation are currently in **French**. An English translation is on the [roadmap](#roadmap) — contributions are welcome.
+- **English and French interface**, following the system language, with a manual switch in *Settings › Appearance*.
 
 ## Supported platforms
 
@@ -195,7 +193,7 @@ Found a vulnerability? Please report it privately — see [SECURITY.md](SECURITY
 |---|---|
 | Desktop shell | [pywebview](https://pywebview.flowrl.com/) (Cocoa/WebKit on macOS, Edge WebView2 on Windows, Qt WebEngine on Linux) |
 | Backend | Python 3.11+, [httpx](https://www.python-httpx.org/), [keyring](https://github.com/jaraco/keyring), [PyYAML](https://pyyaml.org/), [platformdirs](https://github.com/platformdirs/platformdirs) |
-| Frontend | [React](https://react.dev/) + TypeScript, [Vite](https://vite.dev/), [Tailwind CSS](https://tailwindcss.com/), [TanStack Query](https://tanstack.com/query), [React Router](https://reactrouter.com/), [Radix UI](https://www.radix-ui.com/), [CodeMirror 6](https://codemirror.net/), [cmdk](https://cmdk.paco.me/), [Lucide](https://lucide.dev/) |
+| Frontend | [React](https://react.dev/) + TypeScript, [Vite](https://vite.dev/), [Tailwind CSS](https://tailwindcss.com/), [TanStack Query](https://tanstack.com/query), [React Router](https://reactrouter.com/), [Radix UI](https://www.radix-ui.com/), [CodeMirror 6](https://codemirror.net/), [cmdk](https://cmdk.paco.me/), [Lucide](https://lucide.dev/), [i18next](https://www.i18next.com/) |
 | Quality | [pytest](https://pytest.org/), [Ruff](https://docs.astral.sh/ruff/), strict TypeScript |
 | Packaging and delivery | [PyInstaller](https://pyinstaller.org/), GitHub Actions (tests on 3 OS, builds for macOS arm64/x64, Windows, Linux), GitHub Releases, Homebrew tap |
 
@@ -249,6 +247,10 @@ Checks run by CI:
 npm --prefix frontend run typecheck
 ```
 
+```bash
+npm --prefix frontend run i18n:check
+```
+
 On Linux, pywebview needs GTK (`python3-gi`, `gir1.2-webkit2-4.1`) or Qt (`pip install -e ".[qt]"`). Building the standalone app and publishing releases are covered in [packaging/README.md](packaging/README.md).
 
 ## Roadmap
@@ -262,10 +264,11 @@ Done:
 - [x] Pipeline generation from the detected stack
 - [x] Project CI/CD: tests on 3 OS, standalone apps, GitHub Releases, Homebrew tap
 - [x] One-command install and in-app update notifications
+- [x] English and French interface and documentation (i18n)
 
 Next ideas — feedback and contributions welcome:
 
-- [ ] English user interface and documentation (i18n)
+- [ ] More interface languages (contributions welcome: one JSON catalog per language)
 - [ ] Desktop notifications when a watched pipeline fails or recovers
 - [ ] More providers: Azure Pipelines, CircleCI, Gitea/Forgejo Actions
 - [ ] Linux arm64 builds, AppImage / Flatpak, winget package

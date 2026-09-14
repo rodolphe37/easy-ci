@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, useCallback, useContext, useEffect, useMemo, type ReactNode } from "react";
 import { toast } from "sonner";
+import i18n, { applyLanguagePreference } from "@/i18n";
 import { api, ApiError } from "@/lib/api";
 import { PROVIDER_LABELS } from "@/lib/providers";
 import type { ProviderId, ProviderInfo, Session, Settings } from "@/lib/types";
@@ -38,7 +39,7 @@ export function useSessionActions() {
       apply(session);
       void queryClient.invalidateQueries({ queryKey: ["repositories", provider] });
       const account = session.accounts.find((a) => a.provider === provider);
-      toast.success(`${PROVIDER_LABELS[provider].label} connecté`, { description: account ? `Compte @${account.user.login}` : undefined });
+      toast.success(i18n.t("session.connected", { provider: PROVIDER_LABELS[provider].label }), { description: account ? i18n.t("session.account", { login: account.user.login }) : undefined });
     },
   });
   const loginWithGhCli = useMutation({ mutationFn: api.loginWithGhCli, onSuccess: apply });
@@ -49,7 +50,7 @@ export function useSessionActions() {
       apply(session);
       queryClient.removeQueries({ queryKey: ["repositories", provider] });
       queryClient.removeQueries({ predicate: (query) => typeof query.queryKey[1] === "string" && query.queryKey[1].startsWith(`${provider}:`) });
-      toast(`${PROVIDER_LABELS[provider].label} déconnecté`, { description: "Les identifiants ont été retirés du trousseau." });
+      toast(i18n.t("session.disconnected", { provider: PROVIDER_LABELS[provider].label }), { description: i18n.t("session.credentialsRemoved") });
     },
   });
   const logout = useMutation({
@@ -57,7 +58,7 @@ export function useSessionActions() {
     onSuccess: (session) => {
       const previousMode = queryClient.getQueryData<Session>(["session"])?.mode;
       apply(session);
-      if (previousMode === "live") toast("Déconnecté", { description: "Les identifiants ont été retirés du trousseau." });
+      if (previousMode === "live") toast(i18n.t("session.loggedOut"), { description: i18n.t("session.credentialsRemoved") });
     },
   });
   return { connect, loginWithGhCli, startDemo, disconnect, logout };
@@ -96,10 +97,25 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     },
     onError: (error, _changes, context) => {
       if (context?.previous) queryClient.setQueryData(["settings"], context.previous);
-      toast.error("Préférences non enregistrées", { description: error instanceof ApiError ? error.message : String(error) });
+      toast.error(i18n.t("session.settingsNotSaved"), { description: error instanceof ApiError ? error.message : String(error) });
     },
     onSuccess: (saved) => queryClient.setQueryData(["settings"], saved),
   });
+
+  // Langue : préférence enregistrée (ou langue du système), puis actualisation des textes produits par le moteur.
+  useEffect(() => {
+    if (settings) applyLanguagePreference(settings.language);
+  }, [settings?.language]);
+
+  useEffect(() => {
+    const onChange = (language: string) => {
+      document.documentElement.lang = language;
+      void queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] !== "settings" });
+    };
+    document.documentElement.lang = i18n.resolvedLanguage ?? "en";
+    i18n.on("languageChanged", onChange);
+    return () => i18n.off("languageChanged", onChange);
+  }, [queryClient]);
 
   const theme = settings?.theme ?? readStoredTheme();
   const resolvedTheme: "light" | "dark" = theme === "system" ? (systemPrefersDark() ? "dark" : "light") : theme;
@@ -149,6 +165,6 @@ function readStoredTheme(): Settings["theme"] {
 
 export function useSettings() {
   const context = useContext(SettingsContext);
-  if (!context) throw new Error("useSettings doit être utilisé dans <SettingsProvider>");
+  if (!context) throw new Error("useSettings must be used within <SettingsProvider>");
   return context;
 }

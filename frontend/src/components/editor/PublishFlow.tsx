@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowUpFromLine, Check, CircleAlert, ExternalLink, GitBranch, GitCommitHorizontal, GitPullRequest, Loader, Plus, TriangleAlert } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
+import i18n from "@/i18n";
 import { CiStateBadge } from "@/components/local/LocalProjectPanel";
 import { errorMessage } from "@/hooks/local";
 import { api } from "@/lib/api";
@@ -68,7 +69,7 @@ export function CommitDialog({
     const initial = focusPath && candidates.some((c) => c.path === focusPath) ? [focusPath] : candidates.map((c) => c.path);
     setSelected(initial);
     const name = (focusPath ?? initial[0] ?? "ci").split("/").pop();
-    setMessage(`ci: mise à jour de ${name}`);
+    setMessage(i18n.t("publish.commit.defaultMessage", { name }));
     setOverride(false);
   }, [open]);
 
@@ -83,8 +84,8 @@ export function CommitDialog({
     mutationFn: () => api.commitCi(repoKey, selected, message, branchMode === "new" ? branch : null),
     onSuccess: (result) => {
       refresh(result.status);
-      toast.success("Commit local créé", {
-        description: `${result.sha.slice(0, 7)} sur ${result.status.linked ? result.status.branch : ""} · rien n'a été envoyé`,
+      toast.success(i18n.t("publish.commit.created"), {
+        description: i18n.t("publish.commit.createdDescription", { sha: result.sha.slice(0, 7), branch: result.status.linked ? result.status.branch : "" }),
       });
       onOpenChange(false);
     },
@@ -94,7 +95,7 @@ export function CommitDialog({
   const blocked = Boolean(blockedReason) && !override;
 
   return (
-    <Modal open={open} onOpenChange={onOpenChange} title="Commiter en local" description="Le commit est créé dans votre clone. Rien n'est envoyé sur le serveur à cette étape." className="w-[min(600px,calc(100vw-48px))]">
+    <Modal open={open} onOpenChange={onOpenChange} title={i18n.t("publish.commit.title")} description={i18n.t("publish.commit.description")} className="w-[min(600px,calc(100vw-48px))]">
       <form
         className="space-y-4 px-5 py-4"
         onSubmit={(event) => {
@@ -102,9 +103,9 @@ export function CommitDialog({
           if (!blocked) commit.mutate();
         }}
       >
-        <Field label="Fichiers à inclure">
+        <Field label={i18n.t("publish.commit.files")}>
           {candidates.length === 0 ? (
-            <p className="text-[12.5px] text-fg-muted">Aucun fichier CI modifié : enregistrez d'abord vos changements.</p>
+            <p className="text-[12.5px] text-fg-muted">{i18n.t("publish.commit.noFiles")}</p>
           ) : (
             <ul className="divide-y divide-line rounded-lg border border-line">
               {candidates.map((file) => (
@@ -125,7 +126,7 @@ export function CommitDialog({
           )}
         </Field>
 
-        <Field label="Message de commit" htmlFor="commit-message">
+        <Field label={i18n.t("publish.commit.message")} htmlFor="commit-message">
           <textarea
             id="commit-message"
             value={message}
@@ -135,13 +136,13 @@ export function CommitDialog({
           />
         </Field>
 
-        <Field label="Branche">
+        <Field label={i18n.t("publish.commit.branch")}>
           <SegmentedControl<"new" | "current">
             value={branchMode}
             onChange={setBranchMode}
             options={[
-              { value: "new", label: <><Plus />Nouvelle branche</> },
-              { value: "current", label: <><GitBranch />Branche actuelle{status.branch ? ` (${status.branch})` : ""}</> },
+              { value: "new", label: <><Plus />{i18n.t("publish.commit.newBranch")}</> },
+              { value: "current", label: <><GitBranch />{status.branch ? i18n.t("publish.commit.currentBranchNamed", { branch: status.branch }) : i18n.t("publish.commit.currentBranch")}</> },
             ]}
           />
           {branchMode === "new" ? (
@@ -151,12 +152,12 @@ export function CommitDialog({
               icon={<GitBranch />}
               className="mt-2 h-9 [&_input]:font-mono [&_input]:text-[12.5px]"
               spellCheck={false}
-              placeholder="ci/ma-modification"
+              placeholder={i18n.t("publish.commit.branchPlaceholder")}
             />
           ) : onDefault ? (
             <p className="mt-2 flex items-start gap-2 text-[12.5px] text-running">
               <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
-              Vous êtes sur la branche principale ({suggestion.data?.default_branch}). Une branche dédiée permet de proposer la modification en pull request.
+              {i18n.t("publish.commit.onDefault", { branch: suggestion.data?.default_branch })}
             </p>
           ) : null}
         </Field>
@@ -167,7 +168,7 @@ export function CommitDialog({
             <div>
               {blockedReason}
               <label className="mt-2 flex items-center gap-2 text-fg">
-                <Switch label="Commiter quand même" checked={override} onChange={setOverride} /> Commiter quand même
+                <Switch label={i18n.t("publish.commit.override")} checked={override} onChange={setOverride} /> {i18n.t("publish.commit.override")}
               </label>
             </div>
           </div>
@@ -177,7 +178,7 @@ export function CommitDialog({
 
         <div className="flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-            Annuler
+            {i18n.t("common.cancel")}
           </Button>
           <Button
             type="submit"
@@ -185,7 +186,7 @@ export function CommitDialog({
             loading={commit.isPending}
             disabled={blocked || !selected.length || !message.trim() || (branchMode === "new" && !branch.trim())}
           >
-            <GitCommitHorizontal /> Créer le commit local
+            <GitCommitHorizontal /> {i18n.t("publish.commit.submit")}
           </Button>
         </div>
       </form>
@@ -203,14 +204,14 @@ export function PushDialog({ open, onOpenChange, repoKey, status }: { open: bool
     mutationFn: () => api.pushLocalBranch(repoKey),
     onSuccess: (result) => {
       refresh(result.status);
-      toast.success("Branche envoyée", { description: `${result.branch} → ${result.remote}` });
+      toast.success(i18n.t("publish.push.done"), { description: `${result.branch} → ${result.remote}` });
       onOpenChange(false);
     },
   });
   const ahead = status.ahead ?? 0;
 
   return (
-    <Modal open={open} onOpenChange={onOpenChange} title="Envoyer la branche" description="Cette action publie vos commits locaux sur le serveur Git.">
+    <Modal open={open} onOpenChange={onOpenChange} title={i18n.t("publish.push.title")} description={i18n.t("publish.push.description")}>
       <div className="space-y-4 px-5 py-4">
         <div className="rounded-xl border border-line bg-surface-2/50 p-3.5 text-[13px]">
           <div className="flex items-center gap-2">
@@ -219,20 +220,20 @@ export function PushDialog({ open, onOpenChange, repoKey, status }: { open: bool
           </div>
           <p className="mt-1.5 text-fg-muted">
             {status.upstream
-              ? `${ahead} commit${ahead > 1 ? "s" : ""} seront envoyés sur ${status.upstream}.`
-              : "Nouvelle branche : elle sera créée sur le serveur, avec tous ses commits."}
+              ? i18n.t("publish.push.ahead", { count: ahead, upstream: status.upstream })
+              : i18n.t("publish.push.newBranch")}
           </p>
           {status.dirty ? (
-            <p className="mt-1.5 text-[12.5px] text-running">Les modifications non commitées restent sur votre machine et ne sont pas envoyées.</p>
+            <p className="mt-1.5 text-[12.5px] text-running">{i18n.t("publish.push.dirty")}</p>
           ) : null}
         </div>
         {push.error ? <p className="text-[12.5px] text-failure">{errorMessage(push.error)}</p> : null}
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Annuler
+            {i18n.t("common.cancel")}
           </Button>
           <Button variant="primary" onClick={() => push.mutate()} loading={push.isPending}>
-            <ArrowUpFromLine /> Envoyer
+            <ArrowUpFromLine /> {i18n.t("publish.push.submit")}
           </Button>
         </div>
       </div>
@@ -266,7 +267,7 @@ export function PullRequestDialog({
     if (!open) return;
     setTitle(defaultTitle);
     setBase(publication.default_branch ?? "");
-    setBody(`Modification de la configuration CI proposée depuis Easy CI.\n\n- Branche : ${publication.branch}\n`);
+    setBody(i18n.t("publish.pr.defaultBody", { branch: publication.branch }));
     setDraft(false);
   }, [open]);
 
@@ -274,9 +275,9 @@ export function PullRequestDialog({
     mutationFn: () => api.createPullRequest(repoKey, title, body, base || null, draft),
     onSuccess: (pull) => {
       refresh();
-      toast.success(pull.already_existed ? `${pull.label} déjà ouverte` : `${pull.label} créée`, {
+      toast.success(pull.already_existed ? i18n.t("publish.pr.alreadyOpen", { label: pull.label }) : i18n.t("publish.pr.created", { label: pull.label }), {
         description: `#${pull.number} · ${pull.title}`,
-        action: { label: "Ouvrir", onClick: () => void api.openExternal(pull.url) },
+        action: { label: i18n.t("common.open"), onClick: () => void api.openExternal(pull.url) },
       });
       onOpenChange(false);
     },
@@ -286,8 +287,8 @@ export function PullRequestDialog({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title={`Créer une ${label}`}
-      description={`Sur ${PROVIDER_LABELS[provider].label}, depuis la branche ${publication.branch}.`}
+      title={i18n.t("publish.pr.title", { kind: label })}
+      description={i18n.t("publish.pr.description", { provider: PROVIDER_LABELS[provider].label, branch: publication.branch })}
       className="w-[min(600px,calc(100vw-48px))]"
     >
       <form
@@ -297,10 +298,10 @@ export function PullRequestDialog({
           create.mutate();
         }}
       >
-        <Field label="Titre" htmlFor="pr-title">
+        <Field label={i18n.t("publish.pr.titleField")} htmlFor="pr-title">
           <Input id="pr-title" value={title} onChange={(event) => setTitle(event.target.value)} className="h-9" />
         </Field>
-        <Field label="Description" htmlFor="pr-body">
+        <Field label={i18n.t("publish.pr.body")} htmlFor="pr-body">
           <textarea
             id="pr-body"
             rows={5}
@@ -310,23 +311,23 @@ export function PullRequestDialog({
           />
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Branche cible" htmlFor="pr-base">
+          <Field label={i18n.t("publish.pr.base")} htmlFor="pr-base">
             <Input id="pr-base" value={base} onChange={(event) => setBase(event.target.value)} icon={<GitBranch />} className="h-9 [&_input]:font-mono [&_input]:text-[12.5px]" />
           </Field>
-          <Field label="Brouillon">
+          <Field label={i18n.t("publish.pr.draft")}>
             <label className="flex h-9 items-center gap-2.5 text-[13px] text-fg-muted">
-              <Switch label="Brouillon" checked={draft} onChange={setDraft} />
-              {draft ? "Marquée comme brouillon" : "Prête pour la revue"}
+              <Switch label={i18n.t("publish.pr.draft")} checked={draft} onChange={setDraft} />
+              {draft ? i18n.t("publish.pr.isDraft") : i18n.t("publish.pr.ready")}
             </label>
           </Field>
         </div>
         {create.error ? <p className="text-[12.5px] text-failure">{errorMessage(create.error)}</p> : null}
         <div className="flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-            Annuler
+            {i18n.t("common.cancel")}
           </Button>
           <Button type="submit" variant="primary" loading={create.isPending} disabled={!title.trim() || !base.trim()}>
-            <GitPullRequest /> Créer la {label}
+            <GitPullRequest /> {i18n.t("publish.pr.submit", { kind: label })}
           </Button>
         </div>
       </form>
@@ -364,25 +365,25 @@ export function PublicationCard({
 
   const steps: { title: string; done: boolean; active: boolean; detail: ReactNode; action?: ReactNode }[] = [
     {
-      title: "Commit local",
+      title: i18n.t("publish.card.commit"),
       done: uncommitted === 0 && (ahead > 0 || pushed),
       active: uncommitted > 0,
-      detail: uncommitted > 0 ? `${uncommitted} fichier${uncommitted > 1 ? "s" : ""} CI à commiter` : ahead > 0 ? `${ahead} commit${ahead > 1 ? "s" : ""} en attente d'envoi` : "Aucune modification en attente",
+      detail: uncommitted > 0 ? i18n.t("publish.card.filesToCommit", { count: uncommitted }) : ahead > 0 ? i18n.t("publish.card.commitsWaiting", { count: ahead }) : i18n.t("publish.card.nothingPending"),
       action: onCommit && uncommitted > 0 ? (
         <Button size="sm" variant="primary" onClick={onCommit}>
-          <GitCommitHorizontal className="size-3.5" /> Commiter
+          <GitCommitHorizontal className="size-3.5" /> {i18n.t("publish.card.commitButton")}
         </Button>
       ) : null,
     },
     {
-      title: "Envoi",
+      title: i18n.t("publish.card.push"),
       done: pushed,
       active: ahead > 0 || (!status.upstream && Boolean(status.last_commit)),
-      detail: pushed ? `Branche à jour sur ${status.upstream}` : status.upstream ? `${ahead} commit${ahead > 1 ? "s" : ""} à envoyer` : "Branche pas encore envoyée",
+      detail: pushed ? i18n.t("publish.card.upToDate", { upstream: status.upstream }) : status.upstream ? i18n.t("publish.card.commitsToPush", { count: ahead }) : i18n.t("publish.card.notPushed"),
       action:
         ahead > 0 || !status.upstream ? (
           <Button size="sm" variant={uncommitted === 0 ? "primary" : "secondary"} onClick={() => setPushOpen(true)}>
-            <ArrowUpFromLine className="size-3.5" /> Envoyer…
+            <ArrowUpFromLine className="size-3.5" /> {i18n.t("publish.card.pushButton")}
           </Button>
         ) : null,
     },
@@ -392,21 +393,21 @@ export function PublicationCard({
       active: pushed && !pull && !onDefault,
       detail: pull ? (
         <button className="inline-flex items-center gap-1 font-medium text-accent hover:underline" onClick={() => void api.openExternal(pull.url)}>
-          #{pull.number} {pull.draft ? "(brouillon)" : ""} <ExternalLink className="size-3" />
+          #{pull.number} {pull.draft ? i18n.t("publish.card.draftSuffix") : ""} <ExternalLink className="size-3" />
         </button>
       ) : onDefault ? (
-        "Sur la branche principale : pas de proposition"
+        i18n.t("publish.card.onDefault")
       ) : publication && !publication.account_connected ? (
-        `Connectez ${PROVIDER_LABELS[provider].label} pour la créer`
+        i18n.t("publish.card.connectToCreate", { provider: PROVIDER_LABELS[provider].label })
       ) : pushed ? (
-        "Prête à être proposée"
+        i18n.t("publish.card.readyToPropose")
       ) : (
-        "Après l'envoi"
+        i18n.t("publish.card.afterPush")
       ),
       action:
         pushed && !pull && !onDefault && publication?.account_connected ? (
           <Button size="sm" variant="primary" onClick={() => setPullOpen(true)}>
-            <GitPullRequest className="size-3.5" /> Créer…
+            <GitPullRequest className="size-3.5" /> {i18n.t("publish.card.createButton")}
           </Button>
         ) : null,
     },
@@ -416,8 +417,8 @@ export function PublicationCard({
     <div className={cn("rounded-xl border border-line bg-surface", compact ? "p-3" : "p-4 shadow-soft")}>
       <div className="mb-3 flex items-center gap-2">
         <GitBranch className="size-4 text-fg-subtle" />
-        <code className="min-w-0 truncate font-mono text-[12.5px] font-medium">{status.branch ?? "HEAD détachée"}</code>
-        {onDefault ? <Badge>branche principale</Badge> : null}
+        <code className="min-w-0 truncate font-mono text-[12.5px] font-medium">{status.branch ?? i18n.t("publish.card.detached")}</code>
+        {onDefault ? <Badge>{i18n.t("publish.card.defaultBranch")}</Badge> : null}
       </div>
       <ol className="space-y-2.5">
         {steps.map((step, index) => (
@@ -451,7 +452,7 @@ export function PublicationCard({
           repoKey={repoKey}
           provider={provider}
           publication={publication}
-          defaultTitle={status.last_commit?.message ?? "ci: mise à jour de la configuration"}
+          defaultTitle={status.last_commit?.message ?? i18n.t("publish.pr.defaultTitle")}
         />
       ) : null}
     </div>

@@ -6,6 +6,7 @@ import re
 from urllib.parse import urlparse
 
 from easy_ci.errors import EasyCIError
+from easy_ci.i18n import tr
 from easy_ci.providers import BITBUCKET, GITHUB, GITLAB
 
 _SEGMENT = re.compile(r"^[A-Za-z0-9_.-]+$")
@@ -38,7 +39,7 @@ def parse_repository_reference(reference: str, provider: str | None = None, gitl
         elif host == "gitlab.com" or host in gitlab_names:
             provider = GITLAB
         else:
-            raise EasyCIError(f"Hébergeur « {host} » non reconnu. Connectez d'abord l'instance GitLab correspondante.")
+            raise EasyCIError(tr("Hébergeur « {host} » non reconnu. Connectez d'abord l'instance GitLab correspondante.", host=host))
 
     provider = provider or GITHUB
     segments = [s for s in path.strip("/").removesuffix(".git").split("/") if s]
@@ -53,5 +54,5 @@ def parse_repository_reference(reference: str, provider: str | None = None, gitl
         max_segments = 2
 
     if len(segments) < 2 or len(segments) > max_segments or not all(_SEGMENT.match(s) and set(s) != {"."} for s in segments):
-        raise EasyCIError("Format non reconnu. Utilisez « propriétaire/dépôt » ou l'URL du dépôt.")
+        raise EasyCIError(tr("Format non reconnu. Utilisez « propriétaire/dépôt » ou l'URL du dépôt."))
     return provider, "/".join(segments)

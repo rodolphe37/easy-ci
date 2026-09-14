@@ -27,8 +27,8 @@ class JsBridge:
     def __init__(self, api: Api) -> None:
         self._api = api
 
-    def call(self, method: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
-        return self._api.call(method, params)
+    def call(self, method: str, params: dict[str, Any] | None = None, language: str | None = None) -> dict[str, Any]:
+        return self._api.call(method, params, language)
 
 
 def _apply_macos_identity() -> None:

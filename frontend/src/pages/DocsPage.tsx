@@ -1,11 +1,14 @@
 import { ArrowRight, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router";
-import { DOC_SECTIONS } from "@/components/docs/DocsContent";
+import { useDocSections } from "@/components/docs/DocsContent";
 import { Input } from "@/components/ui/primitives";
 import { cn } from "@/lib/utils";
 
 export function DocsPage() {
+  const { t } = useTranslation();
+  const DOC_SECTIONS = useDocSections();
   const [params, setParams] = useSearchParams();
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(params.get("section") ?? DOC_SECTIONS[0].id);
@@ -18,7 +21,7 @@ export function DocsPage() {
     const q = query.trim().toLowerCase();
     if (!q) return DOC_SECTIONS;
     return DOC_SECTIONS.filter((section) => `${section.title} ${section.summary}`.toLowerCase().includes(q));
-  }, [query]);
+  }, [query, DOC_SECTIONS]);
 
   const goTo = (id: string, behavior: ScrollBehavior = "smooth") => {
     const element = document.getElementById(`doc-${id}`);
@@ -53,13 +56,13 @@ export function DocsPage() {
       if (element) observer.observe(element);
     });
     return () => observer.disconnect();
-  }, []);
+  }, [DOC_SECTIONS]);
 
   return (
     <div ref={containerRef} className="mx-auto flex w-full max-w-[1180px] gap-10 px-8 py-7 animate-fade-in">
       <aside className="sticky top-7 hidden h-[calc(100vh-7rem)] w-60 shrink-0 flex-col lg:flex">
-        <Input icon={<Search />} placeholder="Chercher un sujet…" value={query} onChange={(event) => setQuery(event.target.value)} data-page-search />
-        <nav className="scrollbar-thin mt-4 -mr-2 flex-1 overflow-y-auto pr-2" aria-label="Sommaire">
+        <Input icon={<Search />} placeholder={t("docs.search")} value={query} onChange={(event) => setQuery(event.target.value)} data-page-search />
+        <nav className="scrollbar-thin mt-4 -mr-2 flex-1 overflow-y-auto pr-2" aria-label={t("docs.toc")}>
           {filtered.map((section) => {
             const Icon = section.icon;
             const isActive = active === section.id;
@@ -77,16 +80,16 @@ export function DocsPage() {
               </button>
             );
           })}
-          {filtered.length === 0 ? <p className="px-2.5 text-[12.5px] text-fg-subtle">Aucun sujet ne correspond.</p> : null}
+          {filtered.length === 0 ? <p className="px-2.5 text-[12.5px] text-fg-subtle">{t("docs.noMatch")}</p> : null}
         </nav>
       </aside>
 
       <article className="min-w-0 max-w-[760px] flex-1 pb-24">
         <header className="mb-8 border-b border-line pb-7">
-          <div className="text-[12px] font-semibold tracking-wide text-accent uppercase">Documentation</div>
-          <h1 className="mt-1.5 text-[28px] font-semibold tracking-tight">Guide d'utilisation d'Easy CI</h1>
+          <div className="text-[12px] font-semibold tracking-wide text-accent uppercase">{t("docs.eyebrow")}</div>
+          <h1 className="mt-1.5 text-[28px] font-semibold tracking-tight">{t("docs.title")}</h1>
           <p className="mt-2 text-[14px] leading-relaxed text-fg-muted">
-            De la connexion de GitHub, GitLab ou Bitbucket au diagnostic d'un pipeline en échec : tout ce qu'il faut savoir pour tirer parti de l'application.
+            {t("docs.intro")}
           </p>
           <div className="mt-5 grid gap-2 sm:grid-cols-3">
             {["accounts", "repositories", "errors"].map((id) => DOC_SECTIONS.find((section) => section.id === id)!).map((section) => {

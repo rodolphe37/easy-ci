@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from easy_ci.i18n import N_
 from easy_ci.providers import GITLAB, repo_key
 from easy_ci.state import gitlab_state
 
@@ -23,29 +24,29 @@ SOURCE_EVENTS = {
 }
 
 FAILURE_REASONS = {
-    "script_failure": "Le script du job s'est terminé en erreur (code de sortie non nul).",
-    "runner_system_failure": "Défaillance du runner pendant l'exécution.",
-    "stuck_or_timeout_failure": "Job bloqué : aucun runner disponible ou délai d'attente dépassé.",
-    "job_execution_timeout": "Durée maximale d'exécution du job dépassée.",
-    "missing_dependency_failure": "Un artefact attendu d'un job précédent est introuvable ou a expiré.",
-    "runner_unsupported": "Le runner ne prend pas en charge une fonctionnalité demandée par le job.",
-    "stale_schedule": "Pipeline planifié trop ancien, non exécuté.",
-    "archived_failure": "Le job ne peut plus être exécuté : il est archivé.",
-    "unmet_prerequisites": "Prérequis non satisfaits (par exemple l'environnement de déploiement).",
-    "scheduler_failure": "Le planificateur n'a pas pu attribuer le job à un runner.",
-    "data_integrity_failure": "Erreur d'intégrité des données côté GitLab.",
-    "api_failure": "Erreur de l'API GitLab pendant l'exécution.",
-    "forward_deployment_failure": "Déploiement bloqué : un déploiement plus récent existe déjà.",
-    "protected_environment_failure": "Environnement protégé : autorisation de déploiement requise.",
-    "insufficient_bridge_permissions": "Permissions insuffisantes pour déclencher le pipeline aval.",
-    "downstream_bridge_project_not_found": "Projet du pipeline aval introuvable.",
-    "reached_max_descendant_pipelines_depth": "Profondeur maximale de pipelines imbriqués atteinte.",
-    "user_blocked": "L'utilisateur qui a déclenché le job est bloqué.",
-    "ci_quota_exceeded": "Quota de minutes CI épuisé.",
-    "no_matching_runner": "Aucun runner ne correspond aux tags du job.",
-    "trace_size_exceeded": "Le log du job dépasse la taille maximale autorisée.",
-    "builds_disabled": "L'intégration continue est désactivée pour ce projet.",
-    "unknown_failure": "Échec pour une raison inconnue.",
+    "script_failure": N_("Le script du job s'est terminé en erreur (code de sortie non nul)."),
+    "runner_system_failure": N_("Défaillance du runner pendant l'exécution."),
+    "stuck_or_timeout_failure": N_("Job bloqué : aucun runner disponible ou délai d'attente dépassé."),
+    "job_execution_timeout": N_("Durée maximale d'exécution du job dépassée."),
+    "missing_dependency_failure": N_("Un artefact attendu d'un job précédent est introuvable ou a expiré."),
+    "runner_unsupported": N_("Le runner ne prend pas en charge une fonctionnalité demandée par le job."),
+    "stale_schedule": N_("Pipeline planifié trop ancien, non exécuté."),
+    "archived_failure": N_("Le job ne peut plus être exécuté : il est archivé."),
+    "unmet_prerequisites": N_("Prérequis non satisfaits (par exemple l'environnement de déploiement)."),
+    "scheduler_failure": N_("Le planificateur n'a pas pu attribuer le job à un runner."),
+    "data_integrity_failure": N_("Erreur d'intégrité des données côté GitLab."),
+    "api_failure": N_("Erreur de l'API GitLab pendant l'exécution."),
+    "forward_deployment_failure": N_("Déploiement bloqué : un déploiement plus récent existe déjà."),
+    "protected_environment_failure": N_("Environnement protégé : autorisation de déploiement requise."),
+    "insufficient_bridge_permissions": N_("Permissions insuffisantes pour déclencher le pipeline aval."),
+    "downstream_bridge_project_not_found": N_("Projet du pipeline aval introuvable."),
+    "reached_max_descendant_pipelines_depth": N_("Profondeur maximale de pipelines imbriqués atteinte."),
+    "user_blocked": N_("L'utilisateur qui a déclenché le job est bloqué."),
+    "ci_quota_exceeded": N_("Quota de minutes CI épuisé."),
+    "no_matching_runner": N_("Aucun runner ne correspond aux tags du job."),
+    "trace_size_exceeded": N_("Le log du job dépasse la taille maximale autorisée."),
+    "builds_disabled": N_("L'intégration continue est désactivée pour ce projet."),
+    "unknown_failure": N_("Échec pour une raison inconnue."),
 }
 
 

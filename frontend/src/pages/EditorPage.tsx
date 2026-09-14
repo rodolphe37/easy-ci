@@ -16,8 +16,10 @@ import {
   Zap,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Trans } from "react-i18next";
 import { Link, useBlocker, useSearchParams } from "react-router";
 import { toast } from "sonner";
+import i18n from "@/i18n";
 import { CiEditor, type CiEditorHandle } from "@/components/editor/CiEditor";
 import { CommitDialog, PublicationCard } from "@/components/editor/PublishFlow";
 import { DiffViewer } from "@/components/local/DiffViewer";
@@ -39,8 +41,12 @@ const DEFAULT_PATH: Record<ProviderId, string> = {
   bitbucket: "bitbucket-pipelines.yml",
 };
 
-const NEW_FILE_TEMPLATES: Record<ProviderId, string> = {
-  github: `name: Nouveau workflow
+/** Modèle minimal d'un nouveau fichier (textes dans la langue de l'interface). */
+function newFileTemplate(provider: ProviderId): string {
+  const name = i18n.t("editor.template.name");
+  const todo = i18n.t("editor.template.todo");
+  return {
+  github: `name: ${name}
 
 on:
   push:
@@ -52,7 +58,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: echo "À compléter"
+      - run: echo "${todo}"
 `,
   gitlab: `stages: [test]
 
@@ -60,7 +66,7 @@ test:
   stage: test
   image: alpine:3.20
   script:
-    - echo "À compléter"
+    - echo "${todo}"
 `,
   bitbucket: `image: atlassian/default-image:4
 
@@ -69,9 +75,10 @@ pipelines:
     - step:
         name: Test
         script:
-          - echo "À compléter"
+          - echo "${todo}"
 `,
-};
+  }[provider];
+}
 
 export function EditorPage() {
   const ref = useRepoRef();
@@ -99,11 +106,11 @@ export function EditorPage() {
         <Card>
           <EmptyState
             icon={<FileCode2 />}
-            title="Liez d'abord un dossier local"
-            description="Easy CI modifie les fichiers CI dans le clone de ce dépôt sur votre machine : liez un dossier existant ou clonez le dépôt."
+            title={i18n.t("editor.linkFirst")}
+            description={i18n.t("editor.linkFirstDescription")}
             action={
               <Link to={repoPath(ref.provider, ref.full_name, "?tab=local")} className={buttonClass("primary")}>
-                Ouvrir l'onglet Projet local
+                {i18n.t("editor.openLocalTab")}
               </Link>
             }
           />
@@ -162,7 +169,7 @@ function EditorWorkspace({
   // Chargement initial du fichier (ou modèle pour un nouveau fichier).
   useEffect(() => {
     if (!file || saved) return;
-    const initial = file.exists ? file.content : NEW_FILE_TEMPLATES[provider];
+    const initial = file.exists ? file.content : newFileTemplate(provider);
     setContent(initial);
     setSaved({ content: file.exists ? file.content : "", hash: file.hash });
   }, [file]);
@@ -194,12 +201,12 @@ function EditorWorkspace({
       void queryClient.invalidateQueries({ queryKey: ["local-diff", repoKey] });
       void queryClient.invalidateQueries({ queryKey: ["publication", repoKey] });
       const errors = validation?.errors ?? 0;
-      if (errors) toast.warning("Enregistré dans le dossier local", { description: `${errors} erreur${errors > 1 ? "s" : ""} de validation à corriger avant de commiter.` });
-      else toast.success("Enregistré dans le dossier local", { description: path });
+      if (errors) toast.warning(i18n.t("editor.saved"), { description: i18n.t("editor.savedWithErrors", { count: errors }) });
+      else toast.success(i18n.t("editor.saved"), { description: path });
     },
     onError: (error) => {
       if (error instanceof ApiError && error.code === "file_conflict") setConflict(true);
-      else toast.error("Enregistrement impossible", { description: errorMessage(error) });
+      else toast.error(i18n.t("editor.saveFailed"), { description: errorMessage(error) });
     },
   });
 
@@ -213,13 +220,13 @@ function EditorWorkspace({
       queryClient.setQueryData(["local-status", repoKey], nextStatus);
       const reread = await api.readCiFile(repoKey, path);
       queryClient.setQueryData(["ci-file", repoKey, path], reread);
-      const next = reread.exists ? reread.content : NEW_FILE_TEMPLATES[provider];
+      const next = reread.exists ? reread.content : newFileTemplate(provider);
       setSaved({ content: reread.exists ? reread.content : "", hash: reread.hash });
       setContent(next);
-      toast.success(reread.exists ? "Version commitée restaurée" : "Fichier non commité supprimé");
+      toast.success(reread.exists ? i18n.t("editor.restored") : i18n.t("editor.deleted"));
       setConfirmRestore(false);
     },
-    onError: (error) => toast.error("Restauration impossible", { description: errorMessage(error) }),
+    onError: (error) => toast.error(i18n.t("editor.restoreFailed"), { description: errorMessage(error) }),
   });
 
   const reloadFromDisk = async () => {
@@ -249,7 +256,7 @@ function EditorWorkspace({
     return (
       <div className="mx-auto max-w-xl px-8 py-16">
         <Card>
-          <EmptyState icon={<TriangleAlert />} title="Fichier illisible" description={errorMessage(fileQuery.error)} />
+          <EmptyState icon={<TriangleAlert />} title={i18n.t("repo.unreadable")} description={errorMessage(fileQuery.error)} />
         </Card>
       </div>
     );
@@ -260,7 +267,7 @@ function EditorWorkspace({
       {/* Barre supérieure */}
       <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-line bg-surface/60 px-5 py-2.5">
         <Link to={repoPath(provider, fullName, "?tab=local")} className={buttonClass("ghost", "sm")}>
-          <ArrowLeft className="size-3.5" /> Projet local
+          <ArrowLeft className="size-3.5" /> {i18n.t("repo.tabs.local")}
         </Link>
         <div className="h-5 w-px bg-line" />
         <ProviderIcon provider={provider} className="size-4" />
@@ -268,55 +275,55 @@ function EditorWorkspace({
           files={localFiles.map((f) => f.path)}
           current={path}
           onSelect={(next) => {
-            if (dirty && !window.confirm("Des modifications ne sont pas enregistrées. Changer de fichier quand même ?")) return;
+            if (dirty && !window.confirm(i18n.t("editor.confirmSwitch"))) return;
             onSelectPath(next);
           }}
         />
         {canCreateFile ? (
-          <Tooltip content="Nouveau fichier de workflow">
-            <Button variant="ghost" size="icon-sm" onClick={() => setNewFileOpen(true)} aria-label="Nouveau workflow">
+          <Tooltip content={i18n.t("editor.newWorkflowTooltip")}>
+            <Button variant="ghost" size="icon-sm" onClick={() => setNewFileOpen(true)} aria-label={i18n.t("editor.newWorkflow")}>
               <FilePlus2 />
             </Button>
           </Tooltip>
         ) : null}
-        <Tooltip content="Générer un pipeline avec l'assistant">
-          <Link to={repoPath(provider, fullName, "/generate")} className={buttonClass("ghost", "icon-sm")} aria-label="Générer un pipeline">
+        <Tooltip content={i18n.t("editor.generateTooltip")}>
+          <Link to={repoPath(provider, fullName, "/generate")} className={buttonClass("ghost", "icon-sm")} aria-label={i18n.t("nav.generate")}>
             <Zap />
           </Link>
         </Tooltip>
-        {!file?.exists && file ? <Badge className="border-accent/25 bg-accent-soft text-fg">Nouveau fichier</Badge> : ciFile ? <CiStateBadge state={ciFile.state} /> : null}
+        {!file?.exists && file ? <Badge className="border-accent/25 bg-accent-soft text-fg">{i18n.t("editor.newFile")}</Badge> : ciFile ? <CiStateBadge state={ciFile.state} /> : null}
         {dirty ? (
           <span className="inline-flex items-center gap-1.5 text-[12.5px] text-running">
-            <span className="size-1.5 rounded-full bg-running" /> Non enregistré
+            <span className="size-1.5 rounded-full bg-running" /> {i18n.t("editor.unsaved")}
           </span>
         ) : null}
 
         <div className="ml-auto flex items-center gap-2">
           <ValidationChip validating={validating} errors={errors} warnings={warnings} onClick={() => setTab("validation")} />
           {dirty ? (
-            <Tooltip content="Revenir à la version enregistrée sur le disque">
+            <Tooltip content={i18n.t("editor.undoTooltip")}>
               <Button variant="ghost" size="sm" onClick={() => saved && setContent(saved.content)}>
-                <Undo2 className="size-3.5" /> Annuler
+                <Undo2 className="size-3.5" /> {i18n.t("common.undo")}
               </Button>
             </Tooltip>
           ) : ciFile && (ciFile.state === "uncommitted" || ciFile.state === "untracked") ? (
-            <Tooltip content={ciFile.state === "untracked" ? "Supprimer ce fichier jamais commité" : "Restaurer la dernière version commitée"}>
+            <Tooltip content={ciFile.state === "untracked" ? i18n.t("editor.deleteTooltip") : i18n.t("editor.restoreTooltip")}>
               <Button variant="ghost" size="sm" onClick={() => setConfirmRestore(true)}>
-                <RotateCcw className="size-3.5" /> Restaurer
+                <RotateCcw className="size-3.5" /> {i18n.t("editor.restore")}
               </Button>
             </Tooltip>
           ) : null}
-          <Tooltip content={<span className="flex items-center gap-2">Écrire le fichier dans le dossier local <Kbd>⌘</Kbd><Kbd>S</Kbd></span>}>
+          <Tooltip content={<span className="flex items-center gap-2">{i18n.t("editor.saveTooltip")} <Kbd>⌘</Kbd><Kbd>S</Kbd></span>}>
             <span>
               <Button variant={dirty ? "primary" : "secondary"} size="sm" onClick={saveNow} loading={save.isPending} disabled={!dirty}>
-                <Save className="size-3.5" /> Enregistrer
+                <Save className="size-3.5" /> {i18n.t("editor.save")}
               </Button>
             </span>
           </Tooltip>
-          <Tooltip content={dirty ? "Enregistrez d'abord vos modifications" : hasUncommitted ? "Créer un commit local" : "Aucune modification à commiter"}>
+          <Tooltip content={dirty ? i18n.t("editor.commitNeedsSave") : hasUncommitted ? i18n.t("editor.commitTooltip") : i18n.t("editor.nothingToCommit")}>
             <span>
               <Button variant={!dirty && hasUncommitted ? "primary" : "secondary"} size="sm" onClick={() => setCommitOpen(true)} disabled={dirty || !hasUncommitted}>
-                Commiter…
+                {i18n.t("editor.commit")}
               </Button>
             </span>
           </Tooltip>
@@ -353,8 +360,8 @@ function EditorWorkspace({
               onChange={setTab}
               className="grid w-full grid-cols-3 [&>button]:justify-center"
               options={[
-                { value: "validation", label: <><ListChecks />Validation</> },
-                { value: "summary", label: <><WorkflowIcon />Aperçu</> },
+                { value: "validation", label: <><ListChecks />{i18n.t("editor.tabs.validation")}</> },
+                { value: "summary", label: <><WorkflowIcon />{i18n.t("editor.tabs.summary")}</> },
                 { value: "diff", label: <><GitCompare />Diff</> },
               ]}
             />
@@ -380,17 +387,17 @@ function EditorWorkspace({
         repoKey={repoKey}
         status={status}
         focusPath={path}
-        blockedReason={errors ? `Ce fichier contient ${errors} erreur${errors > 1 ? "s" : ""} de validation : le pipeline risque d'échouer dès son démarrage.` : null}
+        blockedReason={errors ? i18n.t("editor.blocked", { count: errors }) : null}
       />
 
-      <Modal open={conflict} onOpenChange={setConflict} title="Fichier modifié ailleurs" description={`« ${path} » a changé sur le disque depuis son ouverture (autre éditeur, git pull…).`}>
+      <Modal open={conflict} onOpenChange={setConflict} title={i18n.t("editor.conflict.title")} description={i18n.t("editor.conflict.description", { path })}>
         <div className="flex flex-wrap justify-end gap-2 px-5 py-4">
           <Button variant="ghost" onClick={() => setConflict(false)}>
-            Continuer à éditer
+            {i18n.t("editor.conflict.keepEditing")}
           </Button>
-          <Button onClick={() => void reloadFromDisk()}>Recharger la version du disque</Button>
+          <Button onClick={() => void reloadFromDisk()}>{i18n.t("editor.conflict.reload")}</Button>
           <Button variant="danger" onClick={() => (setConflict(false), save.mutate({ overwrite: true }))}>
-            Écraser avec ma version
+            {i18n.t("editor.conflict.overwrite")}
           </Button>
         </div>
       </Modal>
@@ -398,19 +405,19 @@ function EditorWorkspace({
       <Modal
         open={confirmRestore}
         onOpenChange={setConfirmRestore}
-        title={ciFile?.state === "untracked" ? "Supprimer ce fichier ?" : "Restaurer la version commitée ?"}
+        title={ciFile?.state === "untracked" ? i18n.t("editor.confirmRestore.deleteTitle") : i18n.t("editor.confirmRestore.restoreTitle")}
         description={
           ciFile?.state === "untracked"
-            ? "Ce fichier n'a jamais été commité : il sera supprimé du dossier local. Cette action est définitive."
-            : "Les modifications enregistrées mais non commitées de ce fichier seront perdues. Cette action est définitive."
+            ? i18n.t("editor.confirmRestore.deleteDescription")
+            : i18n.t("editor.confirmRestore.restoreDescription")
         }
       >
         <div className="flex justify-end gap-2 px-5 py-4">
           <Button variant="ghost" onClick={() => setConfirmRestore(false)}>
-            Annuler
+            {i18n.t("common.cancel")}
           </Button>
           <Button variant="danger" onClick={() => restore.mutate()} loading={restore.isPending}>
-            <RotateCcw /> {ciFile?.state === "untracked" ? "Supprimer" : "Restaurer"}
+            <RotateCcw /> {ciFile?.state === "untracked" ? i18n.t("common.delete") : i18n.t("editor.restore")}
           </Button>
         </div>
       </Modal>
@@ -425,13 +432,13 @@ function EditorWorkspace({
         }}
       />
 
-      <Modal open={blocker.state === "blocked"} onOpenChange={(open) => !open && blocker.reset?.()} title="Modifications non enregistrées" description={`Vos changements de « ${path} » ne sont pas encore écrits dans le dossier local.`}>
+      <Modal open={blocker.state === "blocked"} onOpenChange={(open) => !open && blocker.reset?.()} title={i18n.t("editor.leave.title")} description={i18n.t("editor.leave.description", { path })}>
         <div className="flex flex-wrap justify-end gap-2 px-5 py-4">
           <Button variant="ghost" onClick={() => blocker.reset?.()}>
-            Rester
+            {i18n.t("editor.leave.stay")}
           </Button>
           <Button variant="danger" onClick={() => blocker.proceed?.()}>
-            Quitter sans enregistrer
+            {i18n.t("editor.leave.discard")}
           </Button>
           <Button
             variant="primary"
@@ -442,7 +449,7 @@ function EditorWorkspace({
               )
             }
           >
-            <Save /> Enregistrer et quitter
+            <Save /> {i18n.t("editor.leave.saveAndLeave")}
           </Button>
         </div>
       </Modal>
@@ -459,7 +466,7 @@ function FileSwitcher({ files, current, onSelect }: { files: string[]; current: 
       value={current}
       onChange={(event) => onSelect(event.target.value)}
       className="h-7 max-w-80 rounded-md border border-line bg-surface px-2 font-mono text-[12.5px] text-fg outline-none focus:border-accent/60"
-      aria-label="Fichier à modifier"
+      aria-label={i18n.t("editor.fileSelect")}
     >
       {options.map((option) => (
         <option key={option} value={option}>
@@ -488,7 +495,7 @@ function ValidationChip({ validating, errors, warnings, onClick }: { validating:
       ) : (
         <CircleCheck className="size-3.5 text-success" />
       )}
-      {errors ? `${errors} erreur${errors > 1 ? "s" : ""}` : warnings ? `${warnings} avertissement${warnings > 1 ? "s" : ""}` : "Valide"}
+      {errors ? i18n.t("generate.preview.errors", { count: errors }) : warnings ? i18n.t("editor.warnings", { count: warnings }) : i18n.t("generate.preview.valid")}
     </button>
   );
 }
@@ -515,14 +522,14 @@ function ValidationPanel({
     <div className="space-y-4">
       {!validation ? (
         <div className="flex items-center gap-2 text-[12.5px] text-fg-muted">
-          <Spinner className="size-3.5" /> Analyse…
+          <Spinner className="size-3.5" /> {i18n.t("editor.validation.analyzing")}
         </div>
       ) : validation.problems.length === 0 ? (
         <div className="flex items-start gap-3 rounded-xl border border-success/25 bg-success/[0.07] p-3.5">
           <CircleCheck className="mt-0.5 size-4 shrink-0 text-success" />
           <div className="text-[12.5px] leading-relaxed text-fg-muted">
-            <div className="font-medium text-fg">Aucun problème détecté</div>
-            Syntaxe YAML et structure {PROVIDER_LABELS[provider].ci} vérifiées{validating ? "…" : "."}
+            <div className="font-medium text-fg">{i18n.t("editor.validation.noProblem")}</div>
+            {i18n.t("editor.validation.checked", { ci: PROVIDER_LABELS[provider].ci })}{validating ? "…" : ""}
           </div>
         </div>
       ) : (
@@ -545,20 +552,20 @@ function ValidationPanel({
       {provider === "gitlab" ? (
         <div className="rounded-xl border border-line bg-surface p-3.5">
           <div className="flex items-center gap-2 text-[13px] font-medium">
-            <ShieldCheck className="size-4 text-accent" /> Validation officielle GitLab
+            <ShieldCheck className="size-4 text-accent" /> {i18n.t("editor.validation.gitlabTitle")}
           </div>
           <p className="mt-1 text-[12px] leading-relaxed text-fg-muted">
-            Envoie le contenu à l'outil CI Lint de GitLab, qui résout les « include » et « extends ». Le dépôt n'est pas modifié.
+            {i18n.t("editor.validation.gitlabDescription")}
           </p>
           <Button size="sm" className="mt-2.5" onClick={() => lint.mutate()} loading={lint.isPending}>
-            Valider avec GitLab
+            {i18n.t("editor.validation.gitlabButton")}
           </Button>
           {lint.error ? <p className="mt-2 text-[12px] text-failure">{errorMessage(lint.error)}</p> : null}
           {lint.data ? (
             <div className="mt-3 space-y-1 text-[12.5px]">
               <div className={cn("flex items-center gap-1.5 font-medium", lint.data.valid ? "text-success" : "text-failure")}>
                 {lint.data.valid ? <CircleCheck className="size-3.5" /> : <CircleAlert className="size-3.5" />}
-                {lint.data.valid ? "Configuration valide selon GitLab" : "GitLab signale des erreurs"}
+                {lint.data.valid ? i18n.t("editor.validation.gitlabValid") : i18n.t("editor.validation.gitlabInvalid")}
               </div>
               {[...lint.data.errors, ...lint.data.warnings].map((message, index) => (
                 <p key={index} className="text-fg-muted">
@@ -582,12 +589,12 @@ function SummaryPanel({ provider, content }: { provider: ProviderId; content: st
   const summary = useQuery({ queryKey: ["ci-summary", provider, debounced], queryFn: () => api.summarizeCi(provider, debounced), placeholderData: (previous) => previous });
   const data = summary.data;
   if (!data) return <Spinner className="size-4" />;
-  if (!data.valid) return <p className="text-[12.5px] text-fg-muted">Corrigez les erreurs YAML pour afficher l'aperçu.</p>;
+  if (!data.valid) return <p className="text-[12.5px] text-fg-muted">{i18n.t("editor.fixYamlForSummary")}</p>;
 
   const groups = data.stages.length ? data.stages.map((stage) => ({ stage, jobs: data.jobs.filter((job) => job.stage === stage) })) : [{ stage: null, jobs: data.jobs }];
   return (
     <div className="space-y-4 text-[12.5px]">
-      <Section title="Déclencheurs">
+      <Section title={i18n.t("summary.triggers")}>
         <div className="flex flex-wrap gap-1.5">
           {data.triggers.length ? (
             data.triggers.map((trigger) => (
@@ -599,11 +606,11 @@ function SummaryPanel({ provider, content }: { provider: ProviderId; content: st
               </Tooltip>
             ))
           ) : (
-            <span className="text-fg-subtle">Aucun</span>
+            <span className="text-fg-subtle">{i18n.t("summary.none")}</span>
           )}
         </div>
       </Section>
-      <Section title={data.stages.length ? "Stages et jobs" : "Jobs"}>
+      <Section title={data.stages.length ? i18n.t("summary.stagesAndJobs") : i18n.t("summary.jobs")}>
         <div className="space-y-3">
           {groups.map((group) => (
             <div key={group.stage ?? "jobs"}>
@@ -613,7 +620,7 @@ function SummaryPanel({ provider, content }: { provider: ProviderId; content: st
                   <li key={job.id} className="rounded-lg border border-line bg-surface px-2.5 py-1.5">
                     <div className="font-medium">{job.name}</div>
                     <div className="text-[11.5px] text-fg-subtle">
-                      {[job.runs_on, `${job.steps} commande${job.steps > 1 ? "s" : ""}`, job.needs.length ? `après ${job.needs.join(", ")}` : null, job.matrix ? "matrice" : null]
+                      {[job.runs_on, i18n.t("summary.commands", { count: job.steps }), job.needs.length ? i18n.t("summary.after", { jobs: job.needs.join(", ") }) : null, job.matrix ? i18n.t("summary.matrixShort") : null]
                         .filter(Boolean)
                         .join(" · ")}
                     </div>
@@ -633,12 +640,11 @@ function DiffPanel({ repoKey, path, dirty, exists }: { repoKey: string; path: st
   return (
     <div className="space-y-3">
       <p className="text-[12px] leading-relaxed text-fg-muted">
-        Différences entre la branche distante{diff.data?.compare_ref ? ` (${diff.data.compare_ref})` : ""} et le fichier <strong className="font-medium text-fg">enregistré</strong> dans
-        le dossier local.
+        <Trans i18nKey="editor.diff.intro" values={{ ref: diff.data?.compare_ref ? ` (${diff.data.compare_ref})` : "" }} components={{ strong: <strong className="font-medium text-fg" /> }} />
       </p>
-      {dirty ? <p className="text-[12px] text-running">Enregistrez pour inclure vos dernières modifications.</p> : null}
+      {dirty ? <p className="text-[12px] text-running">{i18n.t("editor.diff.saveToInclude")}</p> : null}
       {!exists ? (
-        <p className="text-[12.5px] text-fg-muted">Nouveau fichier : enregistrez-le pour le comparer.</p>
+        <p className="text-[12.5px] text-fg-muted">{i18n.t("editor.diff.newFile")}</p>
       ) : diff.isPending ? (
         <Spinner className="size-4" />
       ) : diff.error ? (
@@ -646,7 +652,7 @@ function DiffPanel({ repoKey, path, dirty, exists }: { repoKey: string; path: st
       ) : diff.data?.diff ? (
         <DiffViewer diff={diff.data.diff} />
       ) : (
-        <p className="text-[12.5px] text-fg-muted">Identique à la branche distante.</p>
+        <p className="text-[12.5px] text-fg-muted">{i18n.t("local.ciStates.synced.description")}</p>
       )}
     </div>
   );
@@ -662,7 +668,7 @@ function NewWorkflowDialog({ open, onOpenChange, existing, onCreate }: { open: b
   useEffect(() => setName(""), [open]);
 
   return (
-    <Modal open={open} onOpenChange={onOpenChange} title="Nouveau workflow" description="Un fichier est créé dans .github/workflows à partir d'un modèle minimal, à compléter.">
+    <Modal open={open} onOpenChange={onOpenChange} title={i18n.t("editor.newWorkflow")} description={i18n.t("editor.newWorkflowDescription")}>
       <form
         className="space-y-3 px-5 py-4"
         onSubmit={(event) => {
@@ -672,14 +678,14 @@ function NewWorkflowDialog({ open, onOpenChange, existing, onCreate }: { open: b
       >
         <Input autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder="deploy" icon={<FileCode2 />} className="h-9" />
         <p className={cn("text-[12.5px]", taken ? "text-failure" : "text-fg-muted")}>
-          {filename ? (taken ? `« ${filename} » existe déjà.` : <>Fichier : <code className="font-mono text-fg">{filename}</code></>) : "Saisissez un nom de fichier."}
+          {filename ? (taken ? i18n.t("editor.fileExists", { filename }) : <>{i18n.t("editor.fileLabel")} <code className="font-mono text-fg">{filename}</code></>) : i18n.t("editor.enterFilename")}
         </p>
         <div className="flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-            Annuler
+            {i18n.t("common.cancel")}
           </Button>
           <Button type="submit" variant="primary" disabled={!filename || taken}>
-            <FilePlus2 /> Créer
+            <FilePlus2 /> {i18n.t("common.create")}
           </Button>
         </div>
       </form>

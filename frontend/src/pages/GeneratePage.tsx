@@ -30,7 +30,9 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
+import { Trans } from "react-i18next";
 import { toast } from "sonner";
+import i18n from "@/i18n";
 import { YamlViewer } from "@/components/YamlViewer";
 import { Tooltip } from "@/components/ui/overlays";
 import { Badge, Button, buttonClass, Card, EmptyState, Input, SegmentedControl, Skeleton, Spinner, Switch } from "@/components/ui/primitives";
@@ -42,33 +44,26 @@ import { cn } from "@/lib/utils";
 
 type WizardStep = "analyse" | "steps" | "triggers" | "delivery" | "review";
 
-const WIZARD_STEPS: { id: WizardStep; label: string; icon: ReactNode }[] = [
-  { id: "analyse", label: "Analyse", icon: <ScanSearch /> },
-  { id: "steps", label: "Étapes", icon: <ListChecks /> },
-  { id: "triggers", label: "Déclencheurs", icon: <Zap /> },
-  { id: "delivery", label: "Livraison", icon: <Rocket /> },
-  { id: "review", label: "Vérifier & écrire", icon: <FileCheck2 /> },
+const WIZARD_STEPS: { id: WizardStep; icon: ReactNode }[] = [
+  { id: "analyse", icon: <ScanSearch /> },
+  { id: "steps", icon: <ListChecks /> },
+  { id: "triggers", icon: <Zap /> },
+  { id: "delivery", icon: <Rocket /> },
+  { id: "review", icon: <FileCheck2 /> },
 ];
 
 const STEP_ORDER: PipelineStep[] = ["lint", "typecheck", "test", "build"];
 
-const STEP_HINTS: Record<PipelineStep, string> = {
-  lint: "Style et erreurs courantes",
-  typecheck: "Cohérence des types",
-  test: "Tests automatisés",
-  build: "Compilation / paquet final",
-};
-
 const SCHEDULES = [
-  { value: "", label: "Jamais" },
-  { value: "0 3 * * *", label: "Chaque nuit (3 h UTC)" },
-  { value: "0 6 * * 1", label: "Chaque lundi (6 h UTC)" },
-];
+  { value: "", key: "never" },
+  { value: "0 3 * * *", key: "nightly" },
+  { value: "0 6 * * 1", key: "weekly" },
+] as const;
 
-const WHEN_OPTIONS: { value: DeliveryWhen; label: string }[] = [
-  { value: "default_branch", label: "Branche principale" },
-  { value: "tags", label: "Tags v*" },
-  { value: "both", label: "Les deux" },
+const whenOptions = (): { value: DeliveryWhen; label: string }[] => [
+  { value: "default_branch", label: i18n.t("generate.when.default_branch") },
+  { value: "tags", label: i18n.t("generate.when.tags") },
+  { value: "both", label: i18n.t("generate.when.both") },
 ];
 
 /** Commandes de déploiement proposées selon les fichiers détectés (à relire, jamais exécutées par Easy CI). */
@@ -94,7 +89,7 @@ export function GeneratePage() {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 text-[13px] text-fg-muted">
         <Spinner />
-        {linked ? "Analyse du projet…" : null}
+        {linked ? i18n.t("generate.analyzing") : null}
       </div>
     );
   }
@@ -105,11 +100,11 @@ export function GeneratePage() {
         <Card>
           <EmptyState
             icon={<FolderTree />}
-            title="Liez d'abord un dossier local"
-            description="L'assistant analyse les fichiers de votre clone (package.json, pyproject.toml, go.mod…) et y écrit le pipeline généré : liez un dossier existant ou clonez le dépôt."
+            title={i18n.t("editor.linkFirst")}
+            description={i18n.t("generate.linkFirstDescription")}
             action={
               <Link to={repoPath(ref.provider, ref.full_name, "?tab=local")} className={buttonClass("primary")}>
-                Ouvrir l'onglet Projet local
+                {i18n.t("editor.openLocalTab")}
               </Link>
             }
           />
@@ -122,7 +117,7 @@ export function GeneratePage() {
     return (
       <div className="mx-auto max-w-xl px-8 py-16">
         <Card>
-          <EmptyState icon={<TriangleAlert />} title="Analyse impossible" description={errorMessage(analysis.error)} action={<Button onClick={() => void analysis.refetch()}>Réessayer</Button>} />
+          <EmptyState icon={<TriangleAlert />} title={i18n.t("generate.analysisFailed")} description={errorMessage(analysis.error)} action={<Button onClick={() => void analysis.refetch()}>{i18n.t("common.retry")}</Button>} />
         </Card>
       </div>
     );
@@ -169,15 +164,15 @@ function Wizard({ repoKey, provider, fullName, analysis }: { repoKey: string; pr
     onSuccess: (saved, pipeline) => {
       queryClient.setQueryData(["local-status", repoKey], saved.status);
       void queryClient.invalidateQueries({ queryKey: ["publication", repoKey] });
-      toast.success("Pipeline écrit dans le dossier local", { description: "Relisez-le dans l'éditeur, puis commitez quand il vous convient." });
+      toast.success(i18n.t("generate.written"), { description: i18n.t("generate.writtenDescription") });
       navigate(repoPath(provider, fullName, `/edit?path=${encodeURIComponent(pipeline.path)}`));
     },
     onError: (error) => {
       if (error instanceof ApiError && error.code === "file_conflict") {
-        toast.error("Le fichier a changé sur le disque", { description: "L'aperçu a été actualisé : vérifiez avant de réessayer." });
+        toast.error(i18n.t("generate.conflict"), { description: i18n.t("generate.conflictDescription") });
         setConfirmReplace(false);
         void preview.refetch();
-      } else toast.error("Écriture impossible", { description: errorMessage(error) });
+      } else toast.error(i18n.t("generate.writeFailed"), { description: errorMessage(error) });
     },
   });
 
@@ -190,14 +185,14 @@ function Wizard({ repoKey, provider, fullName, analysis }: { repoKey: string; pr
       {/* En-tête */}
       <div className="mb-5 flex flex-wrap items-center gap-3">
         <Link to={repoPath(provider, fullName, "?tab=local")} className={buttonClass("ghost", "sm")}>
-          <ArrowLeft className="size-3.5" /> Projet local
+          <ArrowLeft className="size-3.5" /> {i18n.t("repo.tabs.local")}
         </Link>
         <div className="h-5 w-px bg-line" />
         <ProviderIcon provider={provider} className="size-5" />
         <div className="min-w-0">
-          <h1 className="text-[19px] leading-tight font-semibold tracking-tight">Générer un pipeline {labels.ci}</h1>
+          <h1 className="text-[19px] leading-tight font-semibold tracking-tight">{i18n.t("generate.title", { ci: labels.ci })}</h1>
           <p className="text-[12.5px] text-fg-muted">
-            Modèles déterministes, sans IA : le fichier est écrit dans votre clone local, puis vous le relisez et le commitez.
+            {i18n.t("generate.subtitle")}
           </p>
         </div>
       </div>
@@ -224,7 +219,7 @@ function Wizard({ repoKey, provider, fullName, analysis }: { repoKey: string; pr
               >
                 {done ? <Check className="size-3!" /> : position + 1}
               </span>
-              <span className="hidden sm:inline">{item.label}</span>
+              <span className="hidden sm:inline">{i18n.t(`generate.steps.${item.id}`)}</span>
             </button>
           );
         })}
@@ -255,11 +250,11 @@ function Wizard({ repoKey, provider, fullName, analysis }: { repoKey: string; pr
 
           <div className="flex items-center justify-between pt-1">
             <Button variant="ghost" onClick={() => setStep(WIZARD_STEPS[index - 1].id)} disabled={index === 0}>
-              <ChevronLeft /> Précédent
+              <ChevronLeft /> {i18n.t("common.previous")}
             </Button>
             {index < WIZARD_STEPS.length - 1 ? (
               <Button variant="primary" onClick={() => setStep(WIZARD_STEPS[index + 1].id)} disabled={step === "analyse" && detection.stacks.length > 0 && enabledStacks.length === 0}>
-                Suivant <ChevronRight />
+                {i18n.t("common.next")} <ChevronRight />
               </Button>
             ) : null}
           </div>
@@ -282,14 +277,14 @@ function AnalyseStep({ analysis, options, update }: { analysis: ProjectAnalysis;
   const { detection } = analysis;
   return (
     <>
-      <StepIntro title="Ce que contient votre projet" description="Détecté à partir des fichiers du clone local, sans rien exécuter. Désactivez une stack pour l'exclure du pipeline." />
+      <StepIntro title={i18n.t("generate.analyse.title")} description={i18n.t("generate.analyse.description")} />
 
       {detection.stacks.length === 0 ? (
         <Card>
           <EmptyState
             icon={<ScanSearch />}
-            title="Aucune stack reconnue"
-            description="Easy CI reconnaît Node.js, Python, Go, Rust, Java/Kotlin, Android, PHP, Ruby et .NET. Vous pouvez tout de même générer un squelette et ajouter vos commandes dans l'éditeur."
+            title={i18n.t("generate.analyse.noStack")}
+            description={i18n.t("generate.analyse.noStackDescription")}
           />
         </Card>
       ) : (
@@ -305,16 +300,16 @@ function AnalyseStep({ analysis, options, update }: { analysis: ProjectAnalysis;
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-[14.5px] font-semibold">{stack.label}</h3>
                     {stack.framework ? <Badge className="border-accent/25 bg-accent-soft text-fg">{stack.framework}</Badge> : null}
-                    {stack.workspace ? <Badge>monorepo</Badge> : null}
+                    {stack.workspace ? <Badge>{i18n.t("generate.analyse.monorepo")}</Badge> : null}
                   </div>
                   <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[12.5px] text-fg-muted">
                     <Fact icon={<Package />}>{stack.package_manager ?? "—"}</Fact>
                     <Fact icon={<Blocks />}>
-                      version {stack.version}
-                      <span className="text-fg-subtle">{stack.version_source ? ` (${stack.version_source})` : " (par défaut)"}</span>
+                      {i18n.t("generate.analyse.version", { version: stack.version })}
+                      <span className="text-fg-subtle">{stack.version_source ? ` (${stack.version_source})` : ` (${i18n.t("generate.analyse.defaultVersion")})`}</span>
                     </Fact>
                     <Fact icon={<FolderTree />}>
-                      <code className="font-mono">{stack.directory === "." ? "racine" : `${stack.directory}/`}</code>
+                      <code className="font-mono">{stack.directory === "." ? i18n.t("generate.analyse.root") : `${stack.directory}/`}</code>
                     </Fact>
                   </div>
                   <div className="mt-2.5 flex flex-wrap gap-1.5">
@@ -327,7 +322,7 @@ function AnalyseStep({ analysis, options, update }: { analysis: ProjectAnalysis;
                 </div>
                 <Switch
                   checked={stackOptions.enabled}
-                  label={`Inclure ${stack.label}`}
+                  label={i18n.t("generate.analyse.include", { stack: stack.label })}
                   onChange={(value) =>
                     update((draft) => {
                       draft.stacks[position].enabled = value;
@@ -348,23 +343,22 @@ function AnalyseStep({ analysis, options, update }: { analysis: ProjectAnalysis;
           <p className="mt-1 text-[12.5px] text-fg-muted">
             {detection.docker ? (
               <>
-                <code className="font-mono text-fg">{detection.docker.dockerfile}</code> trouvé{detection.docker.compose ? ", avec un fichier Compose" : ""}. Construction d'image
-                activable à l'étape Livraison.
+                <Trans i18nKey={detection.docker.compose ? "generate.analyse.dockerFoundCompose" : "generate.analyse.dockerFound"} values={{ file: detection.docker.dockerfile }} components={{ code: <code className="font-mono text-fg" /> }} />
               </>
             ) : (
-              "Aucun Dockerfile détecté."
+              i18n.t("generate.analyse.noDocker")
             )}
           </p>
         </Card>
         <Card className="p-4">
           <div className="flex items-center gap-2 text-[13px] font-medium">
-            <Rocket className="size-4 text-fg-subtle" /> Hébergement
+            <Rocket className="size-4 text-fg-subtle" /> {i18n.t("generate.analyse.hosting")}
           </div>
           <p className="mt-1 text-[12.5px] text-fg-muted">
             {detection.deploy_hints.length ? (
-              <>Indices : {detection.deploy_hints.map((hint) => `${hint.label} (${hint.file})`).join(", ")}.</>
+              <>{i18n.t("generate.analyse.hints", { hints: detection.deploy_hints.map((hint) => `${hint.label} (${hint.file})`).join(", ") })}</>
             ) : (
-              "Aucun fichier de plateforme d'hébergement reconnu."
+              i18n.t("generate.analyse.noHints")
             )}
           </p>
         </Card>
@@ -372,8 +366,7 @@ function AnalyseStep({ analysis, options, update }: { analysis: ProjectAnalysis;
 
       {detection.existing_ci.length ? (
         <Notice tone="warning" icon={<TriangleAlert />}>
-          Ce projet contient déjà une configuration CI : {detection.existing_ci.map((path) => <code key={path} className="mx-0.5 font-mono text-fg">{path}</code>)}. Le fichier généré
-          s'y ajoute, ou le remplace s'il porte le même nom (confirmation demandée).
+          {i18n.t("generate.analyse.existingCi")} {detection.existing_ci.map((path) => <code key={path} className="mx-0.5 font-mono text-fg">{path}</code>)}. {i18n.t("generate.analyse.existingCiNote")}
         </Notice>
       ) : null}
     </>
@@ -388,10 +381,10 @@ function StepsStep({ provider, choices, options, update }: { provider: ProviderI
   const stacks = options.stacks.map((stack, position) => ({ stack, position })).filter(({ stack }) => stack.enabled);
   return (
     <>
-      <StepIntro title="Étapes exécutées" description="Commandes pré-remplies d'après vos scripts et fichiers de configuration. Modifiez-les librement : l'aperçu se met à jour en direct." />
+      <StepIntro title={i18n.t("generate.stepsStep.title")} description={i18n.t("generate.stepsStep.description")} />
 
       {stacks.length === 0 ? (
-        <Card className="p-5 text-[13px] text-fg-muted">Aucune stack incluse : le pipeline contiendra un job d'exemple à compléter.</Card>
+        <Card className="p-5 text-[13px] text-fg-muted">{i18n.t("generate.stepsStep.noStack")}</Card>
       ) : null}
 
       {stacks.map(({ stack, position }) => (
@@ -401,15 +394,15 @@ function StepsStep({ provider, choices, options, update }: { provider: ProviderI
       <Card className="divide-y divide-line">
         <OptionRow
           icon={<Package />}
-          title="Cache des dépendances"
-          description="Réutilise les paquets téléchargés d'une exécution à l'autre : pipelines nettement plus rapides."
-          control={<Switch checked={options.cache} label="Cache" onChange={(value) => update((draft) => void (draft.cache = value))} />}
+          title={i18n.t("generate.stepsStep.cache")}
+          description={i18n.t("generate.stepsStep.cacheDescription")}
+          control={<Switch checked={options.cache} label={i18n.t("generate.stepsStep.cache")} onChange={(value) => update((draft) => void (draft.cache = value))} />}
         />
         {choices.supports.os_matrix ? (
           <OptionRow
             icon={<Monitor />}
-            title="Systèmes pour les tests"
-            description="Exécute les tests sur chaque système coché (utile pour une app ou une bibliothèque multiplateforme)."
+            title={i18n.t("generate.stepsStep.os")}
+            description={i18n.t("generate.stepsStep.osDescription")}
             control={
               <div className="flex gap-1">
                 {choices.os.map((os) => {
@@ -453,15 +446,15 @@ function StackStepsCard({ provider, choices, stack, position, update }: { provid
       </div>
       <div className="space-y-3 p-4">
         <div className="grid gap-3 @lg:grid-cols-[140px_minmax(0,1fr)]">
-          <Field label="Version">
+          <Field label={i18n.t("generate.stepsStep.version")}>
             <Input value={stack.version} onChange={(event) => set((draft) => void (draft.version = event.target.value))} className="[&_input]:font-mono [&_input]:text-[12.5px]" />
           </Field>
-          <Field label="Tester plusieurs versions" hint={provider === "bitbucket" ? "une étape par version" : "matrice, séparées par des virgules"}>
-            <ListInput values={stack.matrix} placeholder={`ex. ${stack.version}, …`} onChange={(values) => set((draft) => void (draft.matrix = values))} />
+          <Field label={i18n.t("generate.stepsStep.matrix")} hint={provider === "bitbucket" ? i18n.t("generate.stepsStep.matrixHintBitbucket") : i18n.t("generate.stepsStep.matrixHint")}>
+            <ListInput values={stack.matrix} placeholder={i18n.t("generate.stepsStep.matrixPlaceholder", { version: stack.version })} onChange={(values) => set((draft) => void (draft.matrix = values))} />
           </Field>
         </div>
-        <Field label="Installation des dépendances">
-          <Input value={stack.install} placeholder="aucune" onChange={(event) => set((draft) => void (draft.install = event.target.value))} className="font-mono [&_input]:font-mono [&_input]:text-[12.5px]" />
+        <Field label={i18n.t("generate.stepsStep.install")}>
+          <Input value={stack.install} placeholder={i18n.t("generate.stepsStep.none")} onChange={(event) => set((draft) => void (draft.install = event.target.value))} className="font-mono [&_input]:font-mono [&_input]:text-[12.5px]" />
         </Field>
         <div className="space-y-1.5">
           {STEP_ORDER.map((stepId) => {
@@ -471,12 +464,12 @@ function StackStepsCard({ provider, choices, stack, position, update }: { provid
                 <Switch checked={value.enabled} label={choices.step_labels[stepId]} onChange={(enabled) => set((draft) => void (draft.steps[stepId].enabled = enabled))} />
                 <div className="w-36 shrink-0">
                   <div className="text-[13px] font-medium">{choices.step_labels[stepId]}</div>
-                  <div className="text-[11.5px] text-fg-subtle">{STEP_HINTS[stepId]}</div>
+                  <div className="text-[11.5px] text-fg-subtle">{i18n.t(`generate.stepHints.${stepId}`)}</div>
                 </div>
                 <Input
                   value={value.command}
                   disabled={!value.enabled}
-                  placeholder="commande à exécuter"
+                  placeholder={i18n.t("generate.stepsStep.commandPlaceholder")}
                   onChange={(event) => set((draft) => void (draft.steps[stepId].command = event.target.value))}
                   className={cn("min-w-0 flex-1 [&_input]:font-mono [&_input]:text-[12.5px]", !value.enabled && "opacity-50")}
                 />
@@ -502,15 +495,15 @@ function TriggersStep({ provider, choices, options, update }: { provider: Provid
 
   return (
     <>
-      <StepIntro title="Quand le pipeline s'exécute" description="Les déclencheurs habituels sont déjà cochés : chaque push sur la branche principale et chaque proposition de modification." />
+      <StepIntro title={i18n.t("generate.triggers.title")} description={i18n.t("generate.triggers.description")} />
       <Card className="divide-y divide-line">
         <OptionRow
           icon={<GitBranch />}
-          title="Push sur la branche principale"
-          description="Vérifie chaque modification intégrée."
+          title={i18n.t("generate.triggers.push")}
+          description={i18n.t("generate.triggers.pushDescription")}
           control={
             <div className="flex items-center gap-2">
-              <Input value={options.default_branch} onChange={(event) => update((draft) => void (draft.default_branch = event.target.value))} className="w-32 [&_input]:font-mono [&_input]:text-[12.5px]" aria-label="Branche principale" disabled={provider === "gitlab"} />
+              <Input value={options.default_branch} onChange={(event) => update((draft) => void (draft.default_branch = event.target.value))} className="w-32 [&_input]:font-mono [&_input]:text-[12.5px]" aria-label={i18n.t("generate.when.default_branch")} disabled={provider === "gitlab"} />
               <Switch checked={triggers.push_default} label="Push" onChange={(value) => setTrigger("push_default", value)} />
             </div>
           }
@@ -518,24 +511,24 @@ function TriggersStep({ provider, choices, options, update }: { provider: Provid
         <OptionRow
           icon={<GitPullRequest />}
           title={prLabel}
-          description={`Vérifie les ${prLabel.toLowerCase()} avant la fusion.`}
+          description={i18n.t("generate.triggers.prDescription", { kind: prLabel.toLowerCase() })}
           control={<Switch checked={triggers.pull_requests} label={prLabel} onChange={(value) => setTrigger("pull_requests", value)} />}
         />
-        <OptionRow icon={<Tag />} title="Tags de version (v*)" description="Par exemple v1.4.0 : utile pour publier une release." control={<Switch checked={triggers.tags} label="Tags" onChange={(value) => setTrigger("tags", value)} />} />
+        <OptionRow icon={<Tag />} title={i18n.t("generate.triggers.tags")} description={i18n.t("generate.triggers.tagsDescription")} control={<Switch checked={triggers.tags} label="Tags" onChange={(value) => setTrigger("tags", value)} />} />
         <OptionRow
           icon={<Hand />}
-          title="Lancement manuel"
-          description={provider === "github" ? "Bouton « Run workflow » sur GitHub." : provider === "gitlab" ? "Bouton « Run pipeline » sur GitLab." : "Pipeline personnalisé « run-ci » sur Bitbucket."}
-          control={<Switch checked={triggers.manual} label="Manuel" onChange={(value) => setTrigger("manual", value)} />}
+          title={i18n.t("generate.triggers.manual")}
+          description={i18n.t(`generate.triggers.manualDescription.${provider}`)}
+          control={<Switch checked={triggers.manual} label={i18n.t("generate.triggers.manual")} onChange={(value) => setTrigger("manual", value)} />}
         />
         <OptionRow
           icon={<Clock />}
-          title="Exécution planifiée"
-          description={choices.supports.schedule_in_file ? "Syntaxe cron, en heure UTC." : "La planification se crée ensuite dans l'interface de la plateforme (indiqué dans les notes)."}
+          title={i18n.t("generate.triggers.schedule")}
+          description={choices.supports.schedule_in_file ? i18n.t("generate.triggers.scheduleCron") : i18n.t("generate.triggers.scheduleExternal")}
           control={
             <div className="flex items-center gap-2">
               {scheduleMode === "custom" ? (
-                <Input value={triggers.schedule} placeholder="*/30 * * * *" onChange={(event) => setTrigger("schedule", event.target.value)} className="w-32 [&_input]:font-mono [&_input]:text-[12.5px]" aria-label="Expression cron" />
+                <Input value={triggers.schedule} placeholder="*/30 * * * *" onChange={(event) => setTrigger("schedule", event.target.value)} className="w-32 [&_input]:font-mono [&_input]:text-[12.5px]" aria-label={i18n.t("generate.triggers.cron")} />
               ) : null}
               <select
                 value={scheduleMode}
@@ -547,10 +540,10 @@ function TriggersStep({ provider, choices, options, update }: { provider: Provid
               >
                 {SCHEDULES.map((schedule) => (
                   <option key={schedule.value} value={schedule.value}>
-                    {schedule.label}
+                    {i18n.t(`generate.schedules.${schedule.key}`)}
                   </option>
                 ))}
-                <option value="custom">Personnalisée…</option>
+                <option value="custom">{i18n.t("generate.schedules.custom")}</option>
               </select>
             </div>
           }
@@ -561,18 +554,18 @@ function TriggersStep({ provider, choices, options, update }: { provider: Provid
         {choices.supports.concurrency ? (
           <OptionRow
             icon={<Zap />}
-            title="Annuler les exécutions dépassées"
-            description="Un nouveau push sur la même branche interrompt l'exécution précédente, devenue inutile."
-            control={<Switch checked={options.concurrency} label="Annulation" onChange={(value) => update((draft) => void (draft.concurrency = value))} />}
+            title={i18n.t("generate.triggers.concurrency")}
+            description={i18n.t("generate.triggers.concurrencyDescription")}
+            control={<Switch checked={options.concurrency} label={i18n.t("generate.triggers.concurrency")} onChange={(value) => update((draft) => void (draft.concurrency = value))} />}
           />
         ) : null}
         <OptionRow
           icon={<FileCode2 />}
-          title="Fichier"
-          description={choices.path_editable ? "Un dépôt GitHub peut contenir plusieurs workflows." : `${PROVIDER_LABELS[provider].label} lit uniquement ce fichier.`}
+          title={i18n.t("generate.triggers.file")}
+          description={choices.path_editable ? i18n.t("generate.triggers.fileGithub") : i18n.t("generate.triggers.fileFixed", { provider: PROVIDER_LABELS[provider].label })}
           control={
             choices.path_editable ? (
-              <Input value={options.path} onChange={(event) => update((draft) => void (draft.path = event.target.value))} className="w-72 [&_input]:font-mono [&_input]:text-[12.5px]" aria-label="Chemin du fichier" />
+              <Input value={options.path} onChange={(event) => update((draft) => void (draft.path = event.target.value))} className="w-72 [&_input]:font-mono [&_input]:text-[12.5px]" aria-label={i18n.t("generate.triggers.filePath")} />
             ) : (
               <code className="font-mono text-[12.5px] text-fg">{options.path}</code>
             )
@@ -595,25 +588,25 @@ function DeliveryStep({ provider, fullName, analysis, options, update, primaryBu
 
   return (
     <>
-      <StepIntro title="Image Docker et déploiement" description="Facultatif. Ces jobs ne s'exécutent qu'après la réussite des vérifications, et seulement sur la branche principale ou les tags choisis." />
+      <StepIntro title={i18n.t("generate.delivery.title")} description={i18n.t("generate.delivery.description")} />
 
       <Card className="overflow-hidden">
         <OptionRow
           icon={<Container />}
-          title="Construire une image Docker"
-          description={detection.docker ? `À partir de ${detection.docker.dockerfile}.` : "Aucun Dockerfile détecté : ajoutez-en un avant d'activer ce job."}
-          control={<Switch checked={docker.enabled} label="Docker" onChange={(value) => update((draft) => void (draft.docker.enabled = value))} />}
+          title={i18n.t("generate.delivery.docker")}
+          description={detection.docker ? i18n.t("generate.delivery.fromDockerfile", { file: detection.docker.dockerfile }) : i18n.t("generate.delivery.noDockerfile")}
+          control={<Switch checked={docker.enabled} label={i18n.t("generate.delivery.docker")} onChange={(value) => update((draft) => void (draft.docker.enabled = value))} />}
         />
         {docker.enabled ? (
           <div className="grid gap-3 border-t border-line bg-surface-2/30 p-4 @xl:grid-cols-2 animate-fade-in">
             <Field label="Dockerfile">
               <Input value={docker.dockerfile} onChange={(event) => update((draft) => void (draft.docker.dockerfile = event.target.value))} className="[&_input]:font-mono [&_input]:text-[12.5px]" />
             </Field>
-            <Field label="Contexte de build">
+            <Field label={i18n.t("generate.delivery.context")}>
               <Input value={docker.context} onChange={(event) => update((draft) => void (draft.docker.context = event.target.value))} className="[&_input]:font-mono [&_input]:text-[12.5px]" />
             </Field>
             {choices.registries.length > 1 ? (
-              <Field label="Registre">
+              <Field label={i18n.t("generate.delivery.registry")}>
                 <select
                   value={docker.registry}
                   onChange={(event) =>
@@ -634,16 +627,16 @@ function DeliveryStep({ provider, fullName, analysis, options, update, primaryBu
                 </select>
               </Field>
             ) : null}
-            <Field label="Nom de l'image">
+            <Field label={i18n.t("generate.delivery.image")}>
               <Input value={docker.image} onChange={(event) => update((draft) => void (draft.docker.image = event.target.value))} className="[&_input]:font-mono [&_input]:text-[12.5px]" />
             </Field>
-            <Field label="Construire pour">
-              <SegmentedControl<DeliveryWhen> className="[&>button]:whitespace-nowrap" value={docker.when} onChange={(value) => update((draft) => void (draft.docker.when = value))} options={WHEN_OPTIONS} />
+            <Field label={i18n.t("generate.delivery.buildFor")}>
+              <SegmentedControl<DeliveryWhen> className="[&>button]:whitespace-nowrap" value={docker.when} onChange={(value) => update((draft) => void (draft.docker.when = value))} options={whenOptions()} />
             </Field>
-            <Field label="Envoyer au registre">
+            <Field label={i18n.t("generate.delivery.push")}>
               <div className="flex h-8 items-center gap-2 text-[12.5px] text-fg-muted">
-                <Switch checked={docker.push} label="Envoyer" onChange={(value) => update((draft) => void (draft.docker.push = value))} />
-                {docker.push ? "build + push" : "build uniquement (vérification)"}
+                <Switch checked={docker.push} label={i18n.t("generate.delivery.push")} onChange={(value) => update((draft) => void (draft.docker.push = value))} />
+                {docker.push ? i18n.t("generate.delivery.buildPush") : i18n.t("generate.delivery.buildOnly")}
               </div>
             </Field>
           </div>
@@ -653,15 +646,15 @@ function DeliveryStep({ provider, fullName, analysis, options, update, primaryBu
       <Card className="overflow-hidden">
         <OptionRow
           icon={<Rocket />}
-          title="Déployer"
-          description="Exécute votre commande de déploiement dans un environnement dédié."
-          control={<Switch checked={deploy.enabled} label="Déploiement" onChange={(value) => update((draft) => void (draft.deploy.enabled = value))} />}
+          title={i18n.t("generate.delivery.deploy")}
+          description={i18n.t("generate.delivery.deployDescription")}
+          control={<Switch checked={deploy.enabled} label={i18n.t("generate.delivery.deploy")} onChange={(value) => update((draft) => void (draft.deploy.enabled = value))} />}
         />
         {deploy.enabled ? (
           <div className="space-y-3 border-t border-line bg-surface-2/30 p-4 animate-fade-in">
             {presets.length ? (
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[12px] text-fg-muted">Modèles détectés :</span>
+                <span className="text-[12px] text-fg-muted">{i18n.t("generate.delivery.presets")}</span>
                 {presets.map((hint) => (
                   <Button
                     key={hint.id}
@@ -681,14 +674,14 @@ function DeliveryStep({ provider, fullName, analysis, options, update, primaryBu
               </div>
             ) : null}
             <div className="grid gap-3 @lg:grid-cols-[180px_minmax(0,1fr)]">
-              <Field label="Environnement">
+              <Field label={i18n.t("generate.delivery.environment")}>
                 <Input value={deploy.environment} onChange={(event) => update((draft) => void (draft.deploy.environment = event.target.value))} className="[&_input]:font-mono [&_input]:text-[12.5px]" />
               </Field>
-              <Field label="Secrets utilisés" hint="noms seulement, jamais les valeurs">
-                <ListInput values={deploy.secrets} placeholder="ex. DEPLOY_TOKEN" icon={<KeyRound />} onChange={(values) => update((draft) => void (draft.deploy.secrets = values))} />
+              <Field label={i18n.t("generate.delivery.secrets")} hint={i18n.t("generate.delivery.secretsHint")}>
+                <ListInput values={deploy.secrets} placeholder={i18n.t("generate.delivery.secretsPlaceholder")} icon={<KeyRound />} onChange={(values) => update((draft) => void (draft.deploy.secrets = values))} />
               </Field>
             </div>
-            <Field label="Commande de déploiement" hint="une commande par ligne">
+            <Field label={i18n.t("generate.delivery.command")} hint={i18n.t("generate.delivery.commandHint")}>
               <textarea
                 value={deploy.command}
                 onChange={(event) => update((draft) => void (draft.deploy.command = event.target.value))}
@@ -699,20 +692,20 @@ function DeliveryStep({ provider, fullName, analysis, options, update, primaryBu
               />
             </Field>
             <div className="grid gap-3 @xl:grid-cols-2">
-              <Field label="Déployer depuis">
-                <SegmentedControl<DeliveryWhen> className="[&>button]:whitespace-nowrap" value={deploy.when} onChange={(value) => update((draft) => void (draft.deploy.when = value))} options={WHEN_OPTIONS} />
+              <Field label={i18n.t("generate.delivery.deployFrom")}>
+                <SegmentedControl<DeliveryWhen> className="[&>button]:whitespace-nowrap" value={deploy.when} onChange={(value) => update((draft) => void (draft.deploy.when = value))} options={whenOptions()} />
               </Field>
-              <Field label="Validation manuelle">
+              <Field label={i18n.t("generate.delivery.manual")}>
                 <div className="flex h-8 items-center gap-2 text-[12.5px] text-fg-muted">
-                  <Switch checked={deploy.manual} label="Validation manuelle" onChange={(value) => update((draft) => void (draft.deploy.manual = value))} />
-                  {deploy.manual ? (provider === "github" ? "via les règles de l'environnement" : "bouton à cliquer sur la plateforme") : "automatique"}
+                  <Switch checked={deploy.manual} label={i18n.t("generate.delivery.manual")} onChange={(value) => update((draft) => void (draft.deploy.manual = value))} />
+                  {deploy.manual ? (provider === "github" ? i18n.t("generate.delivery.manualGithub") : i18n.t("generate.delivery.manualOther")) : i18n.t("generate.delivery.automatic")}
                 </div>
               </Field>
             </div>
             {primaryStack ? (
               <label className="flex items-center gap-2.5 text-[12.5px] text-fg-muted">
-                <Switch checked={deploy.use_stack} label="Préparer l'environnement" onChange={(value) => update((draft) => void (draft.deploy.use_stack = value))} />
-                Préparer l'environnement {analysis.choices.stack_labels[primaryStack.id]} (runtime et dépendances) avant la commande
+                <Switch checked={deploy.use_stack} label={i18n.t("generate.delivery.useStack")} onChange={(value) => update((draft) => void (draft.deploy.use_stack = value))} />
+                {i18n.t("generate.delivery.useStackDescription", { stack: analysis.choices.stack_labels[primaryStack.id] })}
               </label>
             ) : null}
           </div>
@@ -750,12 +743,12 @@ function ReviewStep({
 
   return (
     <>
-      <StepIntro title="Vérifier avant d'écrire" description={`Le fichier sera écrit dans votre dossier local${result.branch ? `, sur la branche ${result.branch}` : ""}. Rien n'est commité ni envoyé à ${PROVIDER_LABELS[provider].label} à cette étape.`} />
+      <StepIntro title={i18n.t("generate.review.title")} description={result.branch ? i18n.t("generate.review.descriptionBranch", { branch: result.branch, provider: PROVIDER_LABELS[provider].label }) : i18n.t("generate.review.description", { provider: PROVIDER_LABELS[provider].label })} />
 
       <Card className="p-4">
         <div className="mb-3 flex items-center gap-2 text-[13px] font-medium">
-          <ListChecks className="size-4 text-fg-subtle" /> {summary.jobs.length} job{summary.jobs.length > 1 ? "s" : ""}
-          {summary.stages.length ? <span className="font-normal text-fg-muted">en {summary.stages.length} étapes</span> : null}
+          <ListChecks className="size-4 text-fg-subtle" /> {i18n.t("generate.review.jobs", { count: summary.jobs.length })}
+          {summary.stages.length ? <span className="font-normal text-fg-muted">{i18n.t("generate.review.stages", { count: summary.stages.length })}</span> : null}
         </div>
         <div className="space-y-3">
           {groups.map((group) => (
@@ -766,7 +759,7 @@ function ReviewStep({
                   <div key={job.id} className="rounded-lg border border-line bg-surface-2/40 px-2.5 py-1.5">
                     <div className="truncate text-[12.5px] font-medium">{readable(job.name)}</div>
                     <div className="truncate text-[11.5px] text-fg-subtle">
-                      {[job.runs_on && readable(job.runs_on), `${job.steps} commande${job.steps > 1 ? "s" : ""}`, job.needs.length ? `après ${job.needs.join(", ")}` : null, job.matrix ? "matrice" : null].filter(Boolean).join(" · ")}
+                      {[job.runs_on && readable(job.runs_on), i18n.t("summary.commands", { count: job.steps }), job.needs.length ? i18n.t("summary.after", { jobs: job.needs.join(", ") }) : null, job.matrix ? i18n.t("summary.matrixShort") : null].filter(Boolean).join(" · ")}
                     </div>
                   </div>
                 ))}
@@ -779,7 +772,7 @@ function ReviewStep({
       {result.notes.length ? (
         <Card className="p-4">
           <div className="mb-2 flex items-center gap-2 text-[13px] font-medium">
-            <Info className="size-4 text-accent" /> À faire sur la plateforme
+            <Info className="size-4 text-accent" /> {i18n.t("generate.review.todo")}
           </div>
           <ul className="space-y-1.5">
             {result.notes.map((note) => (
@@ -794,18 +787,17 @@ function ReviewStep({
 
       {result.validation.errors ? (
         <Notice tone="error" icon={<CircleAlert />}>
-          La validation signale {result.validation.errors} erreur{result.validation.errors > 1 ? "s" : ""} : vérifiez les commandes et chemins saisis.
+          {i18n.t("generate.review.errors", { count: result.validation.errors })}
         </Notice>
       ) : null}
 
       {result.exists ? (
         <Notice tone="warning" icon={<TriangleAlert />}>
           <div>
-            <code className="font-mono text-fg">{result.path}</code> existe déjà dans le dossier local : il sera remplacé. L'ancienne version reste récupérable avec « Restaurer » dans
-            l'éditeur tant que vous n'avez pas commité.
+            <Trans i18nKey="generate.review.exists" values={{ path: result.path }} components={{ code: <code className="font-mono text-fg" /> }} />
             <label className="mt-2 flex items-center gap-2 font-medium text-fg">
               <input type="checkbox" checked={confirmReplace} onChange={(event) => onConfirmReplace(event.target.checked)} className="size-4 accent-[var(--accent)]" />
-              Remplacer le fichier existant
+              {i18n.t("generate.review.replace")}
             </label>
           </div>
         </Notice>
@@ -813,11 +805,11 @@ function ReviewStep({
 
       <Card className="flex flex-wrap items-center gap-4 p-4">
         <div className="min-w-0 flex-1 text-[12.5px] leading-relaxed text-fg-muted">
-          <div className="text-[13px] font-medium text-fg">Et ensuite ?</div>
-          Relecture dans l'éditeur, commit sur une branche locale, puis envoi et pull request uniquement quand vous le décidez.
+          <div className="text-[13px] font-medium text-fg">{i18n.t("generate.review.next")}</div>
+          {i18n.t("generate.review.nextDescription")}
         </div>
         <Button variant="primary" size="lg" onClick={onWrite} loading={writing} disabled={blocked || updating}>
-          <FileCheck2 /> Écrire dans le dossier local
+          <FileCheck2 /> {i18n.t("generate.review.write")}
         </Button>
       </Card>
     </>
@@ -839,7 +831,7 @@ function PreviewPanel({ result, updating, error }: { result: GeneratedPipeline |
       <div className="flex items-center gap-2 border-b border-line px-3.5 py-2.5">
         <FileCode2 className="size-4 shrink-0 text-fg-subtle" />
         <code className="min-w-0 flex-1 truncate font-mono text-[12.5px]">{result?.path ?? "…"}</code>
-        {result?.exists ? <Badge className="border-running/30 bg-running/10 text-fg">remplace l'existant</Badge> : result ? <Badge className="border-accent/25 bg-accent-soft text-fg">nouveau</Badge> : null}
+        {result?.exists ? <Badge className="border-running/30 bg-running/10 text-fg">{i18n.t("generate.preview.replaces")}</Badge> : result ? <Badge className="border-accent/25 bg-accent-soft text-fg">{i18n.t("generate.preview.new")}</Badge> : null}
         <span
           className={cn(
             "inline-flex h-6 items-center gap-1.5 rounded-full px-2 text-[11.5px] font-medium",
@@ -855,13 +847,13 @@ function PreviewPanel({ result, updating, error }: { result: GeneratedPipeline |
           ) : (
             <CircleCheck className="size-3.5 text-success" />
           )}
-          {!result ? "Génération" : errors ? `${errors} erreur${errors > 1 ? "s" : ""}` : warnings ? `${warnings} avert.` : "Valide"}
+          {!result ? i18n.t("generate.preview.generating") : errors ? i18n.t("generate.preview.errors", { count: errors }) : warnings ? i18n.t("generate.preview.warnings", { count: warnings }) : i18n.t("generate.preview.valid")}
         </span>
-        <Tooltip content={copied ? "Copié" : "Copier le YAML"}>
+        <Tooltip content={copied ? i18n.t("common.copied") : i18n.t("generate.preview.copy")}>
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="Copier"
+            aria-label={i18n.t("common.copy")}
             disabled={!result}
             onClick={() => {
               if (!result) return;
@@ -889,7 +881,7 @@ function PreviewPanel({ result, updating, error }: { result: GeneratedPipeline |
         )}
       </div>
       <div className="flex items-center gap-2 border-t border-line px-3.5 py-2 text-[11.5px] text-fg-subtle">
-        {error && result ? <span className="truncate text-failure">{errorMessage(error)}</span> : <span>Aperçu en direct · {lines} lignes</span>}
+        {error && result ? <span className="truncate text-failure">{errorMessage(error)}</span> : <span>{i18n.t("generate.preview.live", { count: lines })}</span>}
       </div>
     </Card>
   );

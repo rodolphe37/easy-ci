@@ -150,7 +150,7 @@ export function ScanProvider({ children }: { children: ReactNode }) {
 
 export function useScans() {
   const context = useContext(ScanContext);
-  if (!context) throw new Error("useScans doit être utilisé dans <ScanProvider>");
+  if (!context) throw new Error("useScans must be used within <ScanProvider>");
   return context;
 }
 

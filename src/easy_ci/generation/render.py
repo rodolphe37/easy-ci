@@ -14,11 +14,12 @@ from typing import Any
 import yaml
 
 from easy_ci.generation.detect import DEFAULT_VERSIONS, STACK_LABELS
+from easy_ci.i18n import N_, tr
 from easy_ci.validation import validate
 from easy_ci.workflow_yaml import summarize
 
 STEP_ORDER = ("lint", "typecheck", "test", "build")
-STEP_LABELS = {"lint": "Lint", "typecheck": "Vérification des types", "test": "Tests", "build": "Build"}
+STEP_LABELS = {"lint": "Lint", "typecheck": N_("Vérification des types"), "test": "Tests", "build": "Build"}
 
 # Versions vérifiées sur GitHub en septembre 2026 (tags majeurs existants).
 ACTIONS = {
@@ -107,8 +108,8 @@ def choices(provider: str) -> dict[str, Any]:
     """Valeurs proposées par l'assistant (listes déroulantes, cases à cocher)."""
     registries = {
         "github": [("ghcr", "GitHub Container Registry (ghcr.io)"), ("dockerhub", "Docker Hub"), ("custom", "Autre registre")],
-        "gitlab": [("gitlab", "Registre du projet GitLab"), ("dockerhub", "Docker Hub"), ("custom", "Autre registre")],
-        "bitbucket": [("dockerhub", "Docker Hub ou autre registre")],
+        "gitlab": [("gitlab", tr("Registre du projet GitLab")), ("dockerhub", "Docker Hub"), ("custom", "Autre registre")],
+        "bitbucket": [("dockerhub", tr("Docker Hub ou autre registre"))],
     }[provider]
     return {
         "paths": {"github": [".github/workflows/ci.yml", ".github/workflows/build.yml", ".github/workflows/pipeline.yml"], "gitlab": [".gitlab-ci.yml"], "bitbucket": ["bitbucket-pipelines.yml"]}[provider],
@@ -116,7 +117,7 @@ def choices(provider: str) -> dict[str, Any]:
         "os": [{"id": "ubuntu-latest", "label": "Linux"}, {"id": "macos-latest", "label": "macOS"}, {"id": "windows-latest", "label": "Windows"}] if provider == "github" else [],
         "registries": [{"id": key, "label": label} for key, label in registries],
         "supports": {"concurrency": provider != "bitbucket", "os_matrix": provider == "github", "schedule_in_file": provider == "github"},
-        "step_labels": STEP_LABELS,
+        "step_labels": {key: tr(label) for key, label in STEP_LABELS.items()},
         "stack_labels": STACK_LABELS,
     }
 
@@ -217,14 +218,14 @@ def _header(provider: str, options: dict[str, Any]) -> str:
     stacks = [s for s in options["stacks"] if s["enabled"]]
     summary = ", ".join(
         f"{STACK_LABELS[s['id']]} {s['version']}".strip() + (f" ({s['directory']})" if s["directory"] != "." else "") for s in stacks
-    ) or "aucune stack"
+    ) or tr("aucune stack")
     lines = [
-        f"# Pipeline généré par Easy CI le {date.today().strftime('%d/%m/%Y')}.",
-        f"# Stack : {summary}.",
-        "# Relisez les commandes et adaptez-les à votre projet avant de commiter.",
+        tr("# Pipeline généré par Easy CI le {value}.", value=date.today().strftime(tr("%d/%m/%Y"))),
+        tr("# Stack : {value}.", value=summary),
+        tr("# Relisez les commandes et adaptez-les à votre projet avant de commiter."),
     ]
     if options["deploy"]["enabled"] and not options["deploy"]["command"].strip():
-        lines.append("# ⚠ Déploiement : remplacez la commande d'exemple par votre commande réelle.")
+        lines.append(tr("# ⚠ Déploiement : remplacez la commande d'exemple par votre commande réelle."))
     return "\n".join(lines) + "\n\n"
 
 
@@ -247,7 +248,7 @@ def generate(provider: str, options: dict[str, Any]) -> dict[str, Any]:
 
 
 def _deploy_command(options: dict[str, Any]) -> str:
-    return options["deploy"]["command"].strip() or 'echo "Remplacez cette ligne par votre commande de déploiement"'
+    return options["deploy"]["command"].strip() or tr("echo \"Remplacez cette ligne par votre commande de déploiement\"")
 
 
 def _deploy_stack(options: dict[str, Any]) -> dict[str, Any] | None:
@@ -267,10 +268,10 @@ def _secrets_note(provider: str, names: list[str]) -> str | None:
         return None
     where = {
         "github": "Settings › Secrets and variables › Actions",
-        "gitlab": "Settings › CI/CD › Variables (cochez « Masquer » et « Protéger »)",
-        "bitbucket": "Repository settings › Deployments (variables sécurisées de l'environnement)",
+        "gitlab": tr("Settings › CI/CD › Variables (cochez « Masquer » et « Protéger »)"),
+        "bitbucket": tr("Repository settings › Deployments (variables sécurisées de l'environnement)"),
     }[provider]
-    return f"Déploiement : ajoutez {', '.join(names)} dans {where}."
+    return tr("Déploiement : ajoutez {value} dans {where}.", value=', '.join(names), where=where)
 
 
 # ---------------------------------------------------------------------------
@@ -361,7 +362,7 @@ def _github(options: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
         on["workflow_dispatch"] = None
     if not on:
         on["workflow_dispatch"] = None
-        notes.append("Aucun déclencheur choisi : le workflow ne se lancera que manuellement.")
+        notes.append(tr("Aucun déclencheur choisi : le workflow ne se lancera que manuellement."))
 
     document: dict[str, Any] = {"name": options.get("name") or "CI", "on": on, "permissions": {"contents": "read"}}
     if options.get("concurrency"):
@@ -386,7 +387,7 @@ def _github(options: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
         def job_steps(commands: list[tuple[str, str]], version_expr: str, stack: dict[str, Any] = stack) -> list[dict[str, Any]]:
             items: list[dict[str, Any]] = [{"uses": ACTIONS["checkout"]}, *_github_setup(stack, version_expr, options.get("cache", True))]
             if stack.get("install", "").strip() and not (stack["id"] == "ruby" and options.get("cache", True)):
-                items.append({"name": "Installation des dépendances", "run": stack["install"].strip()})
+                items.append({"name": tr("Installation des dépendances"), "run": stack["install"].strip()})
             for label, command in commands:
                 if stack["id"] == "go" and command.startswith("golangci-lint"):
                     items.append({"name": label, "uses": ACTIONS["golangci"]} if stack["directory"] == "." else {"name": label, "uses": ACTIONS["golangci"], "with": {"working-directory": stack["directory"]}})
@@ -395,7 +396,7 @@ def _github(options: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
             return items
 
         created: list[str] = []
-        quality = [(STEP_LABELS[s], steps[s]) for s in ("lint", "typecheck") if s in steps]
+        quality = [(tr(STEP_LABELS[s]), steps[s]) for s in ("lint", "typecheck") if s in steps]
         if quality:
             job_id = f"{job_prefix}lint"
             jobs[job_id] = {"name": f"{name_prefix}Lint", **copy.deepcopy(base), "steps": job_steps(quality, stack["version"])}
@@ -413,7 +414,7 @@ def _github(options: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
                 job["strategy"] = {"fail-fast": False, "matrix": matrix}
                 labels = [f"${{{{ matrix.{key} }}}}" for key in matrix]
                 job["name"] = f"{name_prefix}Tests ({', '.join(labels)})"
-            job["steps"] = job_steps([(STEP_LABELS["test"], steps["test"])], "${{ matrix.version }}" if "version" in matrix else stack["version"])
+            job["steps"] = job_steps([(tr(STEP_LABELS["test"]), steps["test"])], "${{ matrix.version }}" if "version" in matrix else stack["version"])
             jobs[job_id] = job
             created.append(job_id)
         if "build" in steps:
@@ -421,7 +422,7 @@ def _github(options: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
             job = {"name": f"{name_prefix}Build", **copy.deepcopy(base)}
             if created:
                 job["needs"] = Flow(created) if len(created) > 1 else created[0]
-            job["steps"] = job_steps([(STEP_LABELS["build"], steps["build"])], stack["version"])
+            job["steps"] = job_steps([(tr(STEP_LABELS["build"]), steps["build"])], stack["version"])
             jobs[job_id] = job
             final_jobs.append(job_id)
         else:
@@ -438,14 +439,14 @@ def _github(options: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
                 login = {"registry": "ghcr.io", "username": "${{ github.actor }}", "password": "${{ secrets.GITHUB_TOKEN }}"}
             elif registry == "dockerhub":
                 login = {"username": "${{ secrets.DOCKERHUB_USERNAME }}", "password": "${{ secrets.DOCKERHUB_TOKEN }}"}
-                notes.append("Ajoutez les secrets DOCKERHUB_USERNAME et DOCKERHUB_TOKEN dans les paramètres du dépôt.")
+                notes.append(tr("Ajoutez les secrets DOCKERHUB_USERNAME et DOCKERHUB_TOKEN dans les paramètres du dépôt."))
             else:
                 login = {"registry": image.split("/", 1)[0], "username": "${{ secrets.REGISTRY_USERNAME }}", "password": "${{ secrets.REGISTRY_PASSWORD }}"}
-                notes.append("Ajoutez les secrets REGISTRY_USERNAME et REGISTRY_PASSWORD dans les paramètres du dépôt.")
-            steps_docker.append({"name": "Connexion au registre", "uses": ACTIONS["docker-login"], "with": login})
+                notes.append(tr("Ajoutez les secrets REGISTRY_USERNAME et REGISTRY_PASSWORD dans les paramètres du dépôt."))
+            steps_docker.append({"name": tr("Connexion au registre"), "uses": ACTIONS["docker-login"], "with": login})
         steps_docker.append(
             {
-                "name": "Tags de l'image",
+                "name": tr("Tags de l'image"),
                 "id": "meta",
                 "uses": ACTIONS["docker-metadata"],
                 "with": {"images": image, "tags": "type=ref,event=branch\ntype=semver,pattern={{version}}\ntype=sha"},
@@ -453,7 +454,7 @@ def _github(options: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
         )
         steps_docker.append(
             {
-                "name": "Build et envoi de l'image",
+                "name": tr("Build et envoi de l'image"),
                 "uses": ACTIONS["docker-build"],
                 "with": {
                     "context": docker.get("context") or ".",
@@ -466,7 +467,7 @@ def _github(options: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
                 },
             }
         )
-        job = {"name": "Image Docker", "runs-on": "ubuntu-latest"}
+        job = {"name": tr("Image Docker"), "runs-on": "ubuntu-latest"}
         if final_jobs:
             job["needs"] = Flow(final_jobs) if len(final_jobs) > 1 else final_jobs[0]
         job["if"] = _github_condition(docker.get("when", "default_branch"), default_branch)
@@ -477,7 +478,7 @@ def _github(options: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
 
     deploy = options["deploy"]
     if deploy["enabled"]:
-        job = {"name": "Déploiement", "runs-on": "ubuntu-latest"}
+        job = {"name": tr("Déploiement"), "runs-on": "ubuntu-latest"}
         if final_jobs:
             job["needs"] = Flow(final_jobs) if len(final_jobs) > 1 else final_jobs[0]
         job["if"] = _github_condition(deploy.get("when", "default_branch"), default_branch)
@@ -489,8 +490,8 @@ def _github(options: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
                 job["defaults"] = {"run": {"working-directory": stack["directory"]}}
             steps_deploy += _github_setup(stack, stack["version"], options.get("cache", True))
             if stack.get("install", "").strip() and not (stack["id"] == "ruby" and options.get("cache", True)):
-                steps_deploy.append({"name": "Installation des dépendances", "run": stack["install"].strip()})
-        step: dict[str, Any] = {"name": "Déployer", "run": _deploy_command(options)}
+                steps_deploy.append({"name": tr("Installation des dépendances"), "run": stack["install"].strip()})
+        step: dict[str, Any] = {"name": tr("Déployer"), "run": _deploy_command(options)}
         if _secrets(options):
             step["env"] = {name: f"${{{{ secrets.{name} }}}}" for name in _secrets(options)}
         job["steps"] = [*steps_deploy, step]
@@ -499,12 +500,12 @@ def _github(options: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
             notes.append(note)
         if deploy.get("manual"):
             notes.append(
-                f"Validation manuelle : dans Settings › Environments › {job['environment']}, activez « Required reviewers » pour exiger une approbation avant chaque déploiement."
+                tr("Validation manuelle : dans Settings › Environments › {value}, activez « Required reviewers » pour exiger une approbation avant chaque déploiement.", value=job['environment'])
             )
 
     if not jobs:
-        jobs["ci"] = {"name": "CI", "runs-on": "ubuntu-latest", "steps": [{"uses": ACTIONS["checkout"]}, {"run": 'echo "Ajoutez vos étapes ici"'}]}
-        notes.append("Aucune étape active : un job d'exemple a été ajouté.")
+        jobs["ci"] = {"name": "CI", "runs-on": "ubuntu-latest", "steps": [{"uses": ACTIONS["checkout"]}, {"run": tr("echo \"Ajoutez vos étapes ici\"")}]}
+        notes.append(tr("Aucune étape active : un job d'exemple a été ajouté."))
     document["jobs"] = jobs
     return document, notes
 
@@ -606,7 +607,7 @@ def _gitlab(options: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
         rules.append({"if": "$CI_COMMIT_TAG"})
     if triggers.get("schedule", "").strip():
         rules.append({"if": '$CI_PIPELINE_SOURCE == "schedule"'})
-        notes.append(f"Planification : créez un « Pipeline schedule » ({triggers['schedule'].strip()}) dans Build › Pipeline schedules.")
+        notes.append(tr("Planification : créez un « Pipeline schedule » ({value}) dans Build › Pipeline schedules.", value=triggers['schedule'].strip()))
     if triggers.get("manual"):
         rules.append({"if": '$CI_PIPELINE_SOURCE == "web"'})
 
@@ -667,17 +668,17 @@ def _gitlab(options: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
             "dockerhub": 'echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin',
         }.get(registry, 'echo "$REGISTRY_PASSWORD" | docker login -u "$REGISTRY_USERNAME" --password-stdin "$REGISTRY_HOST"')
         if registry == "dockerhub":
-            notes.append("Ajoutez les variables CI/CD DOCKERHUB_USERNAME et DOCKERHUB_TOKEN (masquées) dans Settings › CI/CD › Variables.")
+            notes.append(tr("Ajoutez les variables CI/CD DOCKERHUB_USERNAME et DOCKERHUB_TOKEN (masquées) dans Settings › CI/CD › Variables."))
         elif registry not in ("gitlab",):
-            notes.append("Ajoutez les variables CI/CD REGISTRY_HOST, REGISTRY_USERNAME et REGISTRY_PASSWORD dans Settings › CI/CD › Variables.")
+            notes.append(tr("Ajoutez les variables CI/CD REGISTRY_HOST, REGISTRY_USERNAME et REGISTRY_PASSWORD dans Settings › CI/CD › Variables."))
         script = [
             f'docker build -f {docker.get("dockerfile") or "Dockerfile"} -t "{image}:$CI_COMMIT_SHORT_SHA" {docker.get("context") or "."}',
         ]
         if docker.get("push", True):
             script += [
                 f'docker push "{image}:$CI_COMMIT_SHORT_SHA"',
-                f'if [ -n "$CI_COMMIT_TAG" ]; then docker tag "{image}:$CI_COMMIT_SHORT_SHA" "{image}:$CI_COMMIT_TAG" && docker push "{image}:$CI_COMMIT_TAG"; fi',
-                f'if [ "$CI_COMMIT_BRANCH" = "$CI_DEFAULT_BRANCH" ]; then docker tag "{image}:$CI_COMMIT_SHORT_SHA" "{image}:latest" && docker push "{image}:latest"; fi',
+                f"if [ -n \"$CI_COMMIT_TAG\" ]; then docker tag \"{image}:$CI_COMMIT_SHORT_SHA\" \"{image}:$CI_COMMIT_TAG\" && docker push \"{image}:$CI_COMMIT_TAG\"; fi",
+                f"if [ \"$CI_COMMIT_BRANCH\" = \"$CI_DEFAULT_BRANCH\" ]; then docker tag \"{image}:$CI_COMMIT_SHORT_SHA\" \"{image}:latest\" && docker push \"{image}:latest\"; fi",
             ]
         job = {
             "stage": "docker",
@@ -713,12 +714,12 @@ def _gitlab(options: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
         if note := _secrets_note("gitlab", _secrets(options)):
             notes.append(note)
         if deploy.get("manual"):
-            notes.append("Le déploiement attend une validation manuelle : bouton ▶ sur le pipeline dans GitLab.")
+            notes.append(tr("Le déploiement attend une validation manuelle : bouton ▶ sur le pipeline dans GitLab."))
 
     if not stages:
         add_stage("test")
-        jobs["ci"] = {"stage": "test", "image": "alpine:3.22", "script": ['echo "Ajoutez vos étapes ici"']}
-        notes.append("Aucune étape active : un job d'exemple a été ajouté.")
+        jobs["ci"] = {"stage": "test", "image": "alpine:3.22", "script": [tr("echo \"Ajoutez vos étapes ici\"")]}
+        notes.append(tr("Aucune étape active : un job d'exemple a été ajouté."))
 
     ordered: dict[str, Any] = {}
     if "workflow" in document:
@@ -832,9 +833,9 @@ def _bitbucket(options: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
             script = [f"docker build -f {docker.get('dockerfile') or 'Dockerfile'} -t {image}:{tag} {docker.get('context') or '.'}"]
             if docker.get("push", True):
                 script = ['echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin', *script, f"docker push {image}:{tag}"]
-            items.append({"step": {"name": "Image Docker", "services": Flow(["docker"]), "caches": Flow(["docker"]), "script": script}})
+            items.append({"step": {"name": tr("Image Docker"), "services": Flow(["docker"]), "caches": Flow(["docker"]), "script": script}})
         if deploy["enabled"] and deploy.get("when", "default_branch") in (target, "both"):
-            item: dict[str, Any] = {"name": "Déploiement", "deployment": deploy.get("environment") or "production"}
+            item: dict[str, Any] = {"name": tr("Déploiement"), "deployment": deploy.get("environment") or "production"}
             stack = _deploy_stack(options)
             if stack:
                 item["image"] = IMAGES[stack["id"]].format(version=stack["version"])
@@ -845,11 +846,11 @@ def _bitbucket(options: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
         return items
 
     if docker["enabled"] and docker.get("push", True):
-        notes.append("Ajoutez les variables DOCKER_USERNAME et DOCKER_PASSWORD (sécurisées) dans Repository settings › Repository variables.")
+        notes.append(tr("Ajoutez les variables DOCKER_USERNAME et DOCKER_PASSWORD (sécurisées) dans Repository settings › Repository variables."))
     if note := _secrets_note("bitbucket", _secrets(options)) if deploy["enabled"] else None:
         notes.append(note)
     if deploy["enabled"] and deploy.get("environment") not in ("test", "staging", "production"):
-        notes.append(f"Bitbucket n'accepte que les environnements test, staging et production par défaut : créez « {deploy.get('environment')} » dans Deployments.")
+        notes.append(tr("Bitbucket n'accepte que les environnements test, staging et production par défaut : créez « {value} » dans Deployments.", value=deploy.get('environment')))
 
     pipelines: dict[str, Any] = {}
     default_branch = options.get("default_branch") or "main"
@@ -864,16 +865,16 @@ def _bitbucket(options: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
         custom["run-ci"] = checks()
     if triggers.get("schedule", "").strip():
         custom["nightly"] = checks()
-        notes.append(f"Planification : créez un « Schedule » ({triggers['schedule'].strip()}) sur le pipeline personnalisé « nightly » dans Pipelines › Schedules.")
+        notes.append(tr("Planification : créez un « Schedule » ({value}) sur le pipeline personnalisé « nightly » dans Pipelines › Schedules.", value=triggers['schedule'].strip()))
     if custom:
         pipelines["custom"] = custom
     if not pipelines or not any(pipelines.values()):
-        pipelines = {"default": checks() or [{"step": {"name": "CI", "script": ['echo "Ajoutez vos étapes ici"']}}]}
+        pipelines = {"default": checks() or [{"step": {"name": "CI", "script": [tr("echo \"Ajoutez vos étapes ici\"")]}}]}
     for section in pipelines.values():
         if isinstance(section, dict):
             for key, items in list(section.items()):
                 if not items:
-                    section[key] = [{"step": {"name": "CI", "script": ['echo "Ajoutez vos étapes ici"']}}]
+                    section[key] = [{"step": {"name": "CI", "script": [tr("echo \"Ajoutez vos étapes ici\"")]}}]
 
     document: dict[str, Any] = {}
     first = next((s for s in stacks if _enabled_steps(s)), None)

@@ -1,5 +1,6 @@
 import { AtSign, Eye, EyeOff, Globe, KeyRound, Terminal } from "lucide-react";
 import { useState, type FormEvent, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { useSession, useSessionActions } from "@/hooks/session";
 import { api } from "@/lib/api";
 import { PROVIDER_IDS, PROVIDER_LABELS, ProviderIcon } from "@/lib/providers";
@@ -31,6 +32,7 @@ export function ConnectAccountForm({
   onConnected?: (session: Session) => void;
   onOpenGuide?: (provider: ProviderId) => void;
 }) {
+  const { t } = useTranslation();
   const { data: session } = useSession();
   const { connect, loginWithGhCli } = useSessionActions();
   const [provider, setProvider] = useState<ProviderId>(initialProvider);
@@ -71,12 +73,12 @@ export function ConnectAccountForm({
   const tokenUrl =
     provider === "gitlab" ? gitlabTokenUrl(host) : (session?.providers[provider]?.token_url ?? "https://github.com/settings/tokens");
   const tokenPlaceholder =
-    provider === "github" ? "ghp_… ou github_pat_…" : provider === "gitlab" ? "glpat-…" : bitbucketMode === "access_token" ? "ATCTT…" : "ATATT…";
+    provider === "github" ? t("connect.form.githubPlaceholder") : provider === "gitlab" ? "glpat-…" : bitbucketMode === "access_token" ? "ATCTT…" : "ATATT…";
   const scopesHint =
-    provider === "github" ? "repo, workflow, read:org" : provider === "gitlab" ? "api, read_user" : "lecture des dépôts et pipelines, écriture des pipelines";
+    provider === "github" ? "repo, workflow, read:org" : provider === "gitlab" ? "api, read_user" : t("connect.form.bitbucketScopes");
 
   const secretToggle = (
-    <button type="button" onClick={() => setVisible((v) => !v)} className="text-fg-subtle hover:text-fg" aria-label={visible ? "Masquer" : "Afficher"}>
+    <button type="button" onClick={() => setVisible((v) => !v)} className="text-fg-subtle hover:text-fg" aria-label={visible ? t("connect.form.hide") : t("connect.form.show")}>
       {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
     </button>
   );
@@ -102,7 +104,7 @@ export function ConnectAccountForm({
 
       <form onSubmit={submit} className="space-y-3">
         {provider === "gitlab" ? (
-          <Field label="Adresse de l'instance" htmlFor="gitlab-host" hint="gitlab.com ou l'adresse de votre GitLab auto-hébergé.">
+          <Field label={t("connect.form.host")} htmlFor="gitlab-host" hint={t("connect.form.hostHint")}>
             <Input id="gitlab-host" icon={<Globe />} value={host} onChange={(e) => setHost(e.target.value)} placeholder={GITLAB_DEFAULT_HOST} className="h-10" spellCheck={false} />
           </Field>
         ) : null}
@@ -117,19 +119,19 @@ export function ConnectAccountForm({
                 connect.reset();
               }}
               options={[
-                { value: "api_token", label: "API token personnel" },
-                { value: "access_token", label: "Access token (workspace / dépôt)" },
+                { value: "api_token", label: t("connect.form.apiToken") },
+                { value: "access_token", label: t("connect.form.accessToken") },
               ]}
             />
             {bitbucketMode === "api_token" ? (
-              <Field label="E-mail du compte Atlassian" htmlFor="bitbucket-email">
+              <Field label={t("connect.form.email")} htmlFor="bitbucket-email">
                 <Input
                   id="bitbucket-email"
                   type="email"
                   icon={<AtSign />}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="vous@exemple.fr"
+                  placeholder={t("connect.form.emailPlaceholder")}
                   className="h-10"
                   autoComplete="off"
                 />
@@ -164,21 +166,21 @@ export function ConnectAccountForm({
 
         <Button type="submit" variant="primary" size="lg" className="w-full" loading={connect.isPending} disabled={!credentials() || busy}>
           <ProviderIcon provider={provider} className={cn(provider === "github" && "text-current")} />
-          Se connecter à {label}
+          {t("connect.form.submit", { provider: label })}
         </Button>
       </form>
 
       <p className="mt-3 text-[12.5px] leading-relaxed text-fg-subtle">
-        Pas encore de token ?{" "}
+        {t("connect.form.noToken")}{" "}
         <button type="button" className="font-medium text-accent hover:underline" onClick={() => void api.openExternal(tokenUrl)}>
-          En créer un sur {label}
+          {t("connect.form.createToken", { provider: label })}
         </button>{" "}
         <span>({scopesHint})</span>
         {onOpenGuide ? (
           <>
             {" · "}
             <button type="button" className="font-medium text-fg-muted hover:text-accent" onClick={() => onOpenGuide(provider)}>
-              Guide pas à pas
+              {t("connect.form.guide")}
             </button>
           </>
         ) : null}
@@ -187,7 +189,7 @@ export function ConnectAccountForm({
       {provider === "github" && session?.gh_cli_available ? (
         <Button size="lg" className="mt-4 w-full" onClick={() => loginWithGhCli.mutate(undefined, { onSuccess: (s) => onConnected?.(s) })} loading={loginWithGhCli.isPending} disabled={busy}>
           <Terminal />
-          Utiliser la session GitHub CLI
+          {t("connect.form.ghCli")}
         </Button>
       ) : null}
     </div>

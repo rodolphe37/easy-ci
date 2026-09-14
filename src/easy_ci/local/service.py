@@ -18,6 +18,7 @@ from typing import Any
 
 from easy_ci.errors import EasyCIError, FileConflictError, LinkMismatchError
 from easy_ci.generation.files import DiskFiles
+from easy_ci.i18n import tr
 from easy_ci.local import git, opener
 from easy_ci.local.remotes import clone_urls, match_remote
 from easy_ci.providers import BITBUCKET, GITLAB, split_repo_key
@@ -109,15 +110,15 @@ class LocalProjectsService:
 
     def pick_folder(self, title: str = "Choisir un dossier") -> str | None:
         if self._folder_picker is None:
-            raise EasyCIError("La sélection de dossier n'est disponible que dans l'application desktop : saisissez le chemin.")
+            raise EasyCIError(tr("La sélection de dossier n'est disponible que dans l'application desktop : saisissez le chemin."))
         return self._folder_picker(title)
 
     def add_root(self, path: str) -> dict[str, Any]:
         root = _expand(path)
         if not root.is_dir():
-            raise EasyCIError(f"Le dossier « {path} » n'existe pas.")
+            raise EasyCIError(tr("Le dossier « {path} » n'existe pas.", path=path))
         if root == Path(root.anchor):
-            raise EasyCIError("Choisissez un dossier de projets plutôt que la racine du disque.")
+            raise EasyCIError(tr("Choisissez un dossier de projets plutôt que la racine du disque."))
         settings = self._settings.load()
         roots = [r for r in settings["local_roots"] if Path(r) != root]
         self._settings.update({"local_roots": [*roots, str(root)]})
@@ -187,15 +188,15 @@ class LocalProjectsService:
     def link(self, key: str, path: str, force: bool = False) -> dict[str, Any]:
         folder = _expand(path)
         if not folder.is_dir():
-            raise EasyCIError(f"Le dossier « {path} » n'existe pas.")
+            raise EasyCIError(tr("Le dossier « {path} » n'existe pas.", path=path))
         root = git.repo_root(folder)
         if root is None:
-            raise EasyCIError("Ce dossier n'est pas un dépôt Git (aucun dossier .git trouvé).")
+            raise EasyCIError(tr("Ce dossier n'est pas un dépôt Git (aucun dossier .git trouvé)."))
         matched = self._match(git.remote_urls(root))
         if matched and matched.lower() != key.lower() and not force:
-            raise LinkMismatchError(f"Ce dossier est un clone de « {matched.split(':', 1)[1]} », pas de ce dépôt.")
+            raise LinkMismatchError(tr("Ce dossier est un clone de « {value} », pas de ce dépôt.", value=matched.split(':', 1)[1]))
         if not matched and not force:
-            raise LinkMismatchError("Aucun remote de ce dossier ne pointe vers ce dépôt.")
+            raise LinkMismatchError(tr("Aucun remote de ce dossier ne pointe vers ce dépôt."))
         self._set_link(key, str(root))
         return self.status(key)
 
@@ -213,11 +214,11 @@ class LocalProjectsService:
         provider, full_name = split_repo_key(key)
         parent_dir = _expand(parent)
         if not parent_dir.is_dir():
-            raise EasyCIError(f"Le dossier « {parent} » n'existe pas.")
+            raise EasyCIError(tr("Le dossier « {parent} » n'existe pas.", parent=parent))
         name = re.sub(r"[^A-Za-z0-9._-]", "-", full_name.rsplit("/", 1)[-1]) or "depot"
         destination = parent_dir / name
         if destination.exists() and any(destination.iterdir()):
-            raise EasyCIError(f"Le dossier « {_display_path(destination)} » existe déjà et n'est pas vide.")
+            raise EasyCIError(tr("Le dossier « {value} » existe déjà et n'est pas vide.", value=_display_path(destination)))
         url = clone_urls(provider, full_name, host)["ssh" if protocol == "ssh" else "https"]
         git.clone(url, destination)
         self._set_link(key, str(destination))
@@ -231,9 +232,9 @@ class LocalProjectsService:
             return {"key": key, "linked": False}
         base = {"key": key, "linked": True, "path": str(path), "display_path": _display_path(path)}
         if not path.is_dir():
-            return {**base, "exists": False, "error": "Le dossier lié n'existe plus (déplacé ou supprimé)."}
+            return {**base, "exists": False, "error": tr("Le dossier lié n'existe plus (déplacé ou supprimé).")}
         if git.repo_root(path) is None:
-            return {**base, "exists": True, "error": "Ce dossier n'est plus un dépôt Git."}
+            return {**base, "exists": True, "error": tr("Ce dossier n'est plus un dépôt Git.")}
 
         provider, full_name = split_repo_key(key)
         state = git.status(path)
@@ -284,7 +285,7 @@ class LocalProjectsService:
         path = self._require_path(key)
         provider, _ = split_repo_key(key)
         if not any(_matches_pattern(file_path, pattern) for pattern in CI_PATTERNS[provider]):
-            raise EasyCIError("Seuls les fichiers de configuration CI peuvent être comparés ici.")
+            raise EasyCIError(tr("Seuls les fichiers de configuration CI peuvent être comparés ici."))
         state = git.status(path)
         ref = self._compare_ref(path, state)
         local_file = path / file_path
@@ -326,8 +327,8 @@ class LocalProjectsService:
         current = _hash(target) if target.is_file() else None
         if not overwrite and current != expected_hash:
             if expected_hash is None:
-                raise FileConflictError(f"« {file_path} » existe déjà dans le dossier local.")
-            raise FileConflictError(f"« {file_path} » a été modifié en dehors d'Easy CI depuis son ouverture.")
+                raise FileConflictError(tr("« {file_path} » existe déjà dans le dossier local.", file_path=file_path))
+            raise FileConflictError(tr("« {file_path} » a été modifié en dehors d'Easy CI depuis son ouverture.", file_path=file_path))
         if not content.endswith("\n"):
             content += "\n"
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -352,30 +353,29 @@ class LocalProjectsService:
         provider, _ = split_repo_key(key)
         message = message.strip()
         if not message:
-            raise EasyCIError("Saisissez un message de commit.")
+            raise EasyCIError(tr("Saisissez un message de commit."))
         if not paths:
-            raise EasyCIError("Sélectionnez au moins un fichier à commiter.")
+            raise EasyCIError(tr("Sélectionnez au moins un fichier à commiter."))
         for file_path in paths:
             self._ci_target(provider, path, file_path)
         state = git.status(path)
         changed = {change["path"] for change in state["changes"]}
         unchanged = [p for p in paths if p not in changed]
         if unchanged:
-            raise EasyCIError(f"Aucune modification à commiter pour : {', '.join(unchanged)}.")
+            raise EasyCIError(tr("Aucune modification à commiter pour : {value}.", value=', '.join(unchanged)))
         if git.identity(path) is None:
             raise EasyCIError(
-                "Identité Git non configurée. Dans un terminal : git config --global user.name \"Votre nom\" puis "
-                "git config --global user.email vous@exemple.fr"
+                tr("Identité Git non configurée. Dans un terminal : git config --global user.name \"Votre nom\" puis git config --global user.email vous@exemple.fr")
             )
         if new_branch:
             new_branch = new_branch.strip()
             if not git.valid_branch_name(path, new_branch):
-                raise EasyCIError(f"« {new_branch} » n'est pas un nom de branche valide.")
+                raise EasyCIError(tr("« {new_branch} » n'est pas un nom de branche valide.", new_branch=new_branch))
             if git.branch_exists(path, new_branch):
-                raise EasyCIError(f"La branche « {new_branch} » existe déjà localement.")
+                raise EasyCIError(tr("La branche « {new_branch} » existe déjà localement.", new_branch=new_branch))
             git.create_branch(path, new_branch)
         elif state["detached"]:
-            raise EasyCIError("HEAD détachée : créez une branche pour commiter.")
+            raise EasyCIError(tr("HEAD détachée : créez une branche pour commiter."))
         sha = git.commit_paths(path, paths, message)
         return {"sha": sha, "status": self.status(key)}
 
@@ -384,7 +384,7 @@ class LocalProjectsService:
         path = self._require_path(key)
         state = git.status(path)
         if state["detached"] or not state["branch"]:
-            raise EasyCIError("HEAD détachée : placez-vous sur une branche avant d'envoyer.")
+            raise EasyCIError(tr("HEAD détachée : placez-vous sur une branche avant d'envoyer."))
         remote = self._push_remote(key, path, state)
         git.push_branch(path, remote, state["branch"])
         return {"remote": remote, "branch": state["branch"], "status": self.status(key)}
@@ -411,7 +411,7 @@ class LocalProjectsService:
             return state["upstream"].split("/", 1)[0]
         if "origin" in remotes:
             return "origin"
-        raise EasyCIError("Aucun remote configuré pour envoyer la branche.")
+        raise EasyCIError(tr("Aucun remote configuré pour envoyer la branche."))
 
     @staticmethod
     def _default_branch_name(path: Path) -> str | None:
@@ -426,10 +426,10 @@ class LocalProjectsService:
     @staticmethod
     def _ci_target(provider: str, repo_path: Path, file_path: str) -> Path:
         if not any(_matches_pattern(file_path, pattern) for pattern in CI_PATTERNS[provider]):
-            raise EasyCIError(f"« {file_path} » n'est pas un fichier de configuration CI {provider} modifiable ici.")
+            raise EasyCIError(tr("« {file_path} » n'est pas un fichier de configuration CI {provider} modifiable ici.", file_path=file_path, provider=provider))
         target = (repo_path / file_path).resolve()
         if repo_path.resolve() not in target.parents:
-            raise EasyCIError("Chemin de fichier invalide.")
+            raise EasyCIError(tr("Chemin de fichier invalide."))
         return target
 
     def open(self, key: str, target: str, editor_id: str | None = None) -> None:
@@ -444,9 +444,9 @@ class LocalProjectsService:
     def _require_path(self, key: str) -> Path:
         path = self.project_path(key)
         if path is None:
-            raise EasyCIError("Aucun dossier local n'est lié à ce dépôt.")
+            raise EasyCIError(tr("Aucun dossier local n'est lié à ce dépôt."))
         if not path.is_dir():
-            raise EasyCIError("Le dossier lié n'existe plus (déplacé ou supprimé).")
+            raise EasyCIError(tr("Le dossier lié n'existe plus (déplacé ou supprimé)."))
         return path
 
     @staticmethod

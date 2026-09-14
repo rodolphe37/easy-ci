@@ -1,3 +1,4 @@
+import i18n, { currentLanguage } from "@/i18n";
 import type {
   Annotation,
   BranchSuggestion,
@@ -29,9 +30,12 @@ import type {
 type Envelope<T> = { ok: true; data: T } | { ok: false; error: { code: string; message: string; reset_at?: number } };
 type Transport = (method: string, params?: Record<string, unknown>) => Promise<Envelope<unknown>>;
 
+/** Langue transmise au moteur à chaque appel : ses messages (erreurs, validation, génération) suivent l'interface. */
+const language = () => currentLanguage();
+
 declare global {
   interface Window {
-    pywebview?: { api?: { call?: (method: string, params?: Record<string, unknown>) => Promise<Envelope<unknown>> } };
+    pywebview?: { api?: { call?: (method: string, params?: Record<string, unknown>, language?: string) => Promise<Envelope<unknown>> } };
   }
 }
 
@@ -46,13 +50,13 @@ export class ApiError extends Error {
   }
 }
 
-const bridgeTransport: Transport = (method, params) => window.pywebview!.api!.call!(method, params ?? {});
+const bridgeTransport: Transport = (method, params) => window.pywebview!.api!.call!(method, params ?? {}, language());
 
 const httpTransport: Transport = async (method, params) => {
   const response = await fetch("/api/call", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ method, params: params ?? {} }),
+    body: JSON.stringify({ method, params: params ?? {}, language: language() }),
   });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   return response.json();
@@ -87,7 +91,7 @@ function resolveTransport(): Promise<Transport> {
     setTimeout(() => {
       if (!settled) {
         transportPromise = null;
-        reject(new ApiError("backend_unavailable", "Le moteur Easy CI ne répond pas. Lancez l'application ou le serveur de développement."));
+        reject(new ApiError("backend_unavailable", i18n.t("errors.backendUnavailable")));
       }
     }, 10_000);
   });
@@ -100,7 +104,7 @@ async function call<T>(method: string, params?: Record<string, unknown>): Promis
   try {
     envelope = await transport(method, params);
   } catch (error) {
-    throw new ApiError("backend_unavailable", `Communication impossible avec le moteur Easy CI (${String(error)}).`);
+    throw new ApiError("backend_unavailable", i18n.t("errors.backendCommunication", { error: String(error) }));
   }
   if (!envelope.ok) throw new ApiError(envelope.error.code, envelope.error.message, envelope.error.reset_at);
   return envelope.data as T;

@@ -15,6 +15,7 @@ import httpx
 
 from easy_ci import __version__
 from easy_ci.errors import AuthError, ForbiddenError, GitHubError, NetworkError, NotFoundError, RateLimitError
+from easy_ci.i18n import tr
 
 # (limite, restant, réinitialisation) selon les conventions de chaque fournisseur.
 _RATE_LIMIT_HEADERS = [
@@ -64,9 +65,9 @@ class ApiClient:
         try:
             response = self._http.request(method, url, params=params, json=json, headers=headers)
         except httpx.TimeoutException as exc:
-            raise NetworkError(f"{self.label} ne répond pas (délai dépassé).") from exc
+            raise NetworkError(tr("{label} ne répond pas (délai dépassé).", label=self.label)) from exc
         except httpx.HTTPError as exc:
-            raise NetworkError(f"Impossible de joindre {self.label}. Vérifiez votre connexion.") from exc
+            raise NetworkError(tr("Impossible de joindre {label}. Vérifiez votre connexion.", label=self.label)) from exc
         self._track_rate_limit(response)
         return response
 
@@ -176,13 +177,13 @@ class ApiClient:
         detail = detail if isinstance(detail, str) else str(detail)
 
         if status == 401:
-            raise AuthError(f"Identifiants {self.label} invalides ou expirés.", status=status)
+            raise AuthError(tr("Identifiants {label} invalides ou expirés.", label=self.label), status=status)
         remaining = response.headers.get("x-ratelimit-remaining") or response.headers.get("ratelimit-remaining")
         if status == 429 or (status == 403 and remaining == "0"):
             reset_at = int(response.headers.get("x-ratelimit-reset") or response.headers.get("ratelimit-reset") or 0)
-            raise RateLimitError(f"Limite d'appels à l'API {self.label} atteinte.", reset_at=reset_at, status=status)
+            raise RateLimitError(tr("Limite d'appels à l'API {label} atteinte.", label=self.label), reset_at=reset_at, status=status)
         if status == 403:
-            raise ForbiddenError(f"Accès refusé par {self.label}. Vérifiez les permissions du token. ({detail})", status=status)
+            raise ForbiddenError(tr("Accès refusé par {label}. Vérifiez les permissions du token. ({detail})", label=self.label, detail=detail), status=status)
         if status == 404:
             raise NotFoundError(detail or "Ressource introuvable.", status=status)
         raise GitHubError(f"Erreur {self.label} {status} : {detail}", status=status)
