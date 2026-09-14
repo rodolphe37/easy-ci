@@ -12,9 +12,9 @@
 cask "easy-ci" do
   arch arm: "ARM64", intel: "X64"
 
-  version "0.1.0"
-  sha256 arm:   "15114900f979635aeb035b6487137f4422d6edc85246a66bef1dd4781701f370",
-         intel: "ead066dedbd1acdbc471b209bbb2331b03d9738f28da4778b0034a0108e74bf7"
+  version "0.2.0"
+  sha256 arm:   "e3da467958b35a31281aba92176169a2d7465ddd47ca03d4e392ee1ef622fb04",
+         intel: "1fb02a105e10a7da1278101d2bd5ddd0deb37e6286cf6f4bf57fb58362e3201a"
 
   url "https://github.com/rodolphe37/easy-ci/releases/download/v#{version}/EasyCI-macOS-#{arch}.zip"
   name "Easy CI"
