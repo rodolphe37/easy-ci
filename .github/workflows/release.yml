@@ -1,0 +1,197 @@
+name: Release
+
+# Publie une version téléchargeable d'Easy CI : applications autonomes macOS (Apple Silicon et
+# Intel), Windows et Linux attachées à une GitHub Release, puis mise à jour du cask Homebrew.
+#
+# Deux façons de lancer une version :
+#   1. Pousser un tag de version (identique à __version__ dans src/easy_ci/__init__.py) :
+#        git tag v0.2.0 && git push origin v0.2.0
+#   2. Onglet Actions › Release › « Run workflow », en indiquant le tag : pratique pour republier
+#      les fichiers d'une version existante. Le tag est créé sur le commit courant s'il n'existe pas.
+#
+# Les applications ne sont pas signées : Gatekeeper (macOS) et SmartScreen (Windows) affichent un
+# avertissement au premier lancement (voir packaging/README.md).
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag de la version à publier (ex. v0.2.0)"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Vérifier la version
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Tag et version du code
+        id: version
+        env:
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+        run: |
+          tag="${INPUT_TAG:-$GITHUB_REF_NAME}"
+          if ! [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::« $tag » n'est pas un tag de version valide (attendu : v1.2.3 ou v1.2.3-beta.1)."
+            exit 1
+          fi
+          version="${tag#v}"
+          code_version=$(python3 -c "import re, pathlib; print(re.search(r'__version__\s*=\s*\"([^\"]+)\"', pathlib.Path('src/easy_ci/__init__.py').read_text()).group(1))")
+          project_version=$(python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+          if [ "$version" != "$code_version" ] || [ "$version" != "$project_version" ]; then
+            echo "::error::Le tag $tag ne correspond pas à la version du code (__init__.py : $code_version, pyproject.toml : $project_version). Mettez-les à jour avec scripts/bump_version.py."
+            exit 1
+          fi
+          prerelease=false
+          [[ "$version" == *-* ]] && prerelease=true
+          {
+            echo "tag=$tag"
+            echo "version=$version"
+            echo "prerelease=$prerelease"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: prepare
+    uses: ./.github/workflows/build.yml
+    with:
+      retention-days: 7
+
+  release:
+    name: Publier la GitHub Release
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: easy-ci-*-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Empreintes SHA-256
+        working-directory: release-assets
+        run: |
+          sha256sum EasyCI-*.zip | tee SHA256SUMS.txt
+
+      - uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: Easy CI ${{ needs.prepare.outputs.version }}
+          prerelease: ${{ needs.prepare.outputs.prerelease }}
+          generate_release_notes: true
+          body: |
+            ## Téléchargements
+
+            | Système | Fichier |
+            |---|---|
+            | macOS Apple Silicon (M1 et suivants) | `EasyCI-macOS-ARM64.zip` |
+            | macOS Intel | `EasyCI-macOS-X64.zip` |
+            | Windows 10 / 11 | `EasyCI-Windows-X64.zip` |
+            | Linux x64 | `EasyCI-Linux-X64.zip` |
+
+            Applications non signées : au premier lancement, clic droit › **Ouvrir** sur macOS, **Informations complémentaires › Exécuter quand même** sur Windows. Git doit être installé pour les projets locaux.
+          files: |
+            release-assets/EasyCI-*.zip
+            release-assets/SHA256SUMS.txt
+
+  homebrew:
+    name: Mettre à jour le cask Homebrew
+    needs: [prepare, release]
+    if: needs.prepare.outputs.prerelease == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: easy-ci-macOS-*
+          path: release-assets
+          merge-multiple: true
+
+      # Empreintes calculées sur les fichiers construits : fonctionne aussi pour un dépôt privé,
+      # où les URL de téléchargement ne sont pas accessibles sans authentification.
+      - name: Empreintes des archives macOS
+        id: sha
+        run: |
+          echo "arm=$(sha256sum release-assets/EasyCI-macOS-ARM64.zip | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "intel=$(sha256sum release-assets/EasyCI-macOS-X64.zip | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Mise à jour de Casks/easy-ci.rb
+        run: |
+          python3 packaging/homebrew/bump_cask.py \
+            --version "${{ needs.prepare.outputs.version }}" \
+            --arm-sha256 "${{ steps.sha.outputs.arm }}" \
+            --intel-sha256 "${{ steps.sha.outputs.intel }}"
+
+      # Une pull request plutôt qu'un push direct : compatible avec une branche main protégée.
+      # Nécessite « Allow GitHub Actions to create and approve pull requests »
+      # (Settings › Actions › General › Workflow permissions).
+      - name: Pull request du cask
+        uses: peter-evans/create-pull-request@v8
+        with:
+          base: main
+          branch: chore/cask-${{ needs.prepare.outputs.tag }}
+          delete-branch: true
+          add-paths: Casks/easy-ci.rb
+          commit-message: "chore: cask Homebrew ${{ needs.prepare.outputs.tag }}"
+          title: "chore: cask Homebrew ${{ needs.prepare.outputs.tag }}"
+          body: |
+            Mise à jour automatique du cask pour ${{ needs.prepare.outputs.tag }}.
+
+            - version → `${{ needs.prepare.outputs.version }}`
+            - macOS Apple Silicon → `${{ steps.sha.outputs.arm }}`
+            - macOS Intel → `${{ steps.sha.outputs.intel }}`
+
+      # Le tap (dépôt séparé homebrew-easy-ci) n'est pas accessible avec le GITHUB_TOKEN de ce
+      # dépôt : il faut un token à portée limitée dans le secret HOMEBREW_TAP_TOKEN
+      # (voir packaging/homebrew/README.md). Sans ce secret, l'étape est ignorée avec un avertissement.
+      - name: Publication dans le tap Homebrew
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          TAP_REPOSITORY: ${{ vars.HOMEBREW_TAP_REPOSITORY || format('{0}/homebrew-easy-ci', github.repository_owner) }}
+        run: |
+          if [ -z "$TAP_TOKEN" ]; then
+            echo "::warning::Secret HOMEBREW_TAP_TOKEN absent : tap Homebrew non mis à jour (voir packaging/homebrew/README.md)."
+            exit 0
+          fi
+          git clone "https://x-access-token:${TAP_TOKEN}@github.com/${TAP_REPOSITORY}.git" tap
+          mkdir -p tap/Casks
+          [ -f tap/Casks/easy-ci.rb ] || cp Casks/easy-ci.rb tap/Casks/easy-ci.rb
+          # Régénère le fichier du tap à partir des empreintes (et non par copie du fichier de ce dépôt,
+          # que l'étape précédente remet dans son état initial après avoir poussé sa branche).
+          python3 packaging/homebrew/bump_cask.py \
+            --version "${{ needs.prepare.outputs.version }}" \
+            --arm-sha256 "${{ steps.sha.outputs.arm }}" \
+            --intel-sha256 "${{ steps.sha.outputs.intel }}" \
+            --cask-path tap/Casks/easy-ci.rb
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/easy-ci.rb
+          if git diff --cached --quiet; then
+            echo "Cask déjà à jour."
+          else
+            git commit -m "easy-ci ${{ needs.prepare.outputs.version }}"
+            git push
+          fi

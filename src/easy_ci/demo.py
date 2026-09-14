@@ -11,7 +11,7 @@ import hashlib
 import threading
 import time
 from dataclasses import dataclass, field, replace
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from easy_ci import logs
@@ -27,7 +27,7 @@ HOUR = 3600
 def _iso(timestamp: float | None) -> str | None:
     if timestamp is None:
         return None
-    return datetime.fromtimestamp(timestamp, timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.fromtimestamp(timestamp, UTC).isoformat().replace("+00:00", "Z")
 
 
 def _sha(seed: str) -> str:
@@ -170,8 +170,8 @@ def _storefront_ci(outcome: str) -> tuple[Job, ...]:
         "npm test -- --coverage",
         26,
         "",
-        f"> storefront@2.8.0 test",
-        f"> vitest run --coverage",
+        "> storefront@2.8.0 test",
+        "> vitest run --coverage",
         "",
         f" {GREEN}✓{RESET} src/cart/cart.test.ts {DIM}(24 tests){RESET} 312ms",
         f" {GREEN}✓{RESET} src/checkout/pricing.test.ts {DIM}(18 tests){RESET} 208ms",
@@ -199,7 +199,7 @@ def _storefront_ci(outcome: str) -> tuple[Job, ...]:
                 f"{CYAN} ❯ src/checkout/pricing.test.ts:42:31{RESET}",
                 "     40|   const cart = makeCart([{ price: 100, qty: 1 }]);",
                 "     41|   const total = computeTotal(cart, { discount: 0.2, vat: 0.2 });",
-                f"     42|   expect(total).toBe(95.99);",
+                "     42|   expect(total).toBe(95.99);",
                 f"       |                 {RED}^{RESET}",
                 "",
                 f" {BOLD}Test Files{RESET}  {RED}1 failed{RESET} | {GREEN}2 passed{RESET} (3)",
@@ -271,9 +271,9 @@ def _payments_ci(outcome: str) -> tuple[Job, ...]:
     go_test = run(
         "go test -race -cover ./...",
         38,
-        f"ok  \tgithub.com/acme/payments-api/internal/api\t2.184s\tcoverage: 81.2% of statements",
-        f"ok  \tgithub.com/acme/payments-api/internal/ledger\t1.402s\tcoverage: 88.9% of statements",
-        f"ok  \tgithub.com/acme/payments-api/internal/stripe\t0.903s\tcoverage: 74.0% of statements",
+        "ok  \tgithub.com/acme/payments-api/internal/api\t2.184s\tcoverage: 81.2% of statements",
+        "ok  \tgithub.com/acme/payments-api/internal/ledger\t1.402s\tcoverage: 88.9% of statements",
+        "ok  \tgithub.com/acme/payments-api/internal/stripe\t0.903s\tcoverage: 74.0% of statements",
     )
     base = Job("Test", (checkout(), setup("go", "1.25.1"), run("go mod download", 6), go_test))
     if outcome == "failure":
@@ -281,7 +281,7 @@ def _payments_ci(outcome: str) -> tuple[Job, ...]:
             base,
             fail_step=3,
             fail_output=(
-                f"ok  \tgithub.com/acme/payments-api/internal/api\t2.184s\tcoverage: 81.2% of statements",
+                "ok  \tgithub.com/acme/payments-api/internal/api\t2.184s\tcoverage: 81.2% of statements",
                 "=== RUN   TestLedger_Transfer",
                 "=== RUN   TestLedger_Transfer/insufficient_funds",
                 "=== RUN   TestLedger_Transfer/concurrent_transfers",
@@ -295,7 +295,7 @@ def _payments_ci(outcome: str) -> tuple[Job, ...]:
                 f"    {RED}--- FAIL: TestLedger_Transfer/concurrent_transfers (0.02s){RESET}",
                 f"{RED}FAIL{RESET}",
                 f"{RED}FAIL\tgithub.com/acme/payments-api/internal/ledger\t1.517s{RESET}",
-                f"ok  \tgithub.com/acme/payments-api/internal/stripe\t0.903s\tcoverage: 74.0% of statements",
+                "ok  \tgithub.com/acme/payments-api/internal/stripe\t0.903s\tcoverage: 74.0% of statements",
                 f"{RED}FAIL{RESET}",
             ),
             annotations=(
@@ -1513,7 +1513,7 @@ def _render_gitlab_log(job: Job, job_data: dict[str, Any], now: float) -> str:
         f"section_start:{t}:step_script[collapsed=false]\r\x1b[0K\x1b[0K\x1b[36;1mExecuting \"step_script\" stage of the job script\x1b[0;m",
     ]
     failed = False
-    for step, step_data in zip(job.steps, job_data["_steps"]):
+    for step, step_data in zip(job.steps, job_data["_steps"], strict=False):
         if not step_data["started_at"]:
             break
         lines.append(f"\x1b[32;1m$ {step.command}\x1b[0;m")
@@ -1540,7 +1540,7 @@ def _render_bitbucket_log(job: Job, job_data: dict[str, Any], now: float) -> str
         f"+ git reset --hard {_sha(job.name)[:12]}",
         f"HEAD is now at {_sha(job.name)[:7]} Merge branch 'main'",
     ]
-    for step, step_data in zip(job.steps, job_data["_steps"]):
+    for step, step_data in zip(job.steps, job_data["_steps"], strict=False):
         if not step_data["started_at"]:
             break
         lines.append(f"+ {step.command}")
@@ -1577,7 +1577,7 @@ def _render_log(job: Job, job_data: dict[str, Any]) -> str:
         f"{start_ts} Prepare workflow directory",
         f"{start_ts} Complete job name: {job.name}",
     ]
-    for step, step_data in zip(job.steps, job_data["steps"]):
+    for step, step_data in zip(job.steps, job_data["steps"], strict=False):
         if step_data["conclusion"] == "skipped" or not step_data["started_at"]:
             continue
         stamp = ts(step_data["started_at"])

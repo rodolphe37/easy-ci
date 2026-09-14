@@ -17,7 +17,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "ruff>=0.13"]
+# Construction des applications autonomes (packaging/pyinstaller/easy-ci.spec).
+build = ["pyinstaller>=6.16"]
 # Génération des icônes et du logo (scripts/build_brand_assets.py).
 brand = ["pillow>=10", "numpy>=1.26"]
 # Sous Linux, pywebview a besoin d'un moteur de rendu : GTK (système) ou Qt.
@@ -34,3 +36,12 @@ artifacts = ["src/easy_ci/web/**"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 180
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = ["E501", "B008", "B904"]

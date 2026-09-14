@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from easy_ci.providers import GITHUB, duration_between as _duration, repo_key
+from easy_ci.providers import GITHUB, repo_key
+from easy_ci.providers import duration_between as _duration
 from easy_ci.state import run_state
 
 

@@ -1,6 +1,5 @@
 import json
 import subprocess
-from pathlib import Path
 
 import httpx
 import pytest
@@ -131,7 +130,7 @@ def test_new_workflow_and_discard(repo):
 
 
 def test_commit_on_new_branch_then_push(repo):
-    service, work, bare = repo["service"], repo["work"], repo["bare"]
+    service, work = repo["service"], repo["work"]
     suggestion = service.branch_suggestion(KEY, CI)
     assert suggestion["suggested"].startswith("ci/ci-") and suggestion["on_default_branch"] is True and suggestion["default_branch"] == "main"
 

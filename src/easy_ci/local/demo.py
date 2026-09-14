@@ -12,7 +12,7 @@ import re
 import time
 from copy import deepcopy
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from easy_ci.errors import EasyCIError, FileConflictError
@@ -351,4 +351,4 @@ class DemoLocalProjects:
 
 
 def _iso(timestamp: float) -> str:
-    return datetime.fromtimestamp(timestamp, timezone.utc).isoformat()
+    return datetime.fromtimestamp(timestamp, UTC).isoformat()

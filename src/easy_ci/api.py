@@ -22,14 +22,15 @@ from easy_ci import __version__
 from easy_ci.bitbucket.service import BitbucketClient, BitbucketService
 from easy_ci.demo import DemoService
 from easy_ci.errors import AuthError, EasyCIError, ForbiddenError, NetworkError, NotAuthenticatedError, NotFoundError
-from easy_ci.github.client import GitHubClient
-from easy_ci.github.service import GitHubService
 from easy_ci.generation.detect import detect as detect_stack
+from easy_ci.generation.render import choices as pipeline_choices
 from easy_ci.generation.render import default_options as default_pipeline_options
 from easy_ci.generation.render import generate as generate_pipeline
-from easy_ci.generation.render import choices as pipeline_choices
+from easy_ci.github.client import GitHubClient
+from easy_ci.github.service import GitHubService
 from easy_ci.gitlab.service import GitLabClient, GitLabService, normalize_host
 from easy_ci.local.demo import DemoLocalProjects
+from easy_ci.local.git import SUBPROCESS_FLAGS
 from easy_ci.local.service import LocalProjectsService
 from easy_ci.providers import GITHUB, GITLAB, PROVIDER_INFO, PROVIDERS, repo_key, split_repo_key
 from easy_ci.refs import parse_repository_reference
@@ -370,7 +371,7 @@ class Api:
         gh = shutil.which("gh")
         if not gh:
             raise AuthError("GitHub CLI (gh) n'est pas installé.")
-        result = subprocess.run([gh, "auth", "token"], capture_output=True, text=True, timeout=10)
+        result = subprocess.run([gh, "auth", "token"], capture_output=True, text=True, timeout=10, **SUBPROCESS_FLAGS)
         token = result.stdout.strip()
         if result.returncode != 0 or not token:
             raise AuthError("GitHub CLI n'est pas connecté. Lancez « gh auth login » puis réessayez.")

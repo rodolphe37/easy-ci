@@ -93,7 +93,7 @@ def _open_terminal(path: Path) -> None:
 def _open_editor(path: Path, editor_id: str | None) -> None:
     editors = {e[0]: e for e in _EDITORS}
     choices = [editors[editor_id]] if editor_id in editors else _EDITORS
-    for _, label, mac_name, command in choices:
+    for _, _label, mac_name, command in choices:
         if sys.platform == "darwin" and _mac_app(mac_name):
             _spawn(["open", "-a", mac_name, str(path)])
             return

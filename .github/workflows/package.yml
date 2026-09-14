@@ -1,0 +1,31 @@
+name: Package
+
+# Vérifie à chaque push sur main que les applications autonomes se construisent toujours,
+# et met les archives à disposition pendant 14 jours (onglet Actions › exécution › Artifacts).
+# Pas de déclenchement sur les pull requests : seules les modifications intégrées sont construites.
+# Les téléchargements publics passent par les GitHub Releases (release.yml).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "frontend/**"
+      - "packaging/**"
+      - "pyproject.toml"
+      - ".github/workflows/build.yml"
+      - ".github/workflows/package.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: package-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+    with:
+      retention-days: 14

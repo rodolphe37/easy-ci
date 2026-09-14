@@ -383,7 +383,7 @@ def _github(options: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
         if stack["directory"] != ".":
             base["defaults"] = {"run": {"working-directory": stack["directory"]}}
 
-        def job_steps(commands: list[tuple[str, str]], version_expr: str) -> list[dict[str, Any]]:
+        def job_steps(commands: list[tuple[str, str]], version_expr: str, stack: dict[str, Any] = stack) -> list[dict[str, Any]]:
             items: list[dict[str, Any]] = [{"uses": ACTIONS["checkout"]}, *_github_setup(stack, version_expr, options.get("cache", True))]
             if stack.get("install", "").strip() and not (stack["id"] == "ruby" and options.get("cache", True)):
                 items.append({"name": "Installation des dépendances", "run": stack["install"].strip()})
@@ -790,7 +790,7 @@ def _bitbucket(options: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
             elif stack["id"] in _BITBUCKET_CACHES:
                 caches.append(_BITBUCKET_CACHES[stack["id"]])
 
-        def step(name: str, commands: list[str], versioned_image: str = image) -> dict[str, Any]:
+        def step(name: str, commands: list[str], versioned_image: str = image, caches: list[str] = caches, prepare: list[str] = prepare) -> dict[str, Any]:
             item: dict[str, Any] = {"_anchor": _unique_anchor(name), "name": name, "image": versioned_image}
             if caches:
                 item["caches"] = Flow(caches)

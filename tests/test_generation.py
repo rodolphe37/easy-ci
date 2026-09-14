@@ -5,8 +5,8 @@ import pytest
 import yaml
 
 from easy_ci.api import Api
-from easy_ci.generation.detect import detect
 from easy_ci.generation.demo_projects import _TREES
+from easy_ci.generation.detect import detect
 from easy_ci.generation.files import DiskFiles, MemoryFiles
 from easy_ci.generation.render import default_options, generate
 from easy_ci.local.service import LocalProjectsService

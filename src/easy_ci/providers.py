@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, Protocol
 
 from easy_ci.state import NONE, aggregate_state
@@ -114,7 +114,7 @@ def split_repo_key(key: str) -> tuple[str, str]:
 
 
 def now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def parse_time(value: str | None) -> datetime | None:

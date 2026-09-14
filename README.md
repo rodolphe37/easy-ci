@@ -42,11 +42,49 @@ Application desktop (macOS, Windows, Linux) pour superviser et piloter vos pipel
 | `src/easy_ci/generation/` | Détection de stack (`detect.py`) et génération des pipelines GitHub, GitLab et Bitbucket (`render.py`) |
 | `src/easy_ci/local/` | Projets locaux : appels au `git` de la machine, rapprochement des remotes, détection des clones, ouverture dans l'éditeur |
 | `src/easy_ci/storage.py` | Identifiants dans le trousseau du système (un par plateforme), préférences en JSON |
+| `packaging/`, `.github/workflows/` | Recette PyInstaller, cask Homebrew, installation Linux ; CI, construction et publication des versions |
 | `src/easy_ci/resources/` | Icônes de l'application (macOS, Windows, Linux) |
 | `frontend/` | Interface React ; compilée dans `src/easy_ci/web/` |
 | `branding/`, `scripts/` | Images sources de la marque et script de génération des icônes |
 
-## Installation
+## Télécharger
+
+Les versions prêtes à l'emploi sont publiées dans les **[Releases](https://github.com/rodolphe37/easy-ci/releases)** : aucune installation de Python ou de Node n'est nécessaire, seulement Git pour les projets locaux.
+
+| Système | Fichier | Installation |
+|---|---|---|
+| macOS Apple Silicon | `EasyCI-macOS-ARM64.zip` | Glisser `EasyCI.app` dans Applications, premier lancement par clic droit › Ouvrir |
+| macOS Intel | `EasyCI-macOS-X64.zip` | Idem |
+| Windows 10 / 11 | `EasyCI-Windows-X64.zip` | Décompresser et lancer `EasyCI.exe` (SmartScreen : Informations complémentaires › Exécuter quand même) |
+| Linux x64 | `EasyCI-Linux-X64.zip` | Décompresser puis `./EasyCI/install.sh` |
+
+Avec Homebrew (une fois le tap publié, voir [packaging/homebrew](packaging/homebrew/README.md)) :
+
+```bash
+brew tap rodolphe37/easy-ci && brew install --cask easy-ci
+```
+
+## CI/CD du projet
+
+| Workflow | Déclenchement | Rôle |
+|---|---|---|
+| [CI](.github/workflows/ci.yml) | push sur `main`, pull requests | Lint (ruff), tests sur Linux, macOS et Windows (Python 3.11 et 3.13), typage et build de l'interface |
+| [Package](.github/workflows/package.yml) | push sur `main` | Construit les applications autonomes des quatre plateformes et les vérifie (artefacts 14 jours) |
+| [Release](.github/workflows/release.yml) | tag `v*.*.*` ou lancement manuel | Vérifie la version, construit, publie la GitHub Release (+ `SHA256SUMS.txt`) et met à jour le cask Homebrew |
+
+Publier une version :
+
+```bash
+python scripts/bump_version.py 0.2.0
+```
+
+```bash
+git commit -am "chore: version 0.2.0" && git tag v0.2.0 && git push origin main v0.2.0
+```
+
+Détails, construction locale et limites : [packaging/README.md](packaging/README.md).
+
+## Installation depuis les sources
 
 Prérequis : Python 3.11+, Node.js 20+, Git (pour les projets locaux).
 
@@ -107,10 +145,14 @@ Logo et icônes : les images sources sont dans `branding/`. Après modification,
 .venv/bin/python scripts/build_brand_assets.py
 ```
 
-Tests et vérification des types :
+Tests, lint et vérification des types :
 
 ```bash
 .venv/bin/pytest
+```
+
+```bash
+.venv/bin/ruff check src tests scripts packaging
 ```
 
 ```bash
@@ -126,3 +168,4 @@ npm --prefix frontend run typecheck
 | 2 | Projets locaux : détection des clones, liaison, état Git, récupération, comparaison des fichiers CI | ✅ Terminé |
 | 3 | Édition des fichiers CI en local avec validation, commit local, push et pull request à la demande | ✅ Terminé |
 | 4 | Génération automatique de pipelines selon la stack détectée (assistant, modèles sans IA) | ✅ Terminé |
+| 5 | CI/CD du projet : tests multi-OS, applications autonomes macOS / Windows / Linux, GitHub Releases, cask Homebrew | ✅ Terminé |

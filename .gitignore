@@ -12,3 +12,4 @@ src/easy_ci/web/
 
 .DS_Store
 *.tsbuildinfo
+.ruff_cache/

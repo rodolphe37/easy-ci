@@ -10,6 +10,7 @@ import fnmatch
 import os
 import shutil
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -18,6 +19,9 @@ from easy_ci.errors import EasyCIError
 
 DEFAULT_TIMEOUT = 20
 NETWORK_TIMEOUT = 120
+
+# Application fenêtrée sous Windows : sans ce drapeau, chaque appel à git ouvrirait une console.
+SUBPROCESS_FLAGS: dict[str, Any] = {"creationflags": subprocess.CREATE_NO_WINDOW} if sys.platform == "win32" else {}
 
 
 class GitError(EasyCIError):
@@ -44,7 +48,7 @@ def git_version() -> str | None:
     if not binary:
         return None
     try:
-        output = subprocess.run([binary, "--version"], capture_output=True, text=True, timeout=5).stdout
+        output = subprocess.run([binary, "--version"], capture_output=True, text=True, timeout=5, **SUBPROCESS_FLAGS).stdout
     except (OSError, subprocess.SubprocessError):
         return None
     return output.strip().removeprefix("git version ").strip() or None
@@ -63,7 +67,7 @@ def run_git(args: list[str], cwd: Path | str | None = None, *, timeout: int = DE
         "LC_ALL": "C",
     }
     try:
-        completed = subprocess.run([binary, *args], cwd=cwd, capture_output=True, text=True, timeout=timeout, env=env)
+        completed = subprocess.run([binary, *args], cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout, env=env, **SUBPROCESS_FLAGS)
     except subprocess.TimeoutExpired as exc:
         raise GitError(f"La commande git {args[0]} a dépassé le délai de {timeout} s.") from exc
     except OSError as exc:

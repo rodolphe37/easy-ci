@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -51,8 +52,18 @@ def _apply_macos_identity() -> None:
         log.debug("Impossible d'appliquer l'icône macOS", exc_info=True)
 
 
+def _extend_path_for_bundle() -> None:
+    """Une app lancée depuis le Finder hérite d'un PATH minimal : on ajoute les emplacements usuels de git, gh et des éditeurs."""
+    if sys.platform != "darwin" or not getattr(sys, "frozen", False):
+        return
+    current = os.environ.get("PATH", "").split(os.pathsep)
+    extra = [folder for folder in ("/opt/homebrew/bin", "/usr/local/bin") if folder not in current and Path(folder).is_dir()]
+    os.environ["PATH"] = os.pathsep.join([*extra, *current])
+
+
 def run(dev: bool = False, debug: bool = False) -> int:
     logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
+    _extend_path_for_bundle()
     index = WEB_DIR / "index.html"
     if not dev and not index.exists():
         print("Interface non compilée. Lancez : cd frontend && npm install && npm run build")

@@ -997,6 +997,13 @@ export const DOC_SECTIONS: DocSection[] = [
     summary: "Les problèmes courants et leurs solutions.",
     content: (
       <>
+        <Question question="Avertissement de sécurité au premier lancement">
+          <P>
+            Les versions téléchargées ne sont pas signées. Sur macOS, faites un clic droit sur <Code>EasyCI.app</Code> › <Strong>Ouvrir</Strong> (une seule fois), ou
+            lancez <Code>xattr -dr com.apple.quarantine /Applications/EasyCI.app</Code>. Sur Windows, dans la fenêtre SmartScreen : <Strong>Informations
+            complémentaires › Exécuter quand même</Strong>.
+          </P>
+        </Question>
         <Question question="« Identifiants invalides ou expirés »">
           <P>
             Le token a expiré, a été révoqué ou mal copié. Seul le compte concerné est déconnecté. Créez un nouveau token (sections Connecter GitHub, GitLab,

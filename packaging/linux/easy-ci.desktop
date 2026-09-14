@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Easy CI
+GenericName=Gestionnaire CI/CD
+Comment=Superviser, modifier et générer vos pipelines CI/CD
+Exec=EasyCI
+Icon=easy-ci
+Terminal=false
+Categories=Development;
+Keywords=CI;CD;GitHub;GitLab;Bitbucket;pipeline;
+StartupWMClass=EasyCI
