@@ -8,6 +8,7 @@ import pytest
 import yaml
 
 from easy_ci import __version__
+from easy_ci.updates import parse_version
 from easy_ci.validation import validate
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,9 +23,11 @@ def _load(path: Path):
 
 def test_versions_are_consistent():
     project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["version"]
-    cask = re.search(r'version "([^"]+)"', (ROOT / "Casks" / "easy-ci.rb").read_text()).group(1)
     frontend = json.loads((ROOT / "frontend" / "package.json").read_text())["version"]
-    assert project == __version__ == cask == frontend
+    assert project == __version__ == frontend
+    # Le cask suit la dernière version publiée : il est mis à jour par la release, après le tag.
+    cask = re.search(r'version "([^"]+)"', (ROOT / "Casks" / "easy-ci.rb").read_text()).group(1)
+    assert parse_version(cask) <= parse_version(__version__)
 
 
 def test_changelog_lists_current_version():

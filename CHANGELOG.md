@@ -6,12 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-14
+
 ### Added
 
 - One-command install and update scripts: macOS and Linux (`curl … | bash`), Windows (`irm … | iex`), with options for a specific version, a private repository or a local archive.
 - Homebrew tap: `brew tap rodolphe37/easy-ci && brew install --cask easy-ci`.
 - New version detection: checks the latest GitHub release at startup and every 6 hours, shows release notes and the upgrade command matching the install method (Homebrew, script, PowerShell), with *Skip this version*, a sidebar reminder and a *Settings › Updates* section.
 - Windows executable version metadata.
+- About section in Settings with links to the source code, issue tracker and changelog.
 - Open source project files: MIT license, English and French README, contributing guide, code of conduct, security policy, support guide, issue and pull request templates, Dependabot configuration, architecture documentation.
 
 ### Changed
@@ -40,5 +43,6 @@ First public version.
 - Built-in French documentation, light and dark themes, native window with app icons for macOS, Windows and Linux.
 - Project CI/CD: lint and tests on Linux, macOS and Windows, standalone PyInstaller apps for macOS (Apple Silicon and Intel), Windows and Linux, automated GitHub Releases with SHA-256 checksums.
 
-[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/rodolphe37/easy-ci/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/rodolphe37/easy-ci/releases/tag/v0.1.0
