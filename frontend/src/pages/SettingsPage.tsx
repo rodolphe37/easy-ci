@@ -1,4 +1,4 @@
-import { Bell, BookOpen, Bug, CheckCircle2, ScrollText, CircleArrowUp, Eye, FolderOpen, GitBranch, TriangleAlert, KeyRound, LogOut, Monitor, Moon, Plus, RefreshCw, ShieldCheck, Sparkles, Sun, Trash2 } from "lucide-react";
+import { Bell, BookOpen, Bug, CheckCircle2, ChevronRight, ScrollText, CircleArrowUp, Eye, FolderOpen, GitBranch, TriangleAlert, KeyRound, LogOut, Monitor, Moon, Plus, RefreshCw, ShieldCheck, Sparkles, Sun, Trash2 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router";
 import { LanguageSegmented } from "@/components/LanguageSwitcher";
@@ -21,7 +21,7 @@ import { useSession, useSessionActions, useSettings } from "@/hooks/session";
 import { api } from "@/lib/api";
 import { PROVIDER_IDS, PROVIDER_LABELS, ProviderIcon } from "@/lib/providers";
 import type { ProviderId, Settings } from "@/lib/types";
-import { timeAgo } from "@/lib/utils";
+import { cn, timeAgo } from "@/lib/utils";
 import { Page } from "./OverviewPage";
 
 const REPOSITORY_URL = "https://github.com/rodolphe37/easy-ci";
@@ -393,7 +393,6 @@ function TrackedRepositories() {
   const added = settings?.added_repositories ?? [];
   const hidden = settings?.hidden_repositories ?? [];
 
-
   return (
     <SettingsGroup title={i18n.t("settings.tracked.title")} id="repositories">
       <Row
@@ -406,43 +405,92 @@ function TrackedRepositories() {
         </Link>
       </Row>
 
-      <div className="px-5 py-4">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <div className="text-[13.5px] font-medium">{i18n.t("settings.tracked.added")}</div>
-            <div className="mt-0.5 text-[12.5px] text-fg-muted">{i18n.t("settings.tracked.addedDescription")}</div>
-          </div>
+      <RepoSection
+        title={i18n.t("settings.tracked.added")}
+        description={i18n.t("settings.tracked.addedDescription")}
+        headerAction={
           <Button size="sm" onClick={() => setAdding(true)}>
             <Plus className="size-3.5" /> {i18n.t("addRepository.title")}
           </Button>
-        </div>
-        <RepoList
-          names={added}
-          empty={i18n.t("settings.tracked.addedEmpty")}
-          action={(name) => (
-            <Button variant="ghost" size="sm" onClick={() => remove.mutate(name)} className="text-fg-muted hover:text-failure">
-              <Trash2 className="size-3.5" /> {i18n.t("settings.remove")}
-            </Button>
-          )}
-        />
-      </div>
+        }
+        names={added}
+        empty={i18n.t("settings.tracked.addedEmpty")}
+        action={(name) => (
+          <Button variant="ghost" size="sm" onClick={() => remove.mutate(name)} className="text-fg-muted hover:text-failure">
+            <Trash2 className="size-3.5" /> {i18n.t("settings.remove")}
+          </Button>
+        )}
+      />
 
-      <div className="px-5 py-4">
-        <div className="text-[13.5px] font-medium">{i18n.t("settings.tracked.hidden")}</div>
-        <div className="mt-0.5 text-[12.5px] text-fg-muted">{i18n.t("settings.tracked.hiddenDescription")}</div>
-        <RepoList
-          names={hidden}
-          empty={i18n.t("settings.tracked.hiddenEmpty")}
-          action={(name) => (
-            <Button variant="ghost" size="sm" onClick={() => unhide(name)}>
-              <Eye className="size-3.5" /> {i18n.t("settings.tracked.unhide")}
-            </Button>
-          )}
-        />
-      </div>
+      <RepoSection
+        title={i18n.t("settings.tracked.hidden")}
+        description={i18n.t("settings.tracked.hiddenDescription")}
+        names={hidden}
+        empty={i18n.t("settings.tracked.hiddenEmpty")}
+        action={(name) => (
+          <Button variant="ghost" size="sm" onClick={() => unhide(name)}>
+            <Eye className="size-3.5" /> {i18n.t("settings.tracked.unhide")}
+          </Button>
+        )}
+      />
 
       <AddRepositoryDialog open={adding} onOpenChange={setAdding} />
     </SettingsGroup>
+  );
+}
+
+const REPO_SECTION_COLLAPSE_THRESHOLD = 5;
+
+/** Liste de dépôts avec en-tête ; au-delà du seuil, elle est repliée par défaut et s'ouvre au clic. */
+function RepoSection({
+  title,
+  description,
+  headerAction,
+  names,
+  empty,
+  action,
+}: {
+  title: string;
+  description: string;
+  headerAction?: ReactNode;
+  names: string[];
+  empty: string;
+  action: (name: string) => ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const collapsible = names.length > REPO_SECTION_COLLAPSE_THRESHOLD;
+  const heading = (
+    <div className="min-w-0 flex-1">
+      <div className="flex items-center gap-2 text-[13.5px] font-medium">
+        {title}
+        {collapsible ? (
+          <span className="rounded-full bg-surface-2 px-1.5 py-px text-[11px] font-medium text-fg-muted tabular-nums">{names.length}</span>
+        ) : null}
+      </div>
+      <div className="mt-0.5 text-[12.5px] text-fg-muted">{description}</div>
+    </div>
+  );
+
+  return (
+    <div className="px-5 py-4">
+      <div className="flex items-center justify-between gap-4">
+        {collapsible ? (
+          <button
+            type="button"
+            onClick={() => setOpen((value) => !value)}
+            aria-expanded={open}
+            className="-mx-2 -my-1 flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-1 text-left transition-colors hover:bg-surface-2/60"
+          >
+            {heading}
+            <ChevronRight className={cn("size-4 shrink-0 text-fg-subtle transition-transform", open && "rotate-90")} />
+          </button>
+        ) : (
+          heading
+        )}
+        {headerAction}
+      </div>
+      {!collapsible || open ? <RepoList names={names} empty={empty} action={action} /> : null}
+    </div>
   );
 }
 
