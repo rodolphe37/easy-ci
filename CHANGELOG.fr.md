@@ -6,8 +6,14 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-15
+
 ### Ajouté
 
+- **Notifications système** quand un pipeline suivi échoue ou repasse au vert : message dans l'application avec un bouton *Voir*, et notification du système quand la fenêtre est en arrière-plan (AppleScript sous macOS, notification PowerShell sous Windows, `notify-send` ou D-Bus sous Linux, notification web dans le navigateur). *Paramètres › Notifications* permet de choisir les échecs et/ou les retours au vert, tous les dépôts ou seulement les favoris, et d'envoyer une notification d'essai ; `--test-notification` fait de même depuis un terminal.
+- **Statistiques des exécutions** dans un nouvel onglet *Statistiques* de chaque dépôt : taux de réussite, durées médiane et P90 avec leur tendance, graphique des durées, et pour chaque job taux de réussite, durées et historique, sur les 20, 50 ou 100 dernières exécutions terminées, pour un workflow ou tous, sur toutes les branches ou la branche par défaut.
+- **Détection des jobs instables** (« flaky ») : un job qui a échoué puis réussi sur le même commit (relance du job ou du pipeline) ou qui alterne souvent entre succès et échec est signalé, à partir de toutes les tentatives de chaque exécution (`filter=all` sur GitHub, jobs relancés sur GitLab).
+- Mode démo : durées variables, un workflow qui ralentit et des tests instables pour explorer les statistiques, et un pipeline en échec qui déclenche une notification.
 - Liens vers le site et la démo en ligne (https://easy-ci.netlify.app) dans les README.
 - Le workflow de release redéploie le site pour que sa démo en ligne utilise la nouvelle version (build hook Netlify dans le secret `NETLIFY_BUILD_HOOK`, ignoré avec un avertissement s'il est absent).
 - Notes de version bilingues : chaque GitHub Release reprend la section de la version dans `CHANGELOG.md` et `CHANGELOG.fr.md`, et la fenêtre de mise à jour les affiche dans la langue de l'interface.
@@ -60,7 +66,8 @@ Première version publique.
 - Documentation intégrée, thèmes clair et sombre, fenêtre native avec icônes de l'application pour macOS, Windows et Linux.
 - CI/CD du projet : lint et tests sous Linux, macOS et Windows, applications PyInstaller autonomes pour macOS (Apple Silicon et Intel), Windows et Linux, GitHub Releases automatisées avec empreintes SHA-256.
 
-[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/rodolphe37/easy-ci/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/rodolphe37/easy-ci/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/rodolphe37/easy-ci/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/rodolphe37/easy-ci/releases/tag/v0.1.0

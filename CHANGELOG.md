@@ -6,8 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-15
+
 ### Added
 
+- **Desktop notifications** when a watched pipeline fails or gets back to green: in-app message with a *View* button, and a system notification when the window is in the background (AppleScript on macOS, PowerShell toast on Windows, `notify-send` or D-Bus on Linux, web notification in the browser). *Settings › Notifications* chooses failures and/or recoveries, all repositories or favorites only, and sends a test notification; `--test-notification` does the same from a terminal.
+- **Run statistics** in a new *Statistics* tab of each repository: success rate, median and P90 durations with their trend, run durations chart, and per-job success rate, durations and history over the last 20, 50 or 100 completed runs, for one or all workflows and all branches or the default branch.
+- **Unstable (flaky) jobs** detection: a job that failed then passed on the same commit (job or pipeline retry) or that often alternates between success and failure is flagged, using every attempt of each run (GitHub `filter=all`, GitLab retried jobs).
+- Demo mode: varying run durations, a slowing workflow and flaky tests to explore statistics, and a failing pipeline that triggers a notification.
 - Links to the website and the live demo (https://easy-ci.netlify.app) in the READMEs.
 - The release workflow redeploys the website so its live demo runs the new version (Netlify build hook in the `NETLIFY_BUILD_HOOK` secret, skipped with a warning when absent).
 - Bilingual release notes: each GitHub Release takes the version's section from `CHANGELOG.md` and `CHANGELOG.fr.md`, and the update dialog shows them in the interface language.
@@ -60,7 +66,8 @@ First public version.
 - Built-in documentation, light and dark themes, native window with app icons for macOS, Windows and Linux.
 - Project CI/CD: lint and tests on Linux, macOS and Windows, standalone PyInstaller apps for macOS (Apple Silicon and Intel), Windows and Linux, automated GitHub Releases with SHA-256 checksums.
 
-[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/rodolphe37/easy-ci/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/rodolphe37/easy-ci/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/rodolphe37/easy-ci/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/rodolphe37/easy-ci/releases/tag/v0.1.0
