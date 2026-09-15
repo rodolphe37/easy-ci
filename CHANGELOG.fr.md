@@ -6,6 +6,12 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-09-15
+
+### Ajouté
+
+- Documentation de dépannage (application et README) : pourquoi macOS demande deux fois le mot de passe du trousseau au démarrage, et comment vider le cache de l'interface sur les versions antérieures.
+
 ### Corrigé
 
 - Après une mise à jour, l'application pouvait continuer d'afficher l'interface de la version précédente (par exemple sans la section *Notifications* des paramètres en 0.4.0) : le cache du moteur web resservait l'ancienne page. L'adresse de l'interface change désormais à chaque version installée.
@@ -74,7 +80,8 @@ Première version publique.
 - Documentation intégrée, thèmes clair et sombre, fenêtre native avec icônes de l'application pour macOS, Windows et Linux.
 - CI/CD du projet : lint et tests sous Linux, macOS et Windows, applications PyInstaller autonomes pour macOS (Apple Silicon et Intel), Windows et Linux, GitHub Releases automatisées avec empreintes SHA-256.
 
-[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/rodolphe37/easy-ci/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/rodolphe37/easy-ci/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/rodolphe37/easy-ci/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/rodolphe37/easy-ci/compare/v0.1.0...v0.2.0

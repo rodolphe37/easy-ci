@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-09-15
+
+### Added
+
+- Troubleshooting documentation (app and READMEs): why macOS asks twice for the keychain password at startup, and how to clear the interface cache on earlier versions.
+
 ### Fixed
 
 - After an update, the app could keep showing the previous version's interface (for example no *Notifications* section in 0.4.0 settings): the web engine cache served the old page. The interface address now changes with every installed version.
@@ -74,7 +80,8 @@ First public version.
 - Built-in documentation, light and dark themes, native window with app icons for macOS, Windows and Linux.
 - Project CI/CD: lint and tests on Linux, macOS and Windows, standalone PyInstaller apps for macOS (Apple Silicon and Intel), Windows and Linux, automated GitHub Releases with SHA-256 checksums.
 
-[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/rodolphe37/easy-ci/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/rodolphe37/easy-ci/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/rodolphe37/easy-ci/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/rodolphe37/easy-ci/compare/v0.1.0...v0.2.0
