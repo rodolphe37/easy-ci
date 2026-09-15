@@ -447,7 +447,8 @@
     "tabs": {
       "runs": "Runs",
       "files": "CI files",
-      "local": "Local project"
+      "local": "Local project",
+      "stats": "Statistics"
     },
     "noCi": {
       "title": "No {{ci}} pipeline",
@@ -1065,6 +1066,33 @@
       "skipped": "Version {{version}} skipped",
       "skippedDescription": "No dialog is shown for this version. Later versions will be reported.",
       "unskip": "Stop skipping"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "enabled": "Desktop notifications",
+      "enabledDescription": "Lets you know when a watched pipeline fails or recovers. In the app a message appears; when the window is in the background, the system shows a notification.",
+      "failures": "Pipeline failed",
+      "failuresDescription": "When the latest run of a workflow fails while it was green.",
+      "recoveries": "Back to green",
+      "recoveriesDescription": "When a failing workflow passes again.",
+      "scope": "Repositories",
+      "scopeDescription": "All displayed repositories, or only your favorites.",
+      "all": "All",
+      "favorites": "Favorites",
+      "testTitle": "Test notification",
+      "test": "Test",
+      "testDescription": "Sends a test notification to check that it appears.",
+      "sent": "Notification sent",
+      "failed": "Could not show the notification",
+      "unsupported": "Desktop notifications are not available here",
+      "unsupportedDescription": "No notification service found (on Linux, install libnotify: notify-send). In-app messages are still shown.",
+      "method": {
+        "osascript": "macOS Notification Center, shown as “Script Editor”: if nothing appears, allow it in System Settings › Notifications",
+        "windows": "Windows notifications (shown as Windows PowerShell)",
+        "notify-send": "Desktop notifications (libnotify)",
+        "gdbus": "Desktop notifications (D-Bus)"
+      },
+      "background": "Repositories keep refreshing while the window is minimized, so no change is missed."
     }
   },
   "docs": {
@@ -1074,5 +1102,78 @@
     "eyebrow": "Documentation",
     "title": "Easy CI user guide",
     "intro": "From connecting GitHub, GitLab or Bitbucket to diagnosing a failing pipeline: everything you need to get the most out of the app."
+  },
+  "notifications": {
+    "failed": {
+      "title": "Failed: {{workflow}} · {{repo}}"
+    },
+    "recovered": {
+      "title": "Back to green: {{workflow}} · {{repo}}"
+    },
+    "grouped": {
+      "title_one": "{{count}} pipeline changed state",
+      "title_other": "{{count}} pipelines changed state",
+      "body": "Failed: {{failed}} · Back to green: {{recovered}}"
+    },
+    "open": "View",
+    "test": {
+      "title": "Easy CI notifications are on",
+      "body": "You will be notified when a watched pipeline fails or recovers."
+    }
+  },
+  "stats": {
+    "lastRuns_one": "Last {{count}}",
+    "lastRuns_other": "Last {{count}}",
+    "allBranches": "All branches",
+    "period": "{{from}} – {{to}}",
+    "empty": {
+      "title": "No statistics yet",
+      "description": "No completed runs for these filters. Statistics will appear after the next runs."
+    },
+    "footnote_one": "Based on the last completed run. A job is unstable when it failed then passed on the same commit (retry), or when it often alternates between success and failure.",
+    "footnote_other": "Based on the last {{count}} completed runs. A job is unstable when it failed then passed on the same commit (retry), or when it often alternates between success and failure.",
+    "incomplete_one": "Jobs of one run could not be loaded.",
+    "incomplete_other": "Jobs of {{count}} runs could not be loaded.",
+    "successRate": "Success rate",
+    "successHint": "{{success}} passed · {{failure}} failed",
+    "medianDuration": "Median duration",
+    "slower": "{{value}}% slower than before",
+    "faster": "{{value}}% faster than before",
+    "stable": "Stable compared with earlier runs",
+    "average": "Average: {{value}}",
+    "p90Duration": "P90 duration",
+    "p90Hint": "9 runs out of 10 are faster · max {{value}}",
+    "unstableJobs": "Unstable jobs",
+    "unstableHint": "Worth a look: see the jobs table",
+    "noUnstable": "No unstable job detected",
+    "chartTitle": "Run durations",
+    "median": "Median",
+    "attempt": "attempt {{number}}",
+    "attempts_one": "{{count}} attempt",
+    "attempts_other": "{{count}} attempts",
+    "jobsTitle": "Jobs",
+    "allJobs": "All",
+    "unstable": "Unstable",
+    "noJobs": "No jobs analysed for these runs.",
+    "columns": {
+      "job": "Job",
+      "success": "Success",
+      "median": "Median duration",
+      "p90": "P90",
+      "history": "History"
+    },
+    "reasons": {
+      "retried_one": "Failed then passed on the same commit ({{count}} time): probably a flaky test.",
+      "retried_other": "Failed then passed on the same commit ({{count}} times): probably a flaky test.",
+      "alternating_one": "Often alternates between success and failure ({{count}} change).",
+      "alternating_other": "Often alternates between success and failure ({{count}} changes)."
+    },
+    "jobCounts": "{{success}} passed · {{failure}} failed",
+    "allowedFailures_one": "including {{count}} allowed failure",
+    "allowedFailures_other": "including {{count}} allowed failures",
+    "skipped_one": "{{count}} skipped or cancelled",
+    "skipped_other": "{{count}} skipped or cancelled",
+    "allowedShort_one": "{{count}} allowed failure",
+    "allowedShort_other": "{{count}} allowed failures"
   }
 }

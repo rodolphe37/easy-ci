@@ -43,6 +43,8 @@ Repositories are identified everywhere by a key `provider:full_name` (for exampl
 | `generation/` | Stack detection from project files (`detect.py`) and deterministic pipeline rendering for the three providers (`render.py`) |
 | `local/` | Local projects: `git` subprocess wrapper, remote matching, clone discovery, CI file read/write, commits and push, opening folders |
 | `storage.py` | Credentials in the system keychain (one entry per provider) and JSON settings in the user config directory |
+| `stats.py` | Run statistics over time: success rate, duration percentiles and trend, unstable (flaky) jobs from retries and alternating results |
+| `notifications.py` | Native desktop notifications (AppleScript on macOS, PowerShell toast on Windows, `notify-send` or D-Bus on Linux) |
 | `updates.py` | New version detection and upgrade instructions per install method |
 | `selfcheck.py` | Installation self-check used by CI on packaged builds |
 | `demo.py`, `local/demo.py`, `generation/demo_projects.py` | Simulated data for demo mode: repositories, runs progressing in real time, local clones |
@@ -53,11 +55,16 @@ Repositories are identified everywhere by a key `provider:full_name` (for exampl
 | Folder | Responsibility |
 |---|---|
 | `lib/` | API client, shared TypeScript types, provider helpers, formatting utilities |
-| `hooks/` | Session and settings, repository scans, local projects, update checks |
+| `hooks/` | Session and settings, repository scans, pipeline state-change notifications, local projects, update checks |
 | `pages/` | Overview, repositories, repository, run, editor, pipeline generator, settings, documentation |
-| `components/` | Layout (sidebar, top bar, command palette), log viewer, YAML viewer and editor, publish flow, local project panel, in-app documentation, UI primitives |
+| `components/` | Layout (sidebar, top bar, command palette), run statistics panel, log viewer, YAML viewer and editor, publish flow, local project panel, in-app documentation, UI primitives |
 
 The interface uses design tokens defined in `index.css` for the light and dark themes.
+
+## Notifications and statistics
+
+- **Notifications** reuse the periodic repository scans: `hooks/notifications.tsx` compares the latest completed run of each workflow with the previous scan and reports transitions (failing, back to green). The first scan is a baseline, so nothing is reported at startup. The engine only displays the message (`notify`); scans keep refreshing while the window is in the background.
+- **Statistics** (`get_run_stats`) list the latest runs, fetch the jobs of every attempt (`list_job_attempts`: GitHub `filter=all`, GitLab `include_retried`), cache them for completed runs and summarise them in `stats.py`, which has no network access and is unit-tested.
 
 ## Local Git operations
 

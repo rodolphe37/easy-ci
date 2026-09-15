@@ -1,7 +1,9 @@
 // Built-in documentation — English version. Keep the same sections and ids as sections.fr.tsx.
 import {
   Activity,
+  Bell,
   BookOpen,
+  ChartColumn,
   CircleArrowUp,
   CircleHelp,
   ExternalLink,
@@ -419,6 +421,10 @@ export const DOC_SECTIONS: DocSection[] = [
         <P>
           The full history, filterable by workflow (left column) and by status. <Strong>Load more</Strong> goes back in time.
         </P>
+        <H3>Statistics</H3>
+        <P>
+          Durations, success rate and unstable jobs over the latest completed runs (see Run statistics).
+        </P>
         <H3>CI files</H3>
         <P>
           The configuration file with syntax highlighting, and an automatic summary: <Strong>triggers</Strong> (push, pull or merge request, schedule, tag…),{" "}
@@ -544,6 +550,88 @@ export const DOC_SECTIONS: DocSection[] = [
         <Callout variant="warning">
           These actions affect your real pipelines and require write permissions: <Code>repo</Code> (GitHub classic) or <Strong>Actions: Read and write</Strong>{" "}
           (fine-grained), <Code>api</Code> (GitLab), <Code>write:pipeline:bitbucket</Code> (Bitbucket).
+        </Callout>
+      </>
+    ),
+  },
+  {
+    id: "stats",
+    title: "Run statistics",
+    icon: ChartColumn,
+    summary: "Durations over time, success rate, slow or unstable jobs.",
+    content: (
+      <>
+        <P>
+          A repository's <Strong>Statistics</Strong> tab summarizes its latest completed runs: 20, 50 or 100, for all workflows or a single one (left column), on
+          all branches or only the default branch. Everything is computed on your machine from data the platform already provides: nothing is sent anywhere else.
+        </P>
+        <Table
+          head={["Indicator", "Meaning"]}
+          rows={[
+            ["Success rate", "Successful runs among those that passed or failed (cancelled runs don't count)."],
+            ["Median duration", "Half of the runs are faster. The trend compares recent runs with older ones (from a 5% difference)."],
+            ["P90 duration", "9 runs out of 10 are faster: useful to spot occasional slowness."],
+            ["Unstable jobs", "Number of jobs whose result changes without any code change."],
+          ]}
+        />
+        <H3>Duration chart</H3>
+        <P>
+          One bar per run, from oldest to newest, colored by result, with the median as a dashed line. Hover a bar to see the number, commit, branch and duration;
+          click to open the run.
+        </P>
+        <H3>Jobs</H3>
+        <P>
+          For each job: success rate, median and P90 duration, and the history of its results. An orange dot above a result means several attempts. The{" "}
+          <Strong>Unstable</Strong> filter keeps only the jobs worth a look.
+        </P>
+        <Callout variant="warning" title="When is a job unstable?">
+          When it <Strong>failed then passed on the same commit</Strong>, after a job or pipeline retry, without any code change: the signature of a flaky test. Or
+          when it <Strong>often alternates</Strong> between success and failure (at least 4 changes, i.e. one every 5 runs). A job broken then fixed by a new commit
+          is not unstable.
+        </Callout>
+        <Callout variant="info">
+          The jobs of each completed run are downloaded once and kept in memory for the session: switching filters uses almost no quota.
+        </Callout>
+      </>
+    ),
+  },
+  {
+    id: "notifications",
+    title: "Notifications",
+    icon: Bell,
+    summary: "Get notified when a pipeline fails or recovers.",
+    content: (
+      <>
+        <P>
+          Easy CI watches the displayed repositories at every refresh and reports each workflow's <Strong>state changes</Strong>: failing (while it was green) and
+          back to green (after a failure). A pipeline that fails several times in a row is reported only once.
+        </P>
+        <Table
+          head={["Window", "What you see"]}
+          rows={[
+            ["In the foreground", "A message in the app, with a View button that opens the run."],
+            ["In the background or minimized", "The same message, plus a system notification. Repositories keep refreshing."],
+          ]}
+        />
+        <P>
+          When more than 3 changes are detected in the same refresh, a single message summarizes them. Nothing is reported at startup: the current state is the
+          baseline.
+        </P>
+        <H3>Settings</H3>
+        <P>
+          In <Strong>Settings › Notifications</Strong>: turn notifications on or off, choose failures and/or recoveries, limit them to favorite repositories, and send
+          a <Strong>test notification</Strong>.
+        </P>
+        <Table
+          head={["System", "Mechanism"]}
+          rows={[
+            ["macOS", "Notification Center, shown as “Script Editor” (unsigned app). If nothing appears: System Settings › Notifications › Script Editor."],
+            ["Windows", "Windows notifications, shown as Windows PowerShell. Check that notifications and Focus assist allow them."],
+            ["Linux", "notify-send (libnotify-bin or libnotify package), otherwise D-Bus. Without a notification service, only in-app messages are shown."],
+          ]}
+        />
+        <Callout variant="tip">
+          To check from a terminal, start the app with <Code>--test-notification</Code>: it shows a test notification and reports the mechanism used.
         </Callout>
       </>
     ),
@@ -837,7 +925,7 @@ export const DOC_SECTIONS: DocSection[] = [
     id: "settings",
     title: "Settings",
     icon: Settings,
-    summary: "Accounts, tracked repositories, language, appearance, synchronization, updates.",
+    summary: "Accounts, tracked repositories, language, appearance, synchronization, notifications, updates.",
     content: (
       <Table
         head={["Section", "Settings"]}
@@ -847,6 +935,7 @@ export const DOC_SECTIONS: DocSection[] = [
           ["Local projects", "Projects folders, clone detection, automatic fetch and update, code editor."],
           ["Appearance", "Interface language (system, French or English) and light, dark or system theme."],
           ["Synchronization", "Refresh frequency (30 s to 5 min, or manual), showing repositories without CI and archived repositories."],
+          ["Notifications", "Notifications for failing or recovered pipelines, repositories concerned (all or favorites), test notification."],
           ["Updates", "Installed version, manual or automatic checks for new versions, skipped versions."],
         ]}
       />

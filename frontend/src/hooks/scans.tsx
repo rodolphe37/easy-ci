@@ -95,6 +95,8 @@ export function ScanProvider({ children }: { children: ReactNode }) {
       queryKey: ["scan", repo.key],
       queryFn: () => limiter(repo.provider)(() => api.scanRepository({ provider: repo.provider, full_name: repo.full_name })),
       staleTime: 10_000,
+      // Fenêtre réduite ou en arrière-plan : on continue d'actualiser pour les notifications système.
+      refetchIntervalInBackground: settings?.notifications_enabled !== false,
       refetchInterval: (query: { state: { data?: RepoScan } }) => {
         const scan = query.state.data;
         if (scan?.workflows.some((wf) => isActive(wf.latest_run?.state))) return ACTIVE_REFRESH_MS;

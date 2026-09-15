@@ -7,6 +7,7 @@ import { Toaster } from "sonner";
 import { AppShell, type RouteHandle } from "@/components/layout/AppShell";
 import { TooltipProvider } from "@/components/ui/overlays";
 import { Button, Logo, Spinner } from "@/components/ui/primitives";
+import { RunNotifications } from "@/hooks/notifications";
 import { ScanProvider } from "@/hooks/scans";
 import { SettingsProvider, useSession, useSettings } from "@/hooks/session";
 import { UpdatesProvider } from "@/hooks/updates";
@@ -100,6 +101,7 @@ function AuthenticatedApp() {
   const router = useMemo(createRouter, []);
   return (
     <ScanProvider>
+      <RunNotifications />
       <RouterProvider router={router} />
     </ScanProvider>
   );

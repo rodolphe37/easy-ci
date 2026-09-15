@@ -1,7 +1,9 @@
 // Documentation intégrée — version française. La version anglaise (sections.en.tsx) doit garder les mêmes sections et identifiants.
 import {
   Activity,
+  Bell,
   BookOpen,
+  ChartColumn,
   CircleArrowUp,
   CircleHelp,
   ExternalLink,
@@ -409,7 +411,7 @@ export const DOC_SECTIONS: DocSection[] = [
     summary: "Workflows ou pipelines, historique et fichiers YAML.",
     content: (
       <>
-        <P>Cliquez sur un dépôt pour ouvrir sa page. Trois onglets :</P>
+        <P>Cliquez sur un dépôt pour ouvrir sa page. Plusieurs onglets :</P>
         <H3>Workflows / Pipelines</H3>
         <P>
           GitHub affiche une carte par workflow ; GitLab et Bitbucket, qui n'ont qu'un fichier de configuration par dépôt, une seule carte « Pipeline ». Chaque carte montre le statut et détails de la dernière exécution (commit, branche, déclencheur, durée) et une <Strong>barre d'historique</Strong> des 12
@@ -418,6 +420,10 @@ export const DOC_SECTIONS: DocSection[] = [
         <H3>Exécutions</H3>
         <P>
           L'historique complet, filtrable par workflow (colonne de gauche) et par statut. <Strong>Charger plus</Strong> remonte dans le temps.
+        </P>
+        <H3>Statistiques</H3>
+        <P>
+          Durées, taux de réussite et jobs instables sur les dernières exécutions terminées (voir Statistiques des exécutions).
         </P>
         <H3>Fichiers CI</H3>
         <P>
@@ -547,6 +553,91 @@ export const DOC_SECTIONS: DocSection[] = [
         <Callout variant="warning">
           Ces actions agissent sur vos vrais pipelines et nécessitent des droits en écriture : <Code>repo</Code> (GitHub classique) ou <Strong>Actions : Read and
           write</Strong> (fine-grained), <Code>api</Code> (GitLab), <Code>write:pipeline:bitbucket</Code> (Bitbucket).
+        </Callout>
+      </>
+    ),
+  },
+  {
+    id: "stats",
+    title: "Statistiques des exécutions",
+    icon: ChartColumn,
+    summary: "Durées dans le temps, taux de réussite, jobs lents ou instables.",
+    content: (
+      <>
+        <P>
+          L'onglet <Strong>Statistiques</Strong> d'un dépôt résume ses dernières exécutions terminées : 20, 50 ou 100, pour tous les workflows ou un seul (colonne de
+          gauche), sur toutes les branches ou seulement la branche par défaut. Les calculs se font sur votre machine, à partir des données déjà fournies par la
+          plateforme : rien n'est envoyé ailleurs.
+        </P>
+        <Table
+          head={["Indicateur", "Signification"]}
+          rows={[
+            ["Taux de réussite", "Exécutions réussies parmi celles qui ont réussi ou échoué (les annulations ne comptent pas)."],
+            ["Durée médiane", "La moitié des exécutions est plus rapide. La tendance compare les exécutions récentes aux plus anciennes (à partir de 5 % d'écart)."],
+            ["Durée P90", "9 exécutions sur 10 sont plus rapides : utile pour repérer les lenteurs occasionnelles."],
+            ["Jobs instables", "Nombre de jobs dont le résultat varie sans changement de code."],
+          ]}
+        />
+        <H3>Graphique des durées</H3>
+        <P>
+          Une barre par exécution, de la plus ancienne à la plus récente, colorée selon son résultat, avec la médiane en pointillés. Survolez une barre pour voir le
+          numéro, le commit, la branche et la durée ; cliquez pour ouvrir l'exécution.
+        </P>
+        <H3>Jobs</H3>
+        <P>
+          Pour chaque job : taux de réussite, durée médiane et P90, et historique de ses résultats. Un point orange au-dessus d'un résultat signale plusieurs
+          tentatives. Le filtre <Strong>Instable</Strong> ne garde que les jobs à surveiller.
+        </P>
+        <Callout variant="warning" title="Quand un job est-il instable ?">
+          Quand il a <Strong>échoué puis réussi sur le même commit</Strong>, après une relance du job ou du pipeline, sans modification du code : c'est la signature
+          d'un test « flaky ». Ou quand il <Strong>alterne souvent</Strong> entre succès et échec (au moins 4 changements, soit un pour 5 exécutions). Un job cassé
+          puis corrigé par un nouveau commit n'est pas instable.
+        </Callout>
+        <Callout variant="info">
+          Les jobs de chaque exécution terminée ne sont téléchargés qu'une fois puis gardés en mémoire pendant la session : changer de filtre ne consomme presque pas
+          de quota.
+        </Callout>
+      </>
+    ),
+  },
+  {
+    id: "notifications",
+    title: "Notifications",
+    icon: Bell,
+    summary: "Être prévenu quand un pipeline échoue ou repasse au vert.",
+    content: (
+      <>
+        <P>
+          Easy CI surveille les dépôts affichés à chaque actualisation et signale les <Strong>changements d'état</Strong> de chaque workflow : passage en échec
+          (alors qu'il était au vert) et retour au vert (après un échec). Un pipeline qui échoue plusieurs fois de suite n'est signalé qu'une fois.
+        </P>
+        <Table
+          head={["Fenêtre", "Ce qui s'affiche"]}
+          rows={[
+            ["Au premier plan", "Un message dans l'application, avec un bouton Voir qui ouvre l'exécution."],
+            ["En arrière-plan ou réduite", "Le même message, plus une notification du système. Les dépôts continuent d'être actualisés."],
+          ]}
+        />
+        <P>
+          Au-delà de 3 changements lors d'une même actualisation, un seul message les résume. Rien n'est signalé au démarrage : l'état du moment sert de
+          référence.
+        </P>
+        <H3>Réglages</H3>
+        <P>
+          Dans <Strong>Paramètres › Notifications</Strong> : activer ou non les notifications, choisir les échecs et/ou les retours au vert, limiter aux dépôts
+          favoris, et envoyer une <Strong>notification d'essai</Strong>.
+        </P>
+        <Table
+          head={["Système", "Mécanisme"]}
+          rows={[
+            ["macOS", "Centre de notifications, au nom d'« Éditeur de script » (application non signée). Si rien ne s'affiche : Réglages Système › Notifications › Éditeur de script."],
+            ["Windows", "Notifications Windows, affichées au nom de Windows PowerShell. Vérifiez que les notifications et le mode Concentration le permettent."],
+            ["Linux", "notify-send (paquet libnotify-bin ou libnotify), sinon D-Bus. Sans service de notification, seuls les messages dans l'application s'affichent."],
+          ]}
+        />
+        <Callout variant="tip">
+          Pour vérifier depuis un terminal, lancez l'application avec <Code>--test-notification</Code> : elle affiche une notification d'essai et indique le
+          mécanisme utilisé.
         </Callout>
       </>
     ),
@@ -838,7 +929,7 @@ export const DOC_SECTIONS: DocSection[] = [
     id: "settings",
     title: "Paramètres",
     icon: Settings,
-    summary: "Comptes, dépôts suivis, langue, apparence, synchronisation, mises à jour.",
+    summary: "Comptes, dépôts suivis, langue, apparence, synchronisation, notifications, mises à jour.",
     content: (
       <Table
         head={["Section", "Réglages"]}
@@ -848,6 +939,7 @@ export const DOC_SECTIONS: DocSection[] = [
           ["Projets locaux", "Dossiers de projets, détection des clones, récupération et mise à jour automatiques, éditeur de code."],
           ["Apparence", "Langue de l'interface (système, français ou anglais) et thème clair, sombre ou identique au système."],
           ["Synchronisation", "Fréquence d'actualisation (30 s à 5 min, ou manuelle), affichage des dépôts sans CI et des dépôts archivés."],
+          ["Notifications", "Notifications des pipelines en échec ou repassés au vert, dépôts concernés (tous ou favoris), notification d'essai."],
           ["Mises à jour", "Version installée, vérification manuelle ou automatique des nouvelles versions, versions ignorées."],
         ]}
       />

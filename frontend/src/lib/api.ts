@@ -14,6 +14,9 @@ import type {
   LocalCiDiff,
   LocalOverview,
   LocalStatus,
+  NotificationResult,
+  NotificationSupport,
+  RunStats,
   SyncResult,
   ProviderId,
   JobLog,
@@ -123,6 +126,8 @@ export const api = {
   openExternal: (url: string) => call<boolean>("open_external", { url }),
   getRateLimits: () => call<RateLimit[]>("get_rate_limits"),
   checkForUpdate: (force = false) => call<UpdateCheck>("check_for_update", { force }),
+  notificationSupport: () => call<NotificationSupport>("notification_support"),
+  notify: (title: string, body: string) => call<NotificationResult>("notify", { title, body }),
 
   listRepositories: (provider: ProviderId) => call<Repository[]>("list_repositories", { provider }),
   addRepository: (reference: string, provider?: ProviderId) =>
@@ -140,6 +145,8 @@ export const api = {
   rerunRun: (ref: RepoRef, runId: string, failedOnly = false) =>
     call<{ run_id: string } | null>("rerun_run", { ...ref, run_id: runId, failed_only: failedOnly }),
   cancelRun: (ref: RepoRef, runId: string) => call<null>("cancel_run", { ...ref, run_id: runId }),
+  getRunStats: (ref: RepoRef, options: { workflow_id?: string | null; branch?: string | null; limit?: number } = {}) =>
+    call<RunStats>("get_run_stats", { ...ref, ...options }),
 
   // Projets locaux
   localOverview: () => call<LocalOverview>("local_overview"),

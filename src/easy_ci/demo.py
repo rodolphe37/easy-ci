@@ -79,6 +79,9 @@ class DemoRun:
     jobs: tuple[Job, ...]
     attempt: int = 1
     cancelled_at: float | None = None
+    pace: float = 1.0  # facteur de durée des étapes : les exécutions passées ne durent pas toutes pareil
+    sha_seed: str | None = None  # relance sur le même commit qu'une exécution précédente
+    previous_attempts: list[dict[str, Any]] = field(default_factory=list)  # jobs des tentatives relancées
 
 
 @dataclass
@@ -1018,6 +1021,11 @@ _WORKFLOWS: list[tuple[Any, ...]] = [
     ("acme-team/data-importer", "Pipelines", "bitbucket-pipelines.yml", _IMPORTER_YAML, _importer_steps, "SSSSSSSSS", "pull_request", ("live", "failure", -15)),
 ]
 
+# Workflows dont un job échoue parfois puis passe à la relance (statistiques : jobs instables).
+_FLAKY_WORKFLOWS = {("acme/storefront", "CI"), ("platform/backend/billing-service", "Pipeline")}
+# Ralentissement par exécution (en part de la durée actuelle) : tendance visible dans les statistiques.
+_DURATION_TRENDS = {("acme/storefront", "CI"): 0.035, ("acme/payments-api", "CI"): -0.02}
+
 _MESSAGES = [
     N_("fix(checkout): arrondi de la TVA sur les remises"),
     N_("feat: ajout du paiement en trois fois"),
@@ -1098,30 +1106,38 @@ class DemoService:
             )
             self._workflows.setdefault(repo, []).append(workflow)
 
+            trend = _DURATION_TRENDS.get((repo, name), 0.0)
+            previous: DemoRun | None = None
             kind, outcome, offset = latest
             latest_start = self._started + offset if kind == "live" else self._started - offset * 60
             letters = history + {"success": "S", "failure": "F", "cancelled": "C"}[outcome]
             spacing = 5 * HOUR if event != "schedule" else 24 * HOUR
+            previous_letter = ""
             for position, letter in enumerate(letters):
                 age = len(letters) - 1 - position
                 run_outcome = {"S": "success", "F": "failure", "C": "cancelled"}[letter]
                 bot = {GITHUB: "github-actions[bot]", GITLAB: "project_bot", BITBUCKET: "Bitbucket Pipelines"}[provider]
-                self._add_run(
-                    DemoRun(
-                        id=self._new_run_id(),
-                        repo=repo,
-                        workflow_id=workflow.id,
-                        workflow_name=name,
-                        run_number=120 + wf_index * 13 + position,
-                        event=event,
-                        branch="main" if event in ("schedule", "release") else _BRANCHES[(position + wf_index) % len(_BRANCHES)],
-                        message=_MESSAGES[(position * 3 + wf_index) % len(_MESSAGES)],
-                        actor=bot if event == "schedule" else _ACTORS[(position + wf_index) % len(_ACTORS)],
-                        start=latest_start - age * spacing,
-                        jobs=make_jobs(run_outcome),
-                    ),
-                    workflow,
+                # Durées variables d'une exécution à l'autre, avec un ralentissement progressif pour certains workflows.
+                jitter = 0.86 + ((wf_index * 7 + position * 13) % 29) / 100
+                demo_run = DemoRun(
+                    id=self._new_run_id(),
+                    repo=repo,
+                    workflow_id=workflow.id,
+                    workflow_name=name,
+                    run_number=120 + wf_index * 13 + position,
+                    event=event,
+                    branch="main" if event in ("schedule", "release") else _BRANCHES[(position + wf_index) % len(_BRANCHES)],
+                    message=_MESSAGES[(position * 3 + wf_index) % len(_MESSAGES)],
+                    actor=bot if event == "schedule" else _ACTORS[(position + wf_index) % len(_ACTORS)],
+                    start=latest_start - age * spacing,
+                    jobs=make_jobs(run_outcome),
+                    pace=1.0 if age == 0 else max(0.5, jitter * (1 - trend * age)),
                 )
+                if previous is not None and (repo, name) in _FLAKY_WORKFLOWS and previous_letter == "F" and letter == "S":
+                    # Test instable : relancé sans changement de code, il passe.
+                    demo_run = replace(demo_run, sha_seed=previous.sha_seed or str(previous.id), message=previous.message, branch=previous.branch, event=previous.event)
+                self._add_run(demo_run, workflow)
+                previous, previous_letter = demo_run, letter
 
     def _new_run_id(self) -> int:
         self._next_run_id += 7
@@ -1164,9 +1180,9 @@ class DemoService:
                 job_conclusion: str | None = "success"
                 job_end = stage_start
                 job_status = "completed"
-                fail_end = stage_start + sum(s.seconds for s in job.steps[: job.fail_step + 1]) if job.fail_step is not None else None
+                fail_end = stage_start + sum(_paced(s, demo_run) for s in job.steps[: job.fail_step + 1]) if job.fail_step is not None else None
                 for step_index, step in enumerate(job.steps):
-                    step_start, step_end = cursor, cursor + step.seconds
+                    step_start, step_end = cursor, cursor + _paced(step, demo_run)
                     if job.fail_step is not None and step_index > job.fail_step:
                         done = fail_end is not None and now >= fail_end
                         steps.append(self._step_dict(step_index, step, "completed" if done else "queued", "skipped" if done else None, None, None))
@@ -1245,7 +1261,7 @@ class DemoService:
             "conclusion": conclusion,
             "state": run_state(status, conclusion),
             "branch": demo_run.branch,
-            "head_sha": _sha(f"{demo_run.id}"),
+            "head_sha": _sha(demo_run.sha_seed or f"{demo_run.id}"),
             "actor": {"login": demo_run.actor, "avatar_url": None},
             "created_at": _iso(demo_run.start),
             "started_at": _iso(demo_run.start),
@@ -1353,6 +1369,13 @@ class DemoService:
             "capabilities": capabilities(self._provider(full_name)),
         }
 
+    def list_job_attempts(self, full_name: str, run_id: str) -> list[dict[str, Any]]:
+        demo_run = self._find_run(full_name, run_id)
+        with self._lock:
+            _, jobs = self._materialize(demo_run)
+            previous = list(demo_run.previous_attempts)
+        return [*previous, *({**{k: v for k, v in job.items() if k != "_steps"}, "attempt": demo_run.attempt} for job in jobs)]
+
     def get_job_log(self, full_name: str, job_id: str) -> dict[str, Any]:
         numeric_id = int(job_id)
         demo_run = self._find_run(full_name, str(numeric_id // 1000))
@@ -1403,6 +1426,8 @@ class DemoService:
         with self._lock:
             if provider == GITHUB or failed_only:
                 # Nouvelle tentative de la même exécution… qui réussit cette fois.
+                _, jobs = self._materialize(demo_run)
+                demo_run.previous_attempts.extend({**{k: v for k, v in job.items() if k != "_steps"}, "attempt": demo_run.attempt} for job in jobs)
                 demo_run.attempt += 1
                 demo_run.start = time.time() + 2
                 demo_run.cancelled_at = None
@@ -1490,6 +1515,10 @@ class DemoService:
             BITBUCKET: f"{host}/{wf.repo}/pipelines",
         }[provider]
         return {"id": wf.id, "name": wf.name, "path": wf.path, "state": "active", "html_url": html_url, "dynamic": False}
+
+
+def _paced(step: Step, demo_run: DemoRun) -> int:
+    return max(1, round(step.seconds * demo_run.pace))
 
 
 def _progress(step: dict[str, Any], seconds: int, now: float) -> float:

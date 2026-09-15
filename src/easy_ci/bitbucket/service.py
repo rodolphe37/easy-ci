@@ -149,6 +149,13 @@ class BitbucketService:
             "capabilities": capabilities(BITBUCKET),
         }
 
+    def list_job_attempts(self, full_name: str, run_id: str) -> list[dict[str, Any]]:
+        """Étapes du pipeline ; une relance Bitbucket crée un nouveau pipeline (même commit)."""
+        base = f"/repositories/{full_name}/pipelines/{_uuid(run_id)}"
+        raw = self._client.get_json(base)
+        steps = self._client.paginate(f"{base}/steps/", {"pagelen": 100}, key="values", next_from_body=_next)
+        return [{**normalize.step(item, full_name, raw), "attempt": 1} for item in steps]
+
     def get_job_log(self, full_name: str, job_id: str) -> dict[str, Any]:
         with self._lock:
             cached = self._logs.get(job_id)

@@ -152,6 +152,16 @@ class GitLabService:
             "capabilities": capabilities(GITLAB),
         }
 
+    def list_job_attempts(self, full_name: str, run_id: str) -> list[dict[str, Any]]:
+        """Jobs du pipeline, y compris ceux relancés (« Retry ») : tentatives numérotées par nom de job."""
+        raw_jobs = self._client.paginate(f"{self._base(full_name)}/pipelines/{run_id}/jobs", {"per_page": 100, "include_retried": "true"})
+        attempts: dict[str, int] = {}
+        jobs = []
+        for job in sorted((normalize.job(j) for j in raw_jobs), key=lambda j: int(j["id"])):
+            attempts[job["name"]] = attempts.get(job["name"], 0) + 1
+            jobs.append({**job, "attempt": attempts[job["name"]]})
+        return jobs
+
     def get_job_log(self, full_name: str, job_id: str) -> dict[str, Any]:
         with self._lock:
             cached = self._logs.get(job_id)

@@ -68,6 +68,8 @@ Easy CI rassemble tout cela dans une application desktop : tous les pipelines de
 - **Toute votre CI au même endroit** — GitHub Actions, GitLab CI/CD (gitlab.com et auto-hébergé) et Bitbucket Pipelines, un compte par plateforme.
 - **Découverte automatique** de tous les dépôts et pipelines accessibles ; ajout d'autres dépôts par `owner/nom` ou URL, masquage, favoris.
 - **Statuts en direct** — exécutions en cours actualisées toutes les quelques secondes, historique coloré, taux de réussite et santé des dépôts.
+- **Notifications système** quand un pipeline échoue ou repasse au vert — natives sur macOS, Windows et Linux, pour tous les dépôts ou seulement vos favoris.
+- **Statistiques des exécutions** dans le temps — taux de réussite, durées médiane et P90 avec leur tendance, et **jobs instables** (« flaky ») repérés quand ils échouent puis réussissent sur le même commit.
 
 ### Diagnostiquer
 
@@ -99,6 +101,10 @@ Easy CI rassemble tout cela dans une application desktop : tous les pipelines de
 - **Mode démo** pour tout essayer sans compte, aussi disponible en [démo en ligne dans le navigateur](https://easy-ci.netlify.app/demo) (sur ordinateur), palette de commandes (`⌘K` / `Ctrl+K`), thèmes clair et sombre, **documentation intégrée**.
 - **Interface en français et en anglais**, selon la langue du système, avec un choix manuel dans *Paramètres › Apparence*.
 
+<p align="center">
+  <img src="docs/screenshots/stats.png" alt="Statistiques des exécutions : taux de réussite, tendance des durées, graphique des durées et jobs instables" width="900">
+</p>
+
 ## Plateformes prises en charge
 
 | Fonctionnalité | GitHub Actions | GitLab CI/CD | Bitbucket Pipelines |
@@ -113,6 +119,8 @@ Easy CI rassemble tout cela dans une application desktop : tous les pipelines de
 | Validation pendant l'édition | ✅ | ✅ + CI Lint officiel | ✅ |
 | Création de pull / merge request | ✅ | ✅ | ✅ |
 | Génération de pipeline | ✅ | ✅ | ✅ |
+| Notifications, statistiques des exécutions | ✅ | ✅ | ✅ |
+| Jobs instables repérés sur les relances de jobs | ✅ | ✅ | — (relances du même commit) |
 | Instances auto-hébergées | — (github.com) | ✅ | — (Bitbucket Cloud) |
 
 ## Installation
@@ -187,7 +195,7 @@ La **Documentation** intégrée (barre latérale) détaille chaque fonctionnalit
 ## Confidentialité et sécurité
 
 - **Les tokens restent sur votre machine**, dans le trousseau du système (Trousseau macOS, Gestionnaire d'identifiants Windows, Secret Service sous Linux), et ne sont envoyés qu'à la plateforme concernée.
-- **Ni télémétrie, ni statistiques d'usage, ni IA.** La seule autre requête réseau est la vérification anonyme des mises à jour auprès de l'API GitHub Releases, désactivable.
+- **Ni télémétrie, ni statistiques d'usage, ni IA.** Les statistiques des exécutions sont calculées sur votre machine à partir des données de vos plateformes. La seule autre requête réseau est la vérification anonyme des mises à jour auprès de l'API GitHub Releases, désactivable.
 - **Rien n'est envoyé sans votre accord** — les modifications sont écrites dans votre clone local ; l'envoi et la pull request sont des actions distinctes et explicites.
 - Les opérations Git utilisent **votre propre `git`**, avec vos identifiants et votre configuration.
 
@@ -271,14 +279,14 @@ Réalisé :
 - [x] CI/CD du projet : tests sur 3 systèmes, applications autonomes, GitHub Releases, tap Homebrew
 - [x] Installation en une commande et notification des nouvelles versions
 - [x] Interface et documentation en français et en anglais (i18n)
+- [x] Notifications système quand un pipeline suivi échoue ou repasse au vert
+- [x] Statistiques des exécutions dans le temps (durées, jobs instables)
 
 Prochaines idées — retours et contributions bienvenus :
 
 - [ ] D'autres langues pour l'interface (contributions bienvenues : un catalogue JSON par langue)
-- [ ] Notifications système quand un pipeline suivi échoue ou repasse au vert
 - [ ] Nouvelles plateformes : Azure Pipelines, CircleCI, Gitea/Forgejo Actions
 - [ ] Linux arm64, AppImage / Flatpak, paquet winget
-- [ ] Statistiques des exécutions dans le temps (durées, jobs instables)
 
 Les [issues](https://github.com/rodolphe37/easy-ci/issues) permettent d'en discuter ou de prendre un sujet.
 

@@ -76,6 +76,10 @@ export interface Settings {
   preferred_editor: string | null;
   check_updates: boolean;
   dismissed_update_version: string | null;
+  notifications_enabled: boolean;
+  notify_failures: boolean;
+  notify_recoveries: boolean;
+  notifications_scope: "all" | "favorites";
 }
 
 export interface Repository {
@@ -533,4 +537,92 @@ export interface UpdateCheck {
   releases_url: string;
   install_method: InstallMethod;
   instructions: { label: string; command: string }[];
+}
+
+/* -------------------------------------------------------------------------- */
+/* Notifications système                                                      */
+/* -------------------------------------------------------------------------- */
+
+export type NotificationMethod = "osascript" | "windows" | "notify-send" | "gdbus";
+
+export interface NotificationSupport {
+  supported: boolean;
+  method: NotificationMethod | null;
+}
+
+export interface NotificationResult {
+  delivered: boolean;
+  method: NotificationMethod | null;
+  reason: "unsupported" | "failed" | null;
+  error: string | null;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Statistiques des exécutions                                                */
+/* -------------------------------------------------------------------------- */
+
+export interface DurationSummary {
+  median: number | null;
+  p90: number | null;
+  average: number | null;
+  min: number | null;
+  max: number | null;
+}
+
+export interface StatsRunPoint {
+  id: string;
+  run_number: number;
+  state: "success" | "failure" | "cancelled";
+  created_at: string;
+  duration_s: number | null;
+  branch: string | null;
+  title: string | null;
+  attempt: number;
+  workflow_id: string;
+  workflow_name: string | null;
+}
+
+export type JobOutcome = "success" | "failure" | "cancelled" | "skipped";
+
+export interface JobStats {
+  name: string;
+  stage: string | null;
+  workflow_id: string;
+  workflow_name: string | null;
+  runs: number;
+  success: number;
+  failure: number;
+  allowed_failures: number;
+  skipped: number;
+  success_rate: number | null;
+  duration: DurationSummary;
+  flips: number;
+  flip_rate: number;
+  recoveries: number;
+  unstable: boolean;
+  reasons: ("retried" | "alternating")[];
+  history: { run_id: string; run_number: number; created_at: string; outcome: JobOutcome; duration_s: number | null; attempts: number }[];
+}
+
+export interface RunStats {
+  runs_analyzed: number;
+  jobs_analyzed: number;
+  limit: number;
+  workflow_id: string | null;
+  branch: string | null;
+  incomplete_runs: number;
+  total_runs: number | null;
+  summary: {
+    success: number;
+    failure: number;
+    cancelled: number;
+    success_rate: number | null;
+    duration: DurationSummary;
+    trend: { previous_median: number | null; recent_median: number | null; change: number | null } | null;
+    first_run_at: string | null;
+    last_run_at: string | null;
+  };
+  runs: StatsRunPoint[];
+  jobs: JobStats[];
+  unstable_jobs: number;
 }

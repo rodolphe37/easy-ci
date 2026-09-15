@@ -447,7 +447,8 @@
     "tabs": {
       "runs": "Exécutions",
       "files": "Fichiers CI",
-      "local": "Projet local"
+      "local": "Projet local",
+      "stats": "Statistiques"
     },
     "noCi": {
       "title": "Aucun pipeline {{ci}}",
@@ -1065,6 +1066,33 @@
       "skipped": "Version {{version}} ignorée",
       "skippedDescription": "Aucune fenêtre ne s'affiche pour cette version. Les versions suivantes seront signalées.",
       "unskip": "Ne plus ignorer"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "enabled": "Notifications système",
+      "enabledDescription": "Prévient quand un pipeline suivi échoue ou repasse au vert. Dans l'application, un message s'affiche ; fenêtre en arrière-plan, le système affiche une notification.",
+      "failures": "Pipeline en échec",
+      "failuresDescription": "Quand la dernière exécution d'un workflow échoue alors qu'il était au vert.",
+      "recoveries": "Retour au vert",
+      "recoveriesDescription": "Quand un workflow en échec réussit de nouveau.",
+      "scope": "Dépôts concernés",
+      "scopeDescription": "Tous les dépôts affichés, ou seulement vos favoris.",
+      "all": "Tous",
+      "favorites": "Favoris",
+      "testTitle": "Notification d'essai",
+      "test": "Tester",
+      "testDescription": "Envoie une notification d'essai pour vérifier qu'elle s'affiche.",
+      "sent": "Notification envoyée",
+      "failed": "Notification impossible",
+      "unsupported": "Notifications système indisponibles ici",
+      "unsupportedDescription": "Aucun service de notification trouvé (sous Linux, installez libnotify : notify-send). Les messages dans l'application restent affichés.",
+      "method": {
+        "osascript": "Centre de notifications macOS, au nom d'« Éditeur de script » : si rien ne s'affiche, autorisez-le dans Réglages Système › Notifications",
+        "windows": "Notifications Windows (affichées au nom de Windows PowerShell)",
+        "notify-send": "Notifications du bureau (libnotify)",
+        "gdbus": "Notifications du bureau (D-Bus)"
+      },
+      "background": "Les dépôts continuent d'être actualisés quand la fenêtre est réduite, pour ne manquer aucun changement."
     }
   },
   "docs": {
@@ -1074,5 +1102,78 @@
     "eyebrow": "Documentation",
     "title": "Guide d'utilisation d'Easy CI",
     "intro": "De la connexion de GitHub, GitLab ou Bitbucket au diagnostic d'un pipeline en échec : tout ce qu'il faut savoir pour tirer parti de l'application."
+  },
+  "notifications": {
+    "failed": {
+      "title": "Échec : {{workflow}} · {{repo}}"
+    },
+    "recovered": {
+      "title": "Retour au vert : {{workflow}} · {{repo}}"
+    },
+    "grouped": {
+      "title_one": "{{count}} pipeline a changé d'état",
+      "title_other": "{{count}} pipelines ont changé d'état",
+      "body": "En échec : {{failed}} · Repassés au vert : {{recovered}}"
+    },
+    "open": "Voir",
+    "test": {
+      "title": "Notifications Easy CI activées",
+      "body": "Vous serez prévenu quand un pipeline suivi échoue ou repasse au vert."
+    }
+  },
+  "stats": {
+    "lastRuns_one": "{{count}} dernière",
+    "lastRuns_other": "{{count}} dernières",
+    "allBranches": "Toutes les branches",
+    "period": "Du {{from}} au {{to}}",
+    "empty": {
+      "title": "Pas encore de statistiques",
+      "description": "Aucune exécution terminée pour ces filtres. Les statistiques apparaîtront après les prochaines exécutions."
+    },
+    "footnote_one": "Calculé sur la dernière exécution terminée. Un job est instable s'il a échoué puis réussi sur le même commit (relance), ou s'il alterne souvent entre succès et échec.",
+    "footnote_other": "Calculé sur les {{count}} dernières exécutions terminées. Un job est instable s'il a échoué puis réussi sur le même commit (relance), ou s'il alterne souvent entre succès et échec.",
+    "incomplete_one": "Les jobs d'une exécution n'ont pas pu être chargés.",
+    "incomplete_other": "Les jobs de {{count}} exécutions n'ont pas pu être chargés.",
+    "successRate": "Taux de réussite",
+    "successHint": "{{success}} réussies · {{failure}} en échec",
+    "medianDuration": "Durée médiane",
+    "slower": "{{value}} % plus lent qu'avant",
+    "faster": "{{value}} % plus rapide qu'avant",
+    "stable": "Stable par rapport aux précédentes",
+    "average": "Moyenne : {{value}}",
+    "p90Duration": "Durée P90",
+    "p90Hint": "9 exécutions sur 10 plus rapides · max {{value}}",
+    "unstableJobs": "Jobs instables",
+    "unstableHint": "À surveiller : voir le tableau des jobs",
+    "noUnstable": "Aucun job instable détecté",
+    "chartTitle": "Durée des exécutions",
+    "median": "Médiane",
+    "attempt": "tentative {{number}}",
+    "attempts_one": "{{count}} tentative",
+    "attempts_other": "{{count}} tentatives",
+    "jobsTitle": "Jobs",
+    "allJobs": "Tous",
+    "unstable": "Instable",
+    "noJobs": "Aucun job analysé pour ces exécutions.",
+    "columns": {
+      "job": "Job",
+      "success": "Réussite",
+      "median": "Durée médiane",
+      "p90": "P90",
+      "history": "Historique"
+    },
+    "reasons": {
+      "retried_one": "A échoué puis réussi sur le même commit ({{count}} fois) : probablement un test instable.",
+      "retried_other": "A échoué puis réussi sur le même commit ({{count}} fois) : probablement un test instable.",
+      "alternating_one": "Alterne souvent entre succès et échec ({{count}} changement).",
+      "alternating_other": "Alterne souvent entre succès et échec ({{count}} changements)."
+    },
+    "jobCounts": "{{success}} réussis · {{failure}} en échec",
+    "allowedFailures_one": "dont {{count}} échec autorisé",
+    "allowedFailures_other": "dont {{count}} échecs autorisés",
+    "skipped_one": "{{count}} ignoré ou annulé",
+    "skipped_other": "{{count}} ignorés ou annulés",
+    "allowedShort_one": "{{count}} échec autorisé",
+    "allowedShort_other": "{{count}} échecs autorisés"
   }
 }

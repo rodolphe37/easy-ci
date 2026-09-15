@@ -86,6 +86,11 @@ class GitHubService:
         raw_jobs = self._client.paginate(f"/repos/{full_name}/actions/runs/{run_id}/jobs", {"per_page": 100, "filter": "latest"}, key="jobs")
         return {"run": run, "jobs": [normalize.job(j) for j in raw_jobs], "capabilities": capabilities(GITHUB)}
 
+    def list_job_attempts(self, full_name: str, run_id: str) -> list[dict[str, Any]]:
+        """Jobs de toutes les tentatives d'une exécution (relances comprises), pour les statistiques."""
+        raw_jobs = self._client.paginate(f"/repos/{full_name}/actions/runs/{run_id}/jobs", {"per_page": 100, "filter": "all"}, key="jobs")
+        return [{**normalize.job(j), "attempt": int(j.get("run_attempt") or 1)} for j in raw_jobs]
+
     def get_job_log(self, full_name: str, job_id: str) -> dict[str, Any]:
         with self._log_lock:
             cached = self._log_cache.get(job_id)

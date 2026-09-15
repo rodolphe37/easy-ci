@@ -14,7 +14,9 @@ import shutil
 import subprocess
 import threading
 import webbrowser
+from collections import OrderedDict
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Any
 
@@ -33,8 +35,10 @@ from easy_ci.i18n import N_, set_language, system_language, tr
 from easy_ci.local.demo import DemoLocalProjects
 from easy_ci.local.git import SUBPROCESS_FLAGS
 from easy_ci.local.service import LocalProjectsService
+from easy_ci.notifications import Notifier
 from easy_ci.providers import GITHUB, GITLAB, PROVIDER_INFO, PROVIDERS, provider_info, repo_key, split_repo_key
 from easy_ci.refs import parse_repository_reference
+from easy_ci.stats import COMPLETED_RUN_STATES, compute_stats
 from easy_ci.storage import CredentialStore, SettingsStore
 from easy_ci.updates import UpdateChecker
 from easy_ci.validation import validate as validate_ci
@@ -86,6 +90,7 @@ class Api:
         settings_store: SettingsStore | None = None,
         factories: dict[str, ServiceFactory] | None = None,
         update_checker: UpdateChecker | None = None,
+        notifier: Notifier | None = None,
     ) -> None:
         self._credentials = credential_store or CredentialStore()
         self._settings = settings_store or SettingsStore()
@@ -97,6 +102,9 @@ class Api:
         self._local = LocalProjectsService(self._settings, gitlab_hosts=self._gitlab_hosts)
         self._demo_local: DemoLocalProjects | None = None
         self._updates = update_checker or UpdateChecker()
+        self._notifier = notifier or Notifier()
+        # Jobs des exécutions terminées (immuables) : les statistiques ne les téléchargent qu'une fois.
+        self._attempts_cache: OrderedDict[tuple[int, str, str, int], list[dict[str, Any]]] = OrderedDict()
 
         def repo(method: str) -> Callable[..., Any]:
             return lambda provider, full_name, **kwargs: getattr(self._service(provider), method)(full_name, **kwargs)
@@ -115,6 +123,9 @@ class Api:
             "open_external": self.open_external,
             "get_rate_limits": self.get_rate_limits,
             "check_for_update": lambda force=False: self._updates.check(bool(force)),
+            "notification_support": lambda: self._notifier.capabilities(),
+            "notify": lambda title, body="": self._notifier.notify(str(title), str(body)),
+            "get_run_stats": self.get_run_stats,
             "list_repositories": self.list_repositories,
             "add_repository": self.add_repository,
             "remove_repository": self.remove_repository,
@@ -460,6 +471,52 @@ class Api:
         target = repo_key(provider, full_name).lower()
         settings = self._settings.load()
         return self._settings.update({"added_repositories": [item for item in settings["added_repositories"] if item.lower() != target]})
+
+    # -- Statistiques -----------------------------------------------------
+
+    STATS_CACHE_SIZE = 3000
+
+    def get_run_stats(self, provider: str, full_name: str, workflow_id: str | None = None, branch: str | None = None, limit: int = 50) -> dict[str, Any]:
+        """Durées, taux de réussite et jobs instables sur les `limit` dernières exécutions terminées."""
+        service = self._service(provider)
+        limit = max(10, min(100, int(limit)))
+        page = service.list_runs(full_name, workflow_id=workflow_id or None, branch=branch or None, per_page=limit)
+        runs = [run for run in page["runs"] if run.get("state") in COMPLETED_RUN_STATES]
+
+        attempts_by_run: dict[str, list[dict[str, Any]]] = {}
+        failures = 0
+
+        def load(run: dict[str, Any]) -> tuple[str, list[dict[str, Any]] | None]:
+            key = (id(service), full_name, str(run["id"]), int(run.get("run_attempt") or 1))
+            with self._lock:
+                cached = self._attempts_cache.get(key)
+            if cached is not None:
+                return str(run["id"]), cached
+            try:
+                attempts = service.list_job_attempts(full_name, str(run["id"]))
+            except (NotFoundError, ForbiddenError, NetworkError) as exc:
+                log.info("Jobs de l'exécution %s indisponibles : %s", run["id"], exc)
+                return str(run["id"]), None
+            with self._lock:
+                self._attempts_cache[key] = attempts
+                while len(self._attempts_cache) > self.STATS_CACHE_SIZE:
+                    self._attempts_cache.popitem(last=False)
+            return str(run["id"]), attempts
+
+        if self._demo is not None or len(runs) <= 1:
+            results = [load(run) for run in runs]  # démo : données locales (et pas de threads dans le navigateur)
+        else:
+            with ThreadPoolExecutor(max_workers=6, thread_name_prefix="stats") as pool:
+                results = list(pool.map(load, runs))
+        for run_id, attempts in results:
+            if attempts is None:
+                failures += 1
+            else:
+                attempts_by_run[run_id] = attempts
+
+        workflows = {str(run.get("workflow_id")): run.get("name") for run in runs if run.get("name")}
+        stats = compute_stats(runs, attempts_by_run, workflows)
+        return {**stats, "limit": limit, "workflow_id": workflow_id, "branch": branch, "incomplete_runs": failures, "total_runs": page.get("total_count")}
 
     # -- Divers -----------------------------------------------------------
 

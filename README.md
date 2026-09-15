@@ -68,6 +68,8 @@ Easy CI brings all of that into a single desktop app: every pipeline of every re
 - **All your CI in one place** — GitHub Actions, GitLab CI/CD (gitlab.com and self-managed) and Bitbucket Pipelines, with one account per platform.
 - **Automatic discovery** of every repository and pipeline you have access to; add others by `owner/name` or URL, hide the ones you don't care about, star favorites.
 - **Live statuses** — running pipelines refreshed every few seconds, color-coded history, success rate and repository health at a glance.
+- **Desktop notifications** when a pipeline fails or gets back to green — native on macOS, Windows and Linux, for all repositories or only your favorites.
+- **Run statistics** over time — success rate, median and P90 durations with their trend, and **unstable (flaky) jobs** detected when they fail then pass on the same commit.
 
 ### Diagnose
 
@@ -99,6 +101,10 @@ Easy CI brings all of that into a single desktop app: every pipeline of every re
 - **Demo mode** to try everything without an account — also available as a [live demo in your browser](https://easy-ci.netlify.app/demo) (desktop screens), command palette (`⌘K` / `Ctrl+K`), light and dark themes, **built-in documentation**.
 - **English and French interface**, following the system language, with a manual switch in *Settings › Appearance*.
 
+<p align="center">
+  <img src="docs/screenshots/stats.png" alt="Run statistics: success rate, duration trend, run durations chart and unstable jobs" width="900">
+</p>
+
 ## Supported platforms
 
 | Capability | GitHub Actions | GitLab CI/CD | Bitbucket Pipelines |
@@ -113,6 +119,8 @@ Easy CI brings all of that into a single desktop app: every pipeline of every re
 | Validation while editing | ✅ | ✅ + official CI Lint | ✅ |
 | Pull / merge request creation | ✅ | ✅ | ✅ |
 | Pipeline generation | ✅ | ✅ | ✅ |
+| Notifications, run statistics | ✅ | ✅ | ✅ |
+| Flaky jobs from retried jobs | ✅ | ✅ | — (same-commit re-runs) |
 | Self-managed instances | — (github.com) | ✅ | — (Bitbucket Cloud) |
 
 ## Installation
@@ -187,7 +195,7 @@ The in-app **Documentation** (sidebar) walks through every feature step by step,
 ## Privacy and security
 
 - **Tokens stay on your machine**, in the operating system keychain (macOS Keychain, Windows Credential Manager, Secret Service on Linux), and are only ever sent to the platform they belong to.
-- **No telemetry, no analytics, no AI.** The only other network request is the anonymous update check against the GitHub Releases API, which you can disable.
+- **No telemetry, no analytics, no AI.** Run statistics are computed locally from your platforms' data. The only other network request is the anonymous update check against the GitHub Releases API, which you can disable.
 - **Nothing is pushed without your consent** — edits are written to your local clone; pushing and opening pull requests are separate, explicit actions.
 - Git operations use **your own `git`** binary, credentials and configuration.
 
@@ -271,14 +279,14 @@ Done:
 - [x] Project CI/CD: tests on 3 OS, standalone apps, GitHub Releases, Homebrew tap
 - [x] One-command install and in-app update notifications
 - [x] English and French interface and documentation (i18n)
+- [x] Desktop notifications when a watched pipeline fails or recovers
+- [x] Workflow run statistics (durations, flaky jobs) over time
 
 Next ideas — feedback and contributions welcome:
 
 - [ ] More interface languages (contributions welcome: one JSON catalog per language)
-- [ ] Desktop notifications when a watched pipeline fails or recovers
 - [ ] More providers: Azure Pipelines, CircleCI, Gitea/Forgejo Actions
 - [ ] Linux arm64 builds, AppImage / Flatpak, winget package
-- [ ] Workflow run statistics (durations, flaky jobs) over time
 
 See the [issues](https://github.com/rodolphe37/easy-ci/issues) to discuss or pick something up.
 

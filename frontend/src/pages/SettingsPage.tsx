@@ -1,4 +1,4 @@
-import { BookOpen, Bug, CheckCircle2, ScrollText, CircleArrowUp, Eye, FolderOpen, GitBranch, TriangleAlert, KeyRound, LogOut, Monitor, Moon, Plus, RefreshCw, ShieldCheck, Sparkles, Sun, Trash2 } from "lucide-react";
+import { Bell, BookOpen, Bug, CheckCircle2, ScrollText, CircleArrowUp, Eye, FolderOpen, GitBranch, TriangleAlert, KeyRound, LogOut, Monitor, Moon, Plus, RefreshCw, ShieldCheck, Sparkles, Sun, Trash2 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router";
 import { LanguageSegmented } from "@/components/LanguageSwitcher";
@@ -8,11 +8,14 @@ import { ConnectAccountForm } from "@/components/ConnectAccountForm";
 import { FolderField } from "@/components/local/FolderField";
 import { ProviderGuide } from "@/components/docs/DocsContent";
 import { Modal, Tooltip } from "@/components/ui/overlays";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Avatar, Badge, BrandIllustration, Button, GitHubMark, buttonClass, Card, SegmentedControl, Switch } from "@/components/ui/primitives";
 import { useLocalActions, useLocalProjects } from "@/hooks/local";
 import { useRepositoryActions } from "@/hooks/repositories";
 import { useNow } from "@/hooks/useNow";
 import { useUpdates } from "@/hooks/updates";
+import { sendSystemNotification } from "@/hooks/notifications";
 import { installMethodLabel } from "@/components/UpdateDialog";
 import { useSession, useSessionActions, useSettings } from "@/hooks/session";
 import { api } from "@/lib/api";
@@ -95,6 +98,8 @@ export function SettingsPage() {
           <Switch label={i18n.t("settings.sync.archived")} checked={settings?.include_archived ?? false} onChange={(include_archived) => update({ include_archived })} />
         </Row>
       </SettingsGroup>
+
+      <NotificationsSettings />
 
       <UpdatesSettings />
 
@@ -453,6 +458,64 @@ function RepoList({ names, empty, action }: { names: string[]; empty: string; ac
         </li>
       ))}
     </ul>
+  );
+}
+
+function NotificationsSettings() {
+  const { settings, update } = useSettings();
+  const [testing, setTesting] = useState(false);
+  const support = useQuery({ queryKey: ["notification-support"], queryFn: api.notificationSupport, staleTime: Infinity });
+  const enabled = settings?.notifications_enabled ?? true;
+  const method = support.data?.method;
+
+  const test = async () => {
+    setTesting(true);
+    // Navigateur (développement, démo en ligne) : l'autorisation web se demande sur un geste de l'utilisateur.
+    if (support.data && !support.data.supported && typeof Notification !== "undefined" && Notification.permission === "default") {
+      await Notification.requestPermission().catch(() => undefined);
+    }
+    const result = await sendSystemNotification(i18n.t("notifications.test.title"), i18n.t("notifications.test.body"));
+    setTesting(false);
+    if (result.delivered) toast.success(i18n.t("settings.notifications.sent"));
+    else if (result.reason === "unsupported") toast(i18n.t("settings.notifications.unsupported"), { description: i18n.t("settings.notifications.unsupportedDescription") });
+    else toast.error(i18n.t("settings.notifications.failed"), { description: result.error ?? undefined });
+  };
+
+  return (
+    <SettingsGroup title={i18n.t("settings.notifications.title")} id="notifications">
+      <Row
+        icon={<Bell className="text-fg-subtle" />}
+        title={i18n.t("settings.notifications.enabled")}
+        description={`${i18n.t("settings.notifications.enabledDescription")}${method ? ` ${i18n.t(`settings.notifications.method.${method}`)}.` : ""}`}
+      >
+        <Switch label={i18n.t("settings.notifications.enabled")} checked={enabled} onChange={(notifications_enabled) => update({ notifications_enabled })} />
+      </Row>
+      {enabled ? (
+        <>
+          <Row title={i18n.t("settings.notifications.failures")} description={i18n.t("settings.notifications.failuresDescription")}>
+            <Switch label={i18n.t("settings.notifications.failures")} checked={settings?.notify_failures ?? true} onChange={(notify_failures) => update({ notify_failures })} />
+          </Row>
+          <Row title={i18n.t("settings.notifications.recoveries")} description={i18n.t("settings.notifications.recoveriesDescription")}>
+            <Switch label={i18n.t("settings.notifications.recoveries")} checked={settings?.notify_recoveries ?? true} onChange={(notify_recoveries) => update({ notify_recoveries })} />
+          </Row>
+          <Row title={i18n.t("settings.notifications.scope")} description={i18n.t("settings.notifications.scopeDescription")}>
+            <SegmentedControl<Settings["notifications_scope"]>
+              value={settings?.notifications_scope ?? "all"}
+              onChange={(notifications_scope) => update({ notifications_scope })}
+              options={[
+                { value: "all", label: i18n.t("settings.notifications.all") },
+                { value: "favorites", label: i18n.t("settings.notifications.favorites"), count: settings?.favorites.length },
+              ]}
+            />
+          </Row>
+          <Row title={i18n.t("settings.notifications.testTitle")} description={`${i18n.t("settings.notifications.testDescription")} ${i18n.t("settings.notifications.background")}`}>
+            <Button size="sm" loading={testing} onClick={() => void test()}>
+              <Bell className="size-3.5" /> {i18n.t("settings.notifications.test")}
+            </Button>
+          </Row>
+        </>
+      ) : null}
+    </SettingsGroup>
   );
 }
 

@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
+  ChartColumn,
   Check,
   Copy,
   ExternalLink,
@@ -25,6 +26,7 @@ import { HistoryStrip, StatusBadge, StatusIcon } from "@/components/status";
 import { Tooltip } from "@/components/ui/overlays";
 import { Badge, Button, buttonClass, Card, EmptyState, SegmentedControl, Skeleton } from "@/components/ui/primitives";
 import { LocalProjectPanel } from "@/components/local/LocalProjectPanel";
+import { RunStatsPanel } from "@/components/stats/RunStatsPanel";
 import { YamlViewer } from "@/components/YamlViewer";
 import { useLocalStatus } from "@/hooks/local";
 import { useRepoEntry, useScans } from "@/hooks/scans";
@@ -35,7 +37,7 @@ import type { Repository, ScannedWorkflow, WorkflowFile } from "@/lib/types";
 import { cn, eventLabel, firstLine } from "@/lib/utils";
 import { ListSkeleton, Page } from "./OverviewPage";
 
-type Tab = "workflows" | "runs" | "files" | "local";
+type Tab = "workflows" | "runs" | "stats" | "files" | "local";
 
 export function RepoPage() {
   const repoRef = useRepoRef();
@@ -148,6 +150,9 @@ export function RepoPage() {
           <TabButton active={tab === "runs"} onClick={() => setTab("runs")} icon={<History />}>
             {i18n.t("repo.tabs.runs")}
           </TabButton>
+          <TabButton active={tab === "stats"} onClick={() => setTab("stats")} icon={<ChartColumn />}>
+            {i18n.t("repo.tabs.stats")}
+          </TabButton>
           <TabButton active={tab === "files"} onClick={() => setTab("files")} icon={<FileCode2 />}>
             {i18n.t("repo.tabs.files")}
           </TabButton>
@@ -195,6 +200,14 @@ export function RepoPage() {
           workflows={workflows}
           onShowRuns={(wf) => setTab("runs", { workflow: String(wf.id) })}
           onShowFile={(wf) => setTab("files", { path: wf.path })}
+        />
+      ) : tab === "stats" ? (
+        <RunStatsPanel
+          repoRef={repoRef}
+          workflows={workflows}
+          defaultBranch={repo?.default_branch ?? null}
+          workflowId={params.get("workflow")}
+          onWorkflowChange={(id) => setTab("stats", id ? { workflow: id } : {})}
         />
       ) : tab === "runs" ? (
         <RunsTab repoRef={repoRef} workflows={workflows} workflowId={params.get("workflow")} onWorkflowChange={(id) => setTab("runs", id ? { workflow: id } : {})} />
