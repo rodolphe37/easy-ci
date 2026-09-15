@@ -6,6 +6,10 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Unreleased]
 
+### Corrigé
+
+- Après une mise à jour, l'application pouvait continuer d'afficher l'interface de la version précédente (par exemple sans la section *Notifications* des paramètres en 0.4.0) : le cache du moteur web resservait l'ancienne page. L'adresse de l'interface change désormais à chaque version installée.
+
 ## [0.4.0] - 2026-09-15
 
 ### Ajouté

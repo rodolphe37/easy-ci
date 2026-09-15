@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- After an update, the app could keep showing the previous version's interface (for example no *Notifications* section in 0.4.0 settings): the web engine cache served the old page. The interface address now changes with every installed version.
+
 ## [0.4.0] - 2026-09-15
 
 ### Added

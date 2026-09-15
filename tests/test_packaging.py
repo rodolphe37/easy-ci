@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import os
 import re
 import tomllib
 from pathlib import Path
@@ -81,3 +82,24 @@ def test_project_workflows_are_valid(workflow):
         for step in job.get("steps", []):
             uses = step.get("uses", "")
             assert not uses or "@" in uses, uses
+
+
+def test_interface_url_changes_with_each_installation(tmp_path):
+    webview = pytest.importorskip("webview")
+    from webview.util import is_local_url
+
+    from easy_ci.app import interface_url
+
+    index = tmp_path / "web" / "index.html"
+    index.parent.mkdir()
+    index.write_text("<!doctype html>", encoding="utf-8")
+    first = interface_url(index)
+    assert first.startswith(f"{index}?v={__version__}-") and is_local_url(first)
+    # Une réinstallation (nouveau fichier) donne une autre adresse : le cache du moteur web est ignoré.
+    os.utime(index, (index.stat().st_atime, index.stat().st_mtime + 60))
+    assert interface_url(index) != first
+
+    # pywebview sert toujours index.html depuis le dossier de l'interface, paramètre compris.
+    window = webview.Window("t", "Easy CI", first)
+    window._url_prefix, window._common_path = "http://127.0.0.1:42001/", str(index.parent)
+    assert window._resolve_url(first) == f"http://127.0.0.1:42001/index.html?v={first.split('?v=')[1]}"

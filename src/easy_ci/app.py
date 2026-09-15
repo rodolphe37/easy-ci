@@ -11,6 +11,7 @@ from typing import Any
 import webview
 from platformdirs import user_data_dir
 
+from easy_ci import __version__
 from easy_ci.api import Api
 from easy_ci.storage import APP_NAME
 
@@ -52,6 +53,22 @@ def _apply_macos_identity() -> None:
         log.debug("Impossible d'appliquer l'icône macOS", exc_info=True)
 
 
+def interface_url(index: Path) -> str:
+    """Adresse de l'interface, propre à chaque version installée.
+
+    pywebview sert l'interface sur une adresse fixe (http://127.0.0.1:42001) pour conserver le
+    localStorage, et ses en-têtes « no-cache » sont perdus (bottle.static_file les remplace) :
+    après une mise à jour, le moteur web pouvait resservir l'ancien index.html depuis son cache,
+    donc l'ancienne interface. La version et la date du fichier changent l'adresse à chaque
+    installation ; les autres fichiers ont déjà un nom unique par compilation (Vite).
+    """
+    try:
+        stamp = int(index.stat().st_mtime)
+    except OSError:
+        stamp = 0
+    return f"{index}?v={__version__}-{stamp}"
+
+
 def _extend_path_for_bundle() -> None:
     """Une app lancée depuis le Finder hérite d'un PATH minimal : on ajoute les emplacements usuels de git, gh et des éditeurs."""
     if sys.platform != "darwin" or not getattr(sys, "frozen", False):
@@ -75,7 +92,7 @@ def run(dev: bool = False, debug: bool = False) -> int:
     api = Api()
     window = webview.create_window(
         APP_NAME,
-        DEV_URL if dev else str(index),
+        DEV_URL if dev else interface_url(index),
         js_api=JsBridge(api),
         width=1380,
         height=880,
