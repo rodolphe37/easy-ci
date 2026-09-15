@@ -76,6 +76,7 @@ Easy CI rassemble tout cela dans une application desktop : tous les pipelines de
 - **Détail d'une exécution** — jobs (par stage sur GitLab), étapes, durées, commit et auteur.
 - **Logs lisibles** — couleurs ANSI, sections repliables, recherche, horodatage, affichage virtualisé des très gros logs, **logs en direct** sur GitLab et Bitbucket.
 - **Analyse des échecs** — annotations et tests en échec (GitHub, GitLab), extrait autour de l'erreur et saut en un clic à la ligne fautive.
+- **Comparaison d'exécutions** — ce qui a changé depuis la dernière exécution verte : jobs cassés ou réparés, étape en échec, écarts de durée, commits et fichiers modifiés entre les deux, avec les changements de configuration CI et les échecs sur le même commit (tests instables) mis en évidence.
 - **Actions** — relancer tout ou seulement les jobs en échec (selon la plateforme), annuler, ouvrir sur la plateforme.
 
 ### Travailler en local
@@ -119,7 +120,7 @@ Easy CI rassemble tout cela dans une application desktop : tous les pipelines de
 | Validation pendant l'édition | ✅ | ✅ + CI Lint officiel | ✅ |
 | Création de pull / merge request | ✅ | ✅ | ✅ |
 | Génération de pipeline | ✅ | ✅ | ✅ |
-| Notifications, statistiques des exécutions | ✅ | ✅ | ✅ |
+| Notifications, statistiques et comparaison des exécutions | ✅ | ✅ | ✅ |
 | Jobs instables repérés sur les relances de jobs | ✅ | ✅ | — (relances du même commit) |
 | Instances auto-hébergées | — (github.com) | ✅ | — (Bitbucket Cloud) |
 
@@ -281,9 +282,11 @@ Réalisé :
 - [x] Interface et documentation en français et en anglais (i18n)
 - [x] Notifications système quand un pipeline suivi échoue ou repasse au vert
 - [x] Statistiques des exécutions dans le temps (durées, jobs instables)
+- [x] Comparaison de deux exécutions : jobs, durées, commits et fichiers entre les deux
 
 Prochaines idées — retours et contributions bienvenus :
 
+- [ ] Rapports de tests : tests en échec lus dans les rapports JUnit, avec un historique (« échoue depuis N exécutions »)
 - [ ] D'autres langues pour l'interface (contributions bienvenues : un catalogue JSON par langue)
 - [ ] Nouvelles plateformes : Azure Pipelines, CircleCI, Gitea/Forgejo Actions
 - [ ] Linux arm64, AppImage / Flatpak, paquet winget

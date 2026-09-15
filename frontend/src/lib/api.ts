@@ -23,6 +23,7 @@ import type {
   RateLimit,
   RepoScan,
   Repository,
+  RunComparison,
   RunDetail,
   RunsPage,
   Session,
@@ -145,6 +146,8 @@ export const api = {
   rerunRun: (ref: RepoRef, runId: string, failedOnly = false) =>
     call<{ run_id: string } | null>("rerun_run", { ...ref, run_id: runId, failed_only: failedOnly }),
   cancelRun: (ref: RepoRef, runId: string) => call<null>("cancel_run", { ...ref, run_id: runId }),
+  compareRuns: (ref: RepoRef, runId: string, baseRunId?: string | null) =>
+    call<RunComparison>("compare_runs", { ...ref, run_id: runId, base_run_id: baseRunId || null }),
   getRunStats: (ref: RepoRef, options: { workflow_id?: string | null; branch?: string | null; limit?: number } = {}) =>
     call<RunStats>("get_run_stats", { ...ref, ...options }),
 

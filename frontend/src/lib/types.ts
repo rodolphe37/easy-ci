@@ -197,6 +197,81 @@ export interface RunDetail {
   capabilities: Capabilities;
 }
 
+export type JobChange = "broken" | "still_failing" | "fixed" | "added" | "removed" | "changed" | "slower" | "faster" | "unchanged";
+
+export interface JobComparisonSide {
+  id: string;
+  state: RunStateName;
+  outcome: "success" | "failure" | "cancelled" | "skipped" | "allowed_failure";
+  allow_failure: boolean;
+  duration_s: number | null;
+  /** GitHub : première étape en échec. */
+  failed_step: string | null;
+}
+
+export interface JobComparison {
+  name: string;
+  stage: string | null;
+  change: JobChange;
+  base: JobComparisonSide | null;
+  head: JobComparisonSide | null;
+  duration_delta_s: number | null;
+  duration_change: number | null;
+}
+
+export interface CompareCommit {
+  sha: string;
+  title: string;
+  message: string;
+  author: { name: string | null; login: string | null; avatar_url: string | null };
+  date: string | null;
+  html_url: string | null;
+}
+
+export interface CompareFile {
+  path: string;
+  previous_path: string | null;
+  status: "added" | "removed" | "modified" | "renamed";
+  additions: number | null;
+  deletions: number | null;
+  /** Fichier de configuration CI (workflow, .gitlab-ci.yml…). */
+  ci_config: boolean;
+}
+
+export interface CommitRange {
+  /** « behind » : l'exécution comparée porte sur un commit plus ancien que la référence. */
+  status: "ahead" | "behind" | "diverged" | "identical";
+  ahead_by: number | null;
+  behind_by: number | null;
+  /** null : total inconnu (liste incomplète). */
+  total_commits: number | null;
+  commits: CompareCommit[];
+  commits_truncated: boolean;
+  files: CompareFile[];
+  files_total: number | null;
+  files_truncated: boolean;
+  html_url: string | null;
+  ci_config_changed: boolean;
+}
+
+export interface RunComparisonSummary extends Record<JobChange, number> {
+  same_commit: boolean;
+  same_branch: boolean;
+  duration_delta_s: number | null;
+  duration_change: number | null;
+}
+
+export interface RunComparison {
+  head: Run;
+  base: Run | null;
+  /** Comment la référence a été choisie. */
+  baseline: "same_branch" | "default_branch" | "manual" | null;
+  summary: RunComparisonSummary | null;
+  jobs: JobComparison[];
+  commits: CommitRange | null;
+  commits_error: string | null;
+}
+
 export interface RunsPage {
   runs: Run[];
   total_count: number;

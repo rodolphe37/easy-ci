@@ -76,6 +76,7 @@ Easy CI brings all of that into a single desktop app: every pipeline of every re
 - **Run details** — jobs (grouped by stage on GitLab), steps, durations, triggering commit and author.
 - **Readable logs** — ANSI colors, collapsible sections, search, timestamps, virtualized rendering for huge logs, **live logs** on GitLab and Bitbucket.
 - **Failure analysis** — annotations and failing tests (GitHub, GitLab), an excerpt around the error and a one-click jump to the offending line.
+- **Run comparison** — what changed since the last green run: broken or fixed jobs, the failing step, duration changes, commits and changed files in between, with CI configuration changes and same-commit (flaky) failures pointed out.
 - **Actions** — re-run everything or only failed jobs (where the platform supports it), cancel, open on the platform.
 
 ### Work locally
@@ -119,7 +120,7 @@ Easy CI brings all of that into a single desktop app: every pipeline of every re
 | Validation while editing | ✅ | ✅ + official CI Lint | ✅ |
 | Pull / merge request creation | ✅ | ✅ | ✅ |
 | Pipeline generation | ✅ | ✅ | ✅ |
-| Notifications, run statistics | ✅ | ✅ | ✅ |
+| Notifications, run statistics, run comparison | ✅ | ✅ | ✅ |
 | Flaky jobs from retried jobs | ✅ | ✅ | — (same-commit re-runs) |
 | Self-managed instances | — (github.com) | ✅ | — (Bitbucket Cloud) |
 
@@ -281,9 +282,11 @@ Done:
 - [x] English and French interface and documentation (i18n)
 - [x] Desktop notifications when a watched pipeline fails or recovers
 - [x] Workflow run statistics (durations, flaky jobs) over time
+- [x] Compare two runs: jobs, durations, commits and files in between
 
 Next ideas — feedback and contributions welcome:
 
+- [ ] Test reports: failing tests from JUnit reports, with a history (“failing for N runs”)
 - [ ] More interface languages (contributions welcome: one JSON catalog per language)
 - [ ] More providers: Azure Pipelines, CircleCI, Gitea/Forgejo Actions
 - [ ] Linux arm64 builds, AppImage / Flatpak, winget package

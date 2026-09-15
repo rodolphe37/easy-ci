@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Run comparison**: a *Compare* button on every completed run shows what changed since a baseline — by default the last successful run of the same workflow (same branch, otherwise default branch), or the previous run when it succeeded; any other run can be picked. Broken, fixed, still failing, new and removed jobs, the failing step (GitHub), total and per-job duration changes, then the commits and changed files in between with a link to the platform diff. CI configuration changes and failures on the same commit (likely flaky) are pointed out. Works on GitHub, GitLab, Bitbucket and in demo mode.
+
+### Changed
+
+- *Settings › Tracked repositories*: the *Added manually* and *Hidden* lists collapse when they hold more than 5 repositories.
+
 ## [0.4.1] - 2026-09-15
 
 ### Added

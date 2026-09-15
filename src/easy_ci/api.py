@@ -22,6 +22,7 @@ from typing import Any
 
 from easy_ci import __version__
 from easy_ci.bitbucket.service import BitbucketClient, BitbucketService
+from easy_ci.compare import build_comparison, pick_baseline
 from easy_ci.demo import DemoService
 from easy_ci.errors import AuthError, EasyCIError, ForbiddenError, NetworkError, NotAuthenticatedError, NotFoundError
 from easy_ci.generation.detect import detect as detect_stack
@@ -104,6 +105,8 @@ class Api:
         self._updates = update_checker or UpdateChecker()
         self._notifier = notifier or Notifier()
         # Jobs des exécutions terminées (immuables) : les statistiques ne les téléchargent qu'une fois.
+        # Écarts entre deux commits (immuables) : une comparaison rouverte ne rappelle pas la plateforme.
+        self._commits_cache: OrderedDict[tuple[int, str, str, str], dict[str, Any]] = OrderedDict()
         self._attempts_cache: OrderedDict[tuple[int, str, str, int], list[dict[str, Any]]] = OrderedDict()
 
         def repo(method: str) -> Callable[..., Any]:
@@ -126,6 +129,7 @@ class Api:
             "notification_support": lambda: self._notifier.capabilities(),
             "notify": lambda title, body="": self._notifier.notify(str(title), str(body)),
             "get_run_stats": self.get_run_stats,
+            "compare_runs": self.compare_runs,
             "list_repositories": self.list_repositories,
             "add_repository": self.add_repository,
             "remove_repository": self.remove_repository,
@@ -517,6 +521,68 @@ class Api:
         workflows = {str(run.get("workflow_id")): run.get("name") for run in runs if run.get("name")}
         stats = compute_stats(runs, attempts_by_run, workflows)
         return {**stats, "limit": limit, "workflow_id": workflow_id, "branch": branch, "incomplete_runs": failures, "total_runs": page.get("total_count")}
+
+    # -- Comparaison ------------------------------------------------------
+
+    COMMITS_CACHE_SIZE = 50
+
+    def compare_runs(self, provider: str, full_name: str, run_id: str, base_run_id: str | None = None) -> dict[str, Any]:
+        """Écart entre une exécution et une référence : choisie, ou la dernière réussite qui la précède."""
+        service = self._service(provider)
+        head = service.get_run(full_name, str(run_id))
+        head_run = head["run"]
+
+        baseline = "manual"
+        if base_run_id:
+            base = service.get_run(full_name, str(base_run_id))
+        else:
+            base_summary, baseline = self._find_baseline(service, full_name, head_run)
+            base = service.get_run(full_name, str(base_summary["id"])) if base_summary else None
+
+        result: dict[str, Any] = {"head": head_run, "base": base["run"] if base else None, "baseline": baseline if base else None, "commits_error": None}
+        if base is None:
+            return {**result, "summary": None, "jobs": [], "commits": None}
+
+        commits = None
+        base_sha, head_sha = base["run"].get("head_sha"), head_run.get("head_sha")
+        if base_sha and head_sha and base_sha != head_sha:
+            try:
+                commits = self._compare_commits(service, full_name, base_sha, head_sha)
+            except (NotFoundError, ForbiddenError, NetworkError) as exc:
+                # Commit supprimé (force push), dépôt inaccessible… : la comparaison des jobs reste utile.
+                log.info("Comparaison des commits %s...%s indisponible : %s", base_sha, head_sha, exc)
+                result["commits_error"] = str(exc)
+        return {**result, **build_comparison(base, head, commits)}
+
+    def _find_baseline(self, service: Any, full_name: str, head: dict[str, Any]) -> tuple[dict[str, Any] | None, str]:
+        """Même workflow sur la même branche, sinon sur la branche par défaut."""
+        status = None if head.get("state") == "success" else "success"
+        workflow_id = head.get("workflow_id") or None
+        branch = head.get("branch") or None
+        page = service.list_runs(full_name, workflow_id=workflow_id, branch=branch, status=status, per_page=20)
+        found = pick_baseline(head, page["runs"])
+        if found:
+            return found, "same_branch"
+        default_branch = service.get_repository(full_name).get("default_branch")
+        if default_branch and default_branch != branch:
+            page = service.list_runs(full_name, workflow_id=workflow_id, branch=default_branch, status=status, per_page=20)
+            found = pick_baseline(head, page["runs"])
+            if found:
+                return found, "default_branch"
+        return None, "none"
+
+    def _compare_commits(self, service: Any, full_name: str, base_sha: str, head_sha: str) -> dict[str, Any]:
+        key = (id(service), full_name, base_sha, head_sha)
+        with self._lock:
+            cached = self._commits_cache.get(key)
+        if cached is not None:
+            return cached
+        commits = service.compare_commits(full_name, base_sha, head_sha)
+        with self._lock:
+            self._commits_cache[key] = commits
+            while len(self._commits_cache) > self.COMMITS_CACHE_SIZE:
+                self._commits_cache.popitem(last=False)
+        return commits
 
     # -- Divers -----------------------------------------------------------
 

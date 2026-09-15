@@ -6,6 +6,7 @@ import {
   ExternalLink,
   FileWarning,
   GitCommitHorizontal,
+  GitCompareArrows,
   Info,
   RotateCcw,
   ScrollText,
@@ -19,10 +20,10 @@ import { LogViewer, plainText, type LogViewerHandle } from "@/components/LogView
 import { BranchChip, EventIcon, MetaItem, RunDuration, TimeAgo } from "@/components/runs";
 import { isActive, STATE_COLORS, stateLabel, StatusBadge, StatusIcon } from "@/components/status";
 import { Menu, MenuContent, MenuItem, MenuTrigger, Tooltip } from "@/components/ui/overlays";
-import { Avatar, Badge, Button, Card, EmptyState, Skeleton, Spinner } from "@/components/ui/primitives";
+import { Avatar, Badge, Button, buttonClass, Card, EmptyState, Skeleton, Spinner } from "@/components/ui/primitives";
 import { useNow } from "@/hooks/useNow";
 import { api, ApiError, type RepoRef } from "@/lib/api";
-import { PROVIDER_LABELS, ProviderIcon, repoKey, repoPath, runPath, useRepoRef } from "@/lib/providers";
+import { comparePath, PROVIDER_LABELS, ProviderIcon, repoKey, repoPath, runPath, useRepoRef } from "@/lib/providers";
 import type { Annotation, Capabilities, Job, JobLog, Run } from "@/lib/types";
 import { cn, elapsedSeconds, eventLabel, firstLine, formatDuration, shortSha } from "@/lib/utils";
 import { Page } from "./OverviewPage";
@@ -270,6 +271,13 @@ function RunHeader({
                 ) : null}
               </MenuContent>
             </Menu>
+          ) : null}
+          {!active ? (
+            <Tooltip content={i18n.t(run.state === "success" ? "compare.buttonTooltip" : "compare.buttonTooltipFailure")}>
+              <Link to={comparePath(repoRef.provider, repoRef.full_name, run.id)} className={buttonClass("secondary")}>
+                <GitCompareArrows /> {i18n.t("compare.button")}
+              </Link>
+            </Tooltip>
           ) : null}
           <Tooltip content={i18n.t("common.openOn", { provider: providerLabel })}>
             <Button variant="secondary" size="icon" onClick={() => void api.openExternal(run.html_url)} aria-label={i18n.t("common.openOn", { provider: providerLabel })}>

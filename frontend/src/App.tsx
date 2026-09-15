@@ -13,7 +13,7 @@ import { SettingsProvider, useSession, useSettings } from "@/hooks/session";
 import { UpdatesProvider } from "@/hooks/updates";
 import i18n from "@/i18n";
 import { ApiError } from "@/lib/api";
-import { repoPath } from "@/lib/providers";
+import { repoPath, runPath } from "@/lib/providers";
 import type { ProviderId } from "@/lib/types";
 import { ConnectPage } from "@/pages/ConnectPage";
 import { DocsPage } from "@/pages/DocsPage";
@@ -22,6 +22,7 @@ import { GeneratePage } from "@/pages/GeneratePage";
 import { OverviewPage } from "@/pages/OverviewPage";
 import { RepoPage } from "@/pages/RepoPage";
 import { ReposPage } from "@/pages/ReposPage";
+import { RunComparePage } from "@/pages/RunComparePage";
 import { RunPage } from "@/pages/RunPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 
@@ -43,6 +44,17 @@ function createRouter() {
           path: "repos/:provider/:repo/runs/:runId",
           element: <RunPage />,
           handle: { crumb: (params) => [...repoCrumbs(params), { label: i18n.t("nav.run") }] } satisfies RouteHandle,
+        },
+        {
+          path: "repos/:provider/:repo/runs/:runId/compare",
+          element: <RunComparePage />,
+          handle: {
+            crumb: (params) => [
+              ...repoCrumbs(params),
+              { label: i18n.t("nav.run"), to: runPath((params.provider ?? "github") as ProviderId, params.repo ?? "", params.runId ?? "") },
+              { label: i18n.t("nav.compare") },
+            ],
+          } satisfies RouteHandle,
         },
         {
           path: "repos/:provider/:repo/edit",

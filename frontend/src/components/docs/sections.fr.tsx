@@ -10,6 +10,7 @@ import {
   FolderGit2,
   Gauge,
   GitBranch,
+  GitCompareArrows,
   KeyRound,
   FilePlus2,
   Keyboard,
@@ -531,6 +532,49 @@ export const DOC_SECTIONS: DocSection[] = [
           sont conservées.
         </P>
         <Callout variant="info">Pour les logs très volumineux, seules les 20 000 dernières lignes sont affichées : c'est là que se trouvent les erreurs.</Callout>
+      </>
+    ),
+  },
+  {
+    id: "compare",
+    title: "Comparer deux exécutions",
+    icon: GitCompareArrows,
+    summary: "Ce qui a changé depuis la dernière réussite : jobs, durées, commits.",
+    content: (
+      <>
+        <P>
+          Le bouton <Strong>Comparer</Strong>, en haut d'une exécution terminée, répond à la question « qu'est-ce qui a changé depuis que ça marchait ? ». Easy CI
+          choisit une référence et affiche l'écart entre les deux exécutions.
+        </P>
+        <H3>La référence</H3>
+        <Table
+          head={["Exécution comparée", "Référence proposée"]}
+          rows={[
+            ["En échec ou annulée", "La dernière exécution réussie du même workflow qui la précède, sur la même branche, sinon sur la branche par défaut."],
+            ["Réussie", "L'exécution terminée (réussie ou en échec) qui la précède : utile pour suivre les durées."],
+          ]}
+        />
+        <P>
+          Le bouton <Strong>Changer</Strong> permet de choisir une autre exécution du même workflow, puis de revenir à la référence automatique.
+        </P>
+        <H3>Ce qui est comparé</H3>
+        <Table
+          head={["Élément", "Détail"]}
+          rows={[
+            ["Jobs", "Rapprochés par leur nom : cassé, réparé, toujours en échec, nouveau, supprimé, statut modifié. Sur GitHub, l'étape en échec est indiquée. Cliquez sur un job pour ouvrir son log."],
+            ["Durées", "Durée totale et écart par job. Un job est « plus lent » ou « plus rapide » au-delà de 30 secondes et de 25 % d'écart."],
+            ["Commits", "Les commits de l'exécution comparée absents de la référence, avec leur auteur. Voir le diff ouvre la comparaison sur la plateforme."],
+            ["Fichiers", "Fichiers modifiés et lignes ajoutées ou supprimées. Les fichiers de configuration CI sont signalés et placés en tête."],
+          ]}
+        />
+        <Callout variant="warning" title="Même commit, résultat différent ?">
+          Si les deux exécutions portent sur le même commit, le code n'y est pour rien : Easy CI le signale. L'échec vient probablement d'un test instable, d'une
+          dépendance externe ou du runner (voir Statistiques des exécutions).
+        </Callout>
+        <Callout variant="info">
+          Les commits sont demandés à la plateforme (un appel par comparaison, gardé en mémoire pendant la session). Si un commit a disparu, par exemple après un
+          force push, la comparaison des jobs reste affichée.
+        </Callout>
       </>
     ),
   },

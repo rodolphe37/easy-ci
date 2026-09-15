@@ -6,6 +6,14 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Unreleased]
 
+### Ajouté
+
+- **Comparaison d'exécutions** : un bouton *Comparer* sur chaque exécution terminée montre ce qui a changé depuis une référence — par défaut la dernière exécution réussie du même workflow (même branche, sinon branche par défaut), ou l'exécution précédente si elle a réussi ; toute autre exécution peut être choisie. Jobs cassés, réparés, toujours en échec, nouveaux ou supprimés, étape en échec (GitHub), écarts de durée totale et par job, puis commits et fichiers modifiés entre les deux avec un lien vers le diff sur la plateforme. Les changements de configuration CI et les échecs sur le même commit (probablement instables) sont signalés. Disponible sur GitHub, GitLab, Bitbucket et en mode démo.
+
+### Modifié
+
+- *Paramètres › Dépôts suivis* : les listes *Ajoutés manuellement* et *Masqués* se replient quand elles contiennent plus de 5 dépôts.
+
 ## [0.4.1] - 2026-09-15
 
 ### Ajouté

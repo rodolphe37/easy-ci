@@ -7,6 +7,7 @@ import threading
 from typing import Any
 
 from easy_ci import logs
+from easy_ci.compare import commit_entry, commit_range, file_entry
 from easy_ci.errors import NotFoundError
 from easy_ci.github import normalize
 from easy_ci.github.client import GitHubClient
@@ -122,6 +123,36 @@ class GitHubService:
     def cancel_run(self, full_name: str, run_id: str) -> None:
         self._client.post(f"/repos/{full_name}/actions/runs/{run_id}/cancel")
 
+    def compare_commits(self, full_name: str, base_sha: str, head_sha: str) -> dict[str, Any]:
+        """Commits et fichiers entre deux commits (base...head, depuis leur ancêtre commun)."""
+        raw = self._client.get_json(f"/repos/{full_name}/compare/{base_sha}...{head_sha}")
+        commits = [
+            commit_entry(
+                item["sha"],
+                (item.get("commit") or {}).get("message"),
+                ((item.get("commit") or {}).get("author") or {}).get("name"),
+                ((item.get("commit") or {}).get("author") or {}).get("date"),
+                item.get("html_url"),
+                login=(item.get("author") or {}).get("login"),
+                avatar_url=(item.get("author") or {}).get("avatar_url"),
+            )
+            for item in reversed(raw.get("commits") or [])
+        ]
+        files = [
+            file_entry(item.get("filename"), _FILE_STATUSES.get(item.get("status"), "modified"), item.get("previous_filename"), item.get("additions"), item.get("deletions"))
+            for item in raw.get("files") or []
+        ]
+        return commit_range(
+            status=raw.get("status") or "ahead",
+            commits=commits,
+            total_commits=raw.get("total_commits"),
+            files=files,
+            more_files=len(files) >= _COMPARE_FILES_LIMIT,
+            ahead_by=raw.get("ahead_by"),
+            behind_by=raw.get("behind_by"),
+            html_url=raw.get("html_url"),
+        )
+
     # -- Pull requests ----------------------------------------------------
 
     def find_pull_request(self, full_name: str, branch: str) -> dict[str, Any] | None:
@@ -146,6 +177,10 @@ class GitHubService:
             "content": content,
             "summary": summarize_workflow(content),
         }
+
+
+_COMPARE_FILES_LIMIT = 300  # GitHub ne liste pas plus de fichiers dans une comparaison
+_FILE_STATUSES = {"added": "added", "removed": "removed", "renamed": "renamed", "copied": "added"}
 
 
 def _pull_request(raw: dict[str, Any]) -> dict[str, Any]:

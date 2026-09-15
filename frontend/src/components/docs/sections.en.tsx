@@ -10,6 +10,7 @@ import {
   FolderGit2,
   Gauge,
   GitBranch,
+  GitCompareArrows,
   KeyRound,
   FilePlus2,
   Keyboard,
@@ -528,6 +529,49 @@ export const DOC_SECTIONS: DocSection[] = [
           Error lines carry a red <Strong>Error</Strong> badge, warnings an orange badge. Colors produced by your tools (tests, linters) are preserved.
         </P>
         <Callout variant="info">For very large logs, only the last 20,000 lines are shown: that's where the errors are.</Callout>
+      </>
+    ),
+  },
+  {
+    id: "compare",
+    title: "Compare two runs",
+    icon: GitCompareArrows,
+    summary: "What changed since the last success: jobs, durations, commits.",
+    content: (
+      <>
+        <P>
+          The <Strong>Compare</Strong> button, at the top of a completed run, answers the question “what changed since it last worked?”. Easy CI picks a baseline and
+          shows the difference between the two runs.
+        </P>
+        <H3>The baseline</H3>
+        <Table
+          head={["Compared run", "Suggested baseline"]}
+          rows={[
+            ["Failed or cancelled", "The last successful run of the same workflow before it, on the same branch, otherwise on the default branch."],
+            ["Successful", "The completed run (successful or failed) before it: useful to follow durations."],
+          ]}
+        />
+        <P>
+          The <Strong>Change</Strong> button lets you pick another run of the same workflow, then go back to the automatic baseline.
+        </P>
+        <H3>What is compared</H3>
+        <Table
+          head={["Item", "Details"]}
+          rows={[
+            ["Jobs", "Matched by name: broken, fixed, still failing, new, removed, status changed. On GitHub, the failing step is shown. Click a job to open its log."],
+            ["Durations", "Total duration and per-job difference. A job is “slower” or “faster” beyond 30 seconds and a 25% difference."],
+            ["Commits", "Commits of the compared run missing from the baseline, with their author. View diff opens the comparison on the platform."],
+            ["Files", "Changed files with added and removed lines. CI configuration files are flagged and listed first."],
+          ]}
+        />
+        <Callout variant="warning" title="Same commit, different result?">
+          When both runs are on the same commit, the code is not to blame: Easy CI points it out. The failure most likely comes from a flaky test, an external
+          dependency or the runner (see Run statistics).
+        </Callout>
+        <Callout variant="info">
+          Commits are requested from the platform (one call per comparison, kept in memory for the session). If a commit is gone, for example after a force push, the
+          job comparison is still shown.
+        </Callout>
       </>
     ),
   },

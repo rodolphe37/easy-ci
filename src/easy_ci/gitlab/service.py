@@ -11,6 +11,7 @@ from urllib.parse import quote
 import httpx
 
 from easy_ci import logs
+from easy_ci.compare import commit_entry, commit_range, file_entry
 from easy_ci.errors import EasyCIError, ForbiddenError, NotFoundError
 from easy_ci.gitlab import normalize
 from easy_ci.http import ApiClient
@@ -230,6 +231,42 @@ class GitLabService:
     def cancel_run(self, full_name: str, run_id: str) -> None:
         self._client.post(f"{self._base(full_name)}/pipelines/{run_id}/cancel")
 
+    def compare_commits(self, full_name: str, base_sha: str, head_sha: str) -> dict[str, Any]:
+        """Commits et fichiers entre deux commits (depuis leur ancêtre commun)."""
+        project = self._project(full_name)
+        base = self._base(full_name)
+        raw = self._client.get_json(f"{base}/repository/compare", {"from": base_sha, "to": head_sha, "straight": "false"})
+        commits = sorted(raw.get("commits") or [], key=lambda item: item.get("created_at") or item.get("authored_date") or "", reverse=True)
+        behind_by = None
+        status = "ahead" if commits else "identical"
+        if not commits and base_sha != head_sha:
+            # Rien de nouveau côté « head » : l'exécution comparée porte peut-être sur un commit plus ancien.
+            reverse = self._client.get_json(f"{base}/repository/compare", {"from": head_sha, "to": base_sha, "straight": "false"})
+            behind_by = len(reverse.get("commits") or [])
+            status = "behind" if behind_by else "identical"
+        files = []
+        for diff in raw.get("diffs") or []:
+            status_name = "added" if diff.get("new_file") else "removed" if diff.get("deleted_file") else "renamed" if diff.get("renamed_file") else "modified"
+            additions, deletions = _count_diff_lines(diff.get("diff"))
+            files.append(file_entry(diff.get("new_path") or diff.get("old_path"), status_name, diff.get("old_path"), additions, deletions))
+        return commit_range(
+            status=status,
+            commits=[
+                commit_entry(
+                    item["id"],
+                    item.get("message") or item.get("title"),
+                    item.get("author_name"),
+                    item.get("created_at") or item.get("authored_date"),
+                    item.get("web_url") or f"{project['html_url']}/-/commit/{item['id']}",
+                )
+                for item in commits
+            ],
+            files=files,
+            ahead_by=len(commits),
+            behind_by=behind_by,
+            html_url=f"{project['html_url']}/-/compare/{base_sha}...{head_sha}",
+        )
+
     # -- Merge requests & validation officielle ----------------------------
 
     def find_pull_request(self, full_name: str, branch: str) -> dict[str, Any] | None:
@@ -311,6 +348,16 @@ class GitLabService:
         head = list(self._pool.map(enrich, raw_pipelines[:limit]))
         tail = [normalize.pipeline(raw, full_name) for raw in raw_pipelines[limit:]]
         return head + tail
+
+
+def _count_diff_lines(diff: str | None) -> tuple[int | None, int | None]:
+    """Lignes ajoutées et supprimées d'un diff unifié (None si GitLab ne l'a pas renvoyé, fichier trop gros)."""
+    if not diff:
+        return None, None
+    lines = diff.split("\n")
+    additions = sum(1 for line in lines if line.startswith("+") and not line.startswith("+++"))
+    deletions = sum(1 for line in lines if line.startswith("-") and not line.startswith("---"))
+    return additions, deletions
 
 
 def _merge_request(raw: dict[str, Any]) -> dict[str, Any]:

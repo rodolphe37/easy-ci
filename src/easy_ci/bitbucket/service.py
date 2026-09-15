@@ -11,6 +11,7 @@ import httpx
 
 from easy_ci import logs
 from easy_ci.bitbucket import normalize
+from easy_ci.compare import MAX_COMMITS, MAX_FILES, commit_entry, commit_range, file_entry
 from easy_ci.errors import EasyCIError, ForbiddenError, NotFoundError
 from easy_ci.http import ApiClient
 from easy_ci.i18n import tr
@@ -202,6 +203,56 @@ class BitbucketService:
     def cancel_run(self, full_name: str, run_id: str) -> None:
         self._client.post(f"/repositories/{full_name}/pipelines/{_uuid(run_id)}/stopPipeline")
 
+    def compare_commits(self, full_name: str, base_sha: str, head_sha: str) -> dict[str, Any]:
+        """Commits accessibles depuis `head` mais pas depuis `base`, et fichiers modifiés depuis leur ancêtre commun."""
+        data = self._client.get_json(f"/repositories/{full_name}/commits/{quote(head_sha, safe='')}", {"exclude": base_sha, "pagelen": MAX_COMMITS})
+        values = data.get("values") or []
+        behind_by = None
+        status = "ahead" if values else "identical"
+        if not values and base_sha != head_sha:
+            reverse = self._client.get_json(f"/repositories/{full_name}/commits/{quote(base_sha, safe='')}", {"exclude": head_sha, "pagelen": MAX_COMMITS})
+            behind_by = len(reverse.get("values") or [])
+            status = "behind" if behind_by else "identical"
+
+        commits = []
+        for item in values:
+            author = item.get("author") or {}
+            account = author.get("user") or {}
+            raw_name = (author.get("raw") or "").split("<", 1)[0].strip()
+            commits.append(
+                commit_entry(
+                    item["hash"],
+                    item.get("message"),
+                    account.get("display_name") or raw_name,
+                    item.get("date"),
+                    ((item.get("links") or {}).get("html") or {}).get("href"),
+                    login=account.get("nickname"),
+                    avatar_url=((account.get("links") or {}).get("avatar") or {}).get("href"),
+                )
+            )
+
+        files: list[dict[str, Any]] = []
+        diffstat: dict[str, Any] = {}
+        if values:
+            # Spécification « source..destination » : diff de head depuis son ancêtre commun avec base.
+            diffstat = self._client.get_json(f"/repositories/{full_name}/diffstat/{head_sha}..{base_sha}", {"pagelen": MAX_FILES})
+            for item in diffstat.get("values") or []:
+                new, old = item.get("new") or {}, item.get("old") or {}
+                files.append(
+                    file_entry(new.get("path") or old.get("path"), _DIFFSTAT_STATUSES.get(item.get("status"), "modified"), old.get("path"), item.get("lines_added"), item.get("lines_removed"))
+                )
+        return commit_range(
+            status=status,
+            commits=commits,
+            files=files,
+            files_total=diffstat.get("size"),
+            more_commits=bool(data.get("next")),
+            more_files=bool(diffstat.get("next")),
+            ahead_by=None if data.get("next") else len(values),
+            behind_by=behind_by,
+            html_url=f"{normalize.WEB_URL}/{full_name}/branches/compare/{head_sha}%0D{base_sha}#diff",
+        )
+
     # -- Pull requests ----------------------------------------------------
 
     def find_pull_request(self, full_name: str, branch: str) -> dict[str, Any] | None:
@@ -273,6 +324,9 @@ class BitbucketService:
 
         head = list(self._pool.map(enrich, raw_pipelines[:limit]))
         return head + [normalize.pipeline(raw, full_name) for raw in raw_pipelines[limit:]]
+
+
+_DIFFSTAT_STATUSES = {"added": "added", "removed": "removed", "renamed": "renamed"}
 
 
 def mark_commands(text: str) -> str:

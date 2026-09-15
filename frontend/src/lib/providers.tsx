@@ -20,6 +20,10 @@ export function runPath(provider: ProviderId, fullName: string, runId: string) {
   return repoPath(provider, fullName, `/runs/${encodeURIComponent(runId)}`);
 }
 
+export function comparePath(provider: ProviderId, fullName: string, runId: string, baseRunId?: string | null) {
+  return `${runPath(provider, fullName, runId)}/compare${baseRunId ? `?base=${encodeURIComponent(baseRunId)}` : ""}`;
+}
+
 export function repoKey(provider: ProviderId, fullName: string) {
   return `${provider}:${fullName}`;
 }

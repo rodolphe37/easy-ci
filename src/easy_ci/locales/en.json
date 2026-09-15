@@ -74,6 +74,7 @@
   "Expression « ${{ » non refermée par « }} ».": "Expression \"${{\" not closed by \"}}\".",
   "Exécution": "Run",
   "Exécution introuvable.": "Run not found.",
+  "Commit introuvable.": "Commit not found.",
   "Facturation et abonnements (FastAPI)": "Billing and subscriptions (FastAPI)",
   "Format non reconnu. Utilisez « propriétaire/dépôt » ou l'URL du dépôt.": "Unrecognized format. Use \"owner/repository\" or the repository URL.",
   "Git n'a pas pu s'authentifier auprès du serveur. Configurez un accès SSH ou un gestionnaire d'identifiants Git (par exemple « gh auth setup-git » pour GitHub), puis réessayez.": "Git could not authenticate with the server. Set up SSH access or a Git credential helper (for example \"gh auth setup-git\" for GitHub), then try again.",

@@ -16,6 +16,7 @@ from typing import Any
 
 from easy_ci import logs
 from easy_ci.bitbucket.service import mark_commands
+from easy_ci.compare import commit_entry, commit_range, file_entry
 from easy_ci.errors import NotFoundError
 from easy_ci.i18n import N_, tr
 from easy_ci.providers import BITBUCKET, GITHUB, GITLAB, PROVIDER_INFO, build_scan, capabilities, empty_scan, repo_key
@@ -1038,6 +1039,19 @@ _MESSAGES = [
     N_("ci: activation du cache npm"),
     N_("feat: nouveau tunnel de commande"),
 ]
+# Fichiers modifiés par chaque message de commit simulé (« {ci} » : fichier CI du dépôt).
+_MESSAGE_FILES: dict[str, tuple[tuple[str, str, int, int], ...]] = {
+    _MESSAGES[0]: (("src/checkout/vat.ts", "modified", 18, 6), ("src/checkout/vat.test.ts", "modified", 42, 3)),
+    _MESSAGES[1]: (("src/payments/installments.ts", "added", 164, 0), ("src/payments/index.ts", "modified", 4, 1), ("src/payments/installments.test.ts", "added", 88, 0)),
+    _MESSAGES[2]: (("package.json", "modified", 1, 1), ("package-lock.json", "modified", 36, 34)),
+    _MESSAGES[3]: (("src/cart/cart.service.ts", "added", 121, 0), ("src/cart/cart.ts", "modified", 12, 97), ("src/cart/legacy-cart.ts", "removed", 0, 58)),
+    _MESSAGES[4]: (("src/api/transactions.ts", "modified", 57, 14), ("docs/api/transactions.md", "modified", 22, 2)),
+    _MESSAGES[5]: (("src/webhooks/stripe.ts", "modified", 9, 4),),
+    _MESSAGES[6]: (("CONTRIBUTING.md", "modified", 31, 12),),
+    _MESSAGES[7]: (("src/catalog/product-cache.ts", "added", 73, 0), ("src/catalog/products.ts", "modified", 15, 8)),
+    _MESSAGES[8]: (("{ci}", "modified", 6, 1),),
+    _MESSAGES[9]: (("src/checkout/funnel.tsx", "added", 212, 0), ("src/checkout/legacy-funnel.tsx", "removed", 0, 146), ("src/routes.tsx", "modified", 3, 3)),
+}
 _ACTORS = ["marie-dupont", "thomas-martin", "dependabot[bot]", "demo-user", "lea-bernard"]
 _BRANCHES = ["main", "main", "feat/paiement-3x", "main", "fix/tva-remises", "main"]
 
@@ -1463,6 +1477,53 @@ class DemoService:
         host = PROVIDER_INFO[provider]["default_host"]
         html_url = {GITHUB: f"{host}/{full_name}/blob/main/{path}", GITLAB: f"{host}/{full_name}/-/blob/main/{path}", BITBUCKET: f"{host}/{full_name}/src/main/{path}"}[provider]
         return {"path": path, "sha": _sha(workflow.content), "html_url": html_url, "content": workflow.content, "summary": summarize(provider, workflow.content)}
+
+    def compare_commits(self, full_name: str, base_sha: str, head_sha: str) -> dict[str, Any]:
+        """Commits simulés : ceux des exécutions du dépôt (tous workflows) entre les deux commits."""
+        provider = self._provider(full_name)
+        host = PROVIDER_INFO[provider]["default_host"]
+        now = time.time()
+        with self._lock:
+            runs = sorted((r for wf in self._workflows.get(full_name, []) for r in wf.runs if r.start <= now), key=lambda r: r.start)
+        first_run: dict[str, DemoRun] = {}
+        for demo_run in runs:
+            first_run.setdefault(_sha(demo_run.sha_seed or str(demo_run.id)), demo_run)
+        base, head = first_run.get(base_sha), first_run.get(head_sha)
+        if base is None or head is None:
+            raise NotFoundError(tr("Commit introuvable."))
+
+        def between(older: DemoRun, newer: DemoRun) -> list[tuple[str, DemoRun]]:
+            return sorted(((sha, r) for sha, r in first_run.items() if older.start < r.start <= newer.start), key=lambda item: item[1].start, reverse=True)
+
+        ahead = between(base, head)
+        behind = between(head, base)
+        commit_url = {GITHUB: "{host}/{repo}/commit/{sha}", GITLAB: "{host}/{repo}/-/commit/{sha}", BITBUCKET: "{host}/{repo}/commits/{sha}"}[provider]
+        ci_path = next((wf.path for wf in self._workflows.get(full_name, [])), "")
+
+        files: dict[str, dict[str, Any]] = {}
+        for _, demo_run in reversed(ahead):
+            for path, status, additions, deletions in _MESSAGE_FILES.get(demo_run.message, ()):
+                path = path.replace("{ci}", ci_path)
+                entry = files.setdefault(path, file_entry(path, status, additions=0, deletions=0))
+                entry["additions"] += additions
+                entry["deletions"] += deletions
+
+        compare_url = {
+            GITHUB: f"{host}/{full_name}/compare/{base_sha}...{head_sha}",
+            GITLAB: f"{host}/{full_name}/-/compare/{base_sha}...{head_sha}",
+            BITBUCKET: f"{host}/{full_name}/branches/compare/{head_sha}%0D{base_sha}#diff",
+        }[provider]
+        return commit_range(
+            status="diverged" if ahead and behind else "ahead" if ahead else "behind" if behind else "identical",
+            commits=[
+                commit_entry(sha, tr(r.message), r.actor, _iso(r.start - 180), commit_url.format(host=host, repo=full_name, sha=sha), login=r.actor)
+                for sha, r in ahead
+            ],
+            files=sorted(files.values(), key=lambda item: item["path"]),
+            ahead_by=len(ahead),
+            behind_by=len(behind),
+            html_url=compare_url,
+        )
 
     # -- Pull requests & validation ---------------------------------------
 
