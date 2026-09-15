@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-15
+
 ### Added
 
 - **Run comparison**: a *Compare* button on every completed run shows what changed since a baseline — by default the last successful run of the same workflow (same branch, otherwise default branch), or the previous run when it succeeded; any other run can be picked. Broken, fixed, still failing, new and removed jobs, the failing step (GitHub), total and per-job duration changes, then the commits and changed files in between with a link to the platform diff. CI configuration changes and failures on the same commit (likely flaky) are pointed out. Works on GitHub, GitLab, Bitbucket and in demo mode.
@@ -88,7 +90,8 @@ First public version.
 - Built-in documentation, light and dark themes, native window with app icons for macOS, Windows and Linux.
 - Project CI/CD: lint and tests on Linux, macOS and Windows, standalone PyInstaller apps for macOS (Apple Silicon and Intel), Windows and Linux, automated GitHub Releases with SHA-256 checksums.
 
-[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/rodolphe37/easy-ci/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/rodolphe37/easy-ci/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/rodolphe37/easy-ci/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/rodolphe37/easy-ci/compare/v0.2.0...v0.3.0

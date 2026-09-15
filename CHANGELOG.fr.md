@@ -6,6 +6,8 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-15
+
 ### Ajouté
 
 - **Comparaison d'exécutions** : un bouton *Comparer* sur chaque exécution terminée montre ce qui a changé depuis une référence — par défaut la dernière exécution réussie du même workflow (même branche, sinon branche par défaut), ou l'exécution précédente si elle a réussi ; toute autre exécution peut être choisie. Jobs cassés, réparés, toujours en échec, nouveaux ou supprimés, étape en échec (GitHub), écarts de durée totale et par job, puis commits et fichiers modifiés entre les deux avec un lien vers le diff sur la plateforme. Les changements de configuration CI et les échecs sur le même commit (probablement instables) sont signalés. Disponible sur GitHub, GitLab, Bitbucket et en mode démo.
@@ -88,7 +90,8 @@ Première version publique.
 - Documentation intégrée, thèmes clair et sombre, fenêtre native avec icônes de l'application pour macOS, Windows et Linux.
 - CI/CD du projet : lint et tests sous Linux, macOS et Windows, applications PyInstaller autonomes pour macOS (Apple Silicon et Intel), Windows et Linux, GitHub Releases automatisées avec empreintes SHA-256.
 
-[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/rodolphe37/easy-ci/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/rodolphe37/easy-ci/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/rodolphe37/easy-ci/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/rodolphe37/easy-ci/compare/v0.2.0...v0.3.0
