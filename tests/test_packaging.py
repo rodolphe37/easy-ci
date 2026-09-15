@@ -31,7 +31,7 @@ def test_versions_are_consistent():
 
 
 def test_changelog_lists_current_version():
-    changelog = (ROOT / "CHANGELOG.md").read_text()
+    changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     assert "## [Unreleased]" in changelog and f"## [{__version__}]" in changelog
 
 
@@ -51,10 +51,10 @@ def test_release_notes_are_bilingual(tmp_path):
     assert english.startswith("## What's new") and "## Downloads" in english and "brew tap owner/easy-ci" in english
     assert "What's Changed" not in body and "New Contributors" not in body
 
-    (tmp_path / "CHANGELOG.md").write_text("## [Unreleased]\n\n### Added\n\n- Beta\n\n## [1.0.0] - 2026-01-01\n\n### Added\n\n- One\n\n[1.0.0]: https://example.org/compare/v0.9.0...v1.0.0\n")
-    (tmp_path / "CHANGELOG.fr.md").write_text("## [Unreleased]\n\n### Ajouté\n\n- Bêta\n")
+    (tmp_path / "CHANGELOG.md").write_text(encoding="utf-8", data="## [Unreleased]\n\n### Added\n\n- Beta\n\n## [1.0.0] - 2026-01-01\n\n### Added\n\n- One\n\n[1.0.0]: https://example.org/compare/v0.9.0...v1.0.0\n")
+    (tmp_path / "CHANGELOG.fr.md").write_text(encoding="utf-8", data="## [Unreleased]\n\n### Ajouté\n\n- Bêta\n")
     assert "- Beta" in notes.release_notes("1.1.0-beta.1", "owner/repo", tmp_path)
-    assert "**Full changelog**: https://example.org/compare/v0.9.0...v1.0.0" in notes.language_block("en", "1.0.0", (tmp_path / "CHANGELOG.md").read_text(), "owner/repo")
+    assert "**Full changelog**: https://example.org/compare/v0.9.0...v1.0.0" in notes.language_block("en", "1.0.0", (tmp_path / "CHANGELOG.md").read_text(encoding="utf-8"), "owner/repo")
     with pytest.raises(ValueError, match=r"CHANGELOG\.fr\.md"):
         notes.release_notes("1.0.0", "owner/repo", tmp_path)
 

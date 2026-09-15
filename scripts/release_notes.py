@@ -117,6 +117,8 @@ def main() -> None:
     parser.add_argument("version", help="version sans « v » (ex. 0.3.0)")
     parser.add_argument("--repository", default="rodolphe37/easy-ci", help="dépôt GitHub propriétaire/nom")
     args = parser.parse_args()
+    # Sous Windows, la sortie redirigée vers un fichier serait sinon encodée en cp1252.
+    sys.stdout.reconfigure(encoding="utf-8")
     try:
         sys.stdout.write(release_notes(args.version.removeprefix("v"), args.repository))
     except ValueError as error:
