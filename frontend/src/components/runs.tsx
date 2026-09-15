@@ -63,7 +63,7 @@ export function MetaItem({ icon, children, className }: { icon?: ReactNode; chil
 export function BranchChip({ branch }: { branch: string | null }) {
   if (!branch) return null;
   return (
-    <span className="inline-flex h-5 max-w-44 items-center gap-1 rounded-md bg-surface-2 px-1.5 font-mono text-[11.5px] text-fg-muted ring-1 ring-line ring-inset">
+    <span className="inline-flex h-5 max-w-44 min-w-0 items-center gap-1 rounded-md bg-surface-2 px-1.5 font-mono text-[11.5px] text-fg-muted ring-1 ring-line ring-inset">
       <GitBranch className="size-3 shrink-0 text-fg-subtle" />
       <span className="truncate">{branch}</span>
     </span>
@@ -88,14 +88,15 @@ export function RunRow({
   return (
     <Link
       to={runPath(provider, fullName, run.id)}
-      className="group relative flex items-center gap-3.5 px-4 py-3 transition-colors hover:bg-surface-2/60"
+      className="@container group relative flex items-center gap-3.5 px-4 py-3 transition-colors hover:bg-surface-2/60"
     >
       <StatusIcon state={run.state} className="size-[18px]" />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="truncate text-[13.5px] font-medium text-fg">{run.title || run.name}</span>
         </div>
-        <div className="mt-0.5 flex min-w-0 items-center gap-x-3 gap-y-1 text-[12px]">
+        {/* Une seule ligne : les métadonnées se tronquent au lieu de déborder sur l'auteur et l'heure. */}
+        <div className="mt-0.5 flex min-w-0 items-center gap-x-3 gap-y-1 overflow-hidden text-[12px]">
           {showRepo ? (
             <span className="inline-flex min-w-0 items-center gap-1 font-medium text-fg-muted">
               <ProviderIcon provider={provider} className="size-3 shrink-0" />
@@ -113,14 +114,17 @@ export function RunRow({
               <span className="text-fg-subtle">#{run.run_number}</span>
             </MetaItem>
           )}
-          <MetaItem icon={<EventIcon event={run.event} />}>{eventLabel(run.event)}</MetaItem>
+          <MetaItem icon={<EventIcon event={run.event} />}>
+            <span className="truncate">{eventLabel(run.event)}</span>
+          </MetaItem>
           <BranchChip branch={run.branch} />
-          <MetaItem icon={<GitCommitHorizontal />} className="hidden font-mono text-[11.5px] xl:inline-flex">
+          <MetaItem icon={<GitCommitHorizontal />} className="hidden shrink-0 font-mono text-[11.5px] @3xl:inline-flex">
             {shortSha(run.head_sha)}
           </MetaItem>
         </div>
       </div>
-      <div className="hidden shrink-0 items-center gap-2 text-[12px] text-fg-muted lg:flex">
+      {/* Selon la largeur de la ligne (et non de la fenêtre) : la barre latérale et les colonnes réduisent la place disponible. */}
+      <div className="hidden shrink-0 items-center gap-2 text-[12px] text-fg-muted @2xl:flex">
         <Avatar login={run.actor?.login} src={run.actor?.avatar_url} size={18} />
         <span className="max-w-28 truncate">{run.actor?.login}</span>
       </div>

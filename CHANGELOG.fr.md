@@ -22,6 +22,10 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 - Les notes de version ne contiennent plus la liste des pull requests générée par GitHub (qui mentionnait notamment la mise à jour du cask Homebrew de la version précédente).
 
+### Corrigé
+
+- Dans les listes d'exécutions, l'auteur ne chevauche plus la branche et le commit quand la fenêtre est étroite : les informations sont tronquées et l'auteur n'est affiché que si la ligne est assez large.
+
 ## [0.3.0] - 2026-09-14
 
 ### Ajouté
