@@ -998,6 +998,23 @@ export const DOC_SECTIONS: DocSection[] = [
             <Code>xattr -dr com.apple.quarantine /Applications/EasyCI.app</Code>. On Windows, in the SmartScreen dialog: <Strong>More info › Run anyway</Strong>.
           </P>
         </Question>
+        <Question question="macOS asks twice for the keychain password at startup">
+          <P>
+            This is expected: your credentials are stored in the macOS keychain, and the system checks two permissions separately for the same key (reading its
+            content, then accessing the key). Enter your macOS login password and choose <Strong>Always Allow</Strong> in both dialogs: they won't come back.
+          </P>
+          <P>
+            Since Easy CI isn't signed with an Apple developer certificate, macOS treats each new version as a different app: both dialogs show up once after every
+            update. With "Allow" only, the question comes back at every launch.
+          </P>
+        </Question>
+        <Question question="After an update, the interface looks unchanged">
+          <P>
+            Settings › Updates shows the new version but the new features don't appear: the web engine kept the old interface in its cache. Fixed from version
+            0.4.1. On an earlier version, quit Easy CI and delete the cache before relaunching:
+          </P>
+          <CodeBlock>{"rm -rf ~/Library/Caches/io.github.rodolphe37.easyci/WebKit/NetworkCache"}</CodeBlock>
+        </Question>
         <Question question={'"Invalid or expired credentials"'}>
           <P>
             The token expired, was revoked or was copied incorrectly. Only the affected account is disconnected. Create a new token (Connect GitHub, GitLab, Bitbucket

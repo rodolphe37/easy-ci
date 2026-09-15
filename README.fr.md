@@ -194,7 +194,7 @@ La **Documentation** intégrée (barre latérale) détaille chaque fonctionnalit
 
 ## Confidentialité et sécurité
 
-- **Les tokens restent sur votre machine**, dans le trousseau du système (Trousseau macOS, Gestionnaire d'identifiants Windows, Secret Service sous Linux), et ne sont envoyés qu'à la plateforme concernée.
+- **Les tokens restent sur votre machine**, dans le trousseau du système (Trousseau macOS, Gestionnaire d'identifiants Windows, Secret Service sous Linux), et ne sont envoyés qu'à la plateforme concernée. Sur macOS, le trousseau demande deux fois le mot de passe de votre session au démarrage (deux autorisations distinctes pour la même clé) : choisissez *Toujours autoriser* dans les deux fenêtres. L'application n'étant pas signée par un certificat de développeur Apple, elles réapparaissent une fois après chaque mise à jour.
 - **Ni télémétrie, ni statistiques d'usage, ni IA.** Les statistiques des exécutions sont calculées sur votre machine à partir des données de vos plateformes. La seule autre requête réseau est la vérification anonyme des mises à jour auprès de l'API GitHub Releases, désactivable.
 - **Rien n'est envoyé sans votre accord** — les modifications sont écrites dans votre clone local ; l'envoi et la pull request sont des actions distinctes et explicites.
 - Les opérations Git utilisent **votre propre `git`**, avec vos identifiants et votre configuration.

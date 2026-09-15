@@ -1000,6 +1000,24 @@ export const DOC_SECTIONS: DocSection[] = [
             complémentaires › Exécuter quand même</Strong>.
           </P>
         </Question>
+        <Question question="macOS demande deux fois le mot de passe du trousseau au démarrage">
+          <P>
+            C'est normal : vos identifiants sont rangés dans le trousseau de macOS, et le système vérifie séparément deux autorisations pour la même clé
+            (lire son contenu, puis accéder à la clé). Saisissez le mot de passe de votre session macOS et choisissez <Strong>Toujours autoriser</Strong> dans les
+            deux fenêtres : elles ne reviennent plus.
+          </P>
+          <P>
+            Easy CI n'étant pas signé par un certificat de développeur Apple, macOS considère chaque nouvelle version comme une autre application : les deux
+            fenêtres réapparaissent une fois après chaque mise à jour. Avec « Autoriser » seul, la question revient à chaque lancement.
+          </P>
+        </Question>
+        <Question question="Après une mise à jour, l'interface semble ne pas avoir changé">
+          <P>
+            Paramètres › Mises à jour indique la nouvelle version mais les nouveautés n'apparaissent pas : le moteur web a gardé l'ancienne interface en cache.
+            Corrigé à partir de la version 0.4.1. Pour une version antérieure, quittez Easy CI puis supprimez le cache avant de relancer :
+          </P>
+          <CodeBlock>{"rm -rf ~/Library/Caches/io.github.rodolphe37.easyci/WebKit/NetworkCache"}</CodeBlock>
+        </Question>
         <Question question="« Identifiants invalides ou expirés »">
           <P>
             Le token a expiré, a été révoqué ou mal copié. Seul le compte concerné est déconnecté. Créez un nouveau token (sections Connecter GitHub, GitLab,

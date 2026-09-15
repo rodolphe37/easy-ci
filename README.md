@@ -194,7 +194,7 @@ The in-app **Documentation** (sidebar) walks through every feature step by step,
 
 ## Privacy and security
 
-- **Tokens stay on your machine**, in the operating system keychain (macOS Keychain, Windows Credential Manager, Secret Service on Linux), and are only ever sent to the platform they belong to.
+- **Tokens stay on your machine**, in the operating system keychain (macOS Keychain, Windows Credential Manager, Secret Service on Linux), and are only ever sent to the platform they belong to. On macOS, the keychain asks for your login password twice at startup (two separate permissions for the same key): choose *Always Allow* in both dialogs. As the app isn't signed with an Apple developer certificate, they show up again once after each update.
 - **No telemetry, no analytics, no AI.** Run statistics are computed locally from your platforms' data. The only other network request is the anonymous update check against the GitHub Releases API, which you can disable.
 - **Nothing is pushed without your consent** — edits are written to your local clone; pushing and opening pull requests are separate, explicit actions.
 - Git operations use **your own `git`** binary, credentials and configuration.
