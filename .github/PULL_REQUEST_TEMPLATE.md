@@ -23,5 +23,5 @@
 - [ ] `pytest`, `ruff check src tests scripts packaging` and `npm --prefix frontend run typecheck` pass locally
 - [ ] Tests cover the change
 - [ ] UI text is in French, consistent with the rest of the app
-- [ ] In-app documentation, README (EN/FR) and `CHANGELOG.md` (*Unreleased*) are updated when relevant
+- [ ] In-app documentation, README (EN/FR) and `CHANGELOG.md` + `CHANGELOG.fr.md` (*Unreleased*) are updated when relevant
 - [ ] No token, private data or new network destination is introduced

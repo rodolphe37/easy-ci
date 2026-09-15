@@ -105,13 +105,22 @@ export function CommandBlock({ label, command, primary }: { label: string; comma
   );
 }
 
-/** Notes de version GitHub (Markdown) → texte lisible, sans le tableau de téléchargements ajouté par la CI. */
+/** Bloc de la langue de l'interface dans des notes bilingues (<!-- lang:fr --> … <!-- /lang -->), sinon les notes entières. */
+function localizedNotes(markdown: string, language: string) {
+  const blocks = new Map([...markdown.matchAll(/<!--\s*lang:([a-z]{2})\s*-->([\s\S]*?)<!--\s*\/lang\s*-->/g)].map((match) => [match[1], match[2]]));
+  return blocks.get(language) ?? blocks.get("en") ?? blocks.values().next().value ?? markdown;
+}
+
+/** Notes de version GitHub (Markdown) → texte lisible, sans les sections de téléchargement et d'installation ajoutées par la CI. */
 function cleanNotes(markdown: string) {
-  return markdown
-    .replace(/## Téléchargements[\s\S]*?(?=\n## |\n\*\*Full Changelog|$)/, "")
+  return localizedNotes(markdown, i18n.resolvedLanguage === "fr" ? "fr" : "en")
+    .replace(/^## (Téléchargements|Downloads|Installation en une commande|One-command install)\n[\s\S]*?(?=^## |^\*\*(Full [Cc]hangelog|Toutes les modifications)|(?![\s\S]))/gm, "")
+    .replace(/^## (Nouveautés|What's new)\s*$/gm, "")
+    .replace(/^\*\*(Full [Cc]hangelog|Toutes les modifications)\*\*.*$/gm, "")
     .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/^#{1,6}\s*/gm, "")
     .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/(^|[^*])\*([^*\s][^*]*)\*/g, "$1$2")
     .replace(/`([^`]+)`/g, "$1")
     .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
     .replace(/^\s*[-*]\s+/gm, "• ")

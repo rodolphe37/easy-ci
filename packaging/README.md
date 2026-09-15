@@ -9,6 +9,7 @@ Easy CI est distribué sous forme d'**applications autonomes** construites avec 
 | `.github/workflows/package.yml` | Construction à chaque push sur `main` (artefacts conservés 14 jours) |
 | `.github/workflows/release.yml` | Publication d'une version sur un tag `v*.*.*` : GitHub Release, cask Homebrew, redéploiement de la démo en ligne |
 | `scripts/bump_version.py` | Change la version dans `pyproject.toml` et `src/easy_ci/__init__.py` |
+| `scripts/release_notes.py` | Notes bilingues de la GitHub Release, tirées de `CHANGELOG.fr.md` et `CHANGELOG.md` |
 | `packaging/homebrew/` | Mise à jour du cask (`Casks/easy-ci.rb`) et mise en place du tap |
 | `packaging/macos/install.sh` | Installation / mise à jour macOS en une commande (`curl … | bash`), sans quarantaine Gatekeeper |
 | `packaging/linux/` | Script d'installation Linux (`curl … | bash` ou depuis l'archive) et entrée de menu `.desktop` |
@@ -21,13 +22,15 @@ Easy CI est distribué sous forme d'**applications autonomes** construites avec 
 python scripts/bump_version.py 0.2.0
 ```
 
+Déplacez ensuite les entrées *Unreleased* sous `## [0.2.0] - date` dans **les deux journaux** (`CHANGELOG.md` et `CHANGELOG.fr.md`), avec le lien de comparaison en bas de fichier. Ces sections forment les notes de la GitHub Release : un bloc français et un bloc anglais (encadrés par `<!-- lang:fr -->` / `<!-- lang:en -->`), dont le site et la fenêtre de mise à jour de l'application n'affichent que celui de la langue choisie. Aperçu : `python scripts/release_notes.py 0.2.0`.
+
 ```bash
 git commit -am "chore: version 0.2.0" && git tag v0.2.0 && git push origin main v0.2.0
 ```
 
-Le workflow **Release** vérifie que le tag correspond à la version du code, construit les quatre applications, les vérifie, puis crée la GitHub Release avec les archives et `SHA256SUMS.txt`. Un tag avec suffixe (`v0.2.0-beta.1`) crée une pré-version, sans mise à jour Homebrew ni de la démo en ligne.
+Le workflow **Release** vérifie que le tag correspond à la version du code et que les deux journaux contiennent la version, construit les quatre applications, les vérifie, puis crée la GitHub Release avec les archives et `SHA256SUMS.txt`. Un tag avec suffixe (`v0.2.0-beta.1`) crée une pré-version, sans mise à jour Homebrew ni de la démo en ligne.
 
-Pour republier les fichiers d'une version : onglet **Actions › Release › Run workflow**, en indiquant le tag.
+Pour republier les fichiers d'une version : onglet **Actions › Release › Run workflow**, en indiquant le tag (les notes de la release sont alors régénérées à partir des journaux).
 
 ### Démo en ligne (https://easy-ci.netlify.app)
 

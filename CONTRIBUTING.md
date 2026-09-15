@@ -82,7 +82,7 @@ And please make sure that:
 - **Tests** cover new behaviour and bug fixes (a failing test first is ideal).
 - **UI changes** were checked in both light and dark themes; include a screenshot or short recording in the PR.
 - **User-facing text** is translated in French and English. Interface strings live in `frontend/src/i18n/locales/fr.json` and `en.json` (same keys in both, used with `t("…")`); engine messages are written in French inside `tr("…")` (or `N_("…")` for constants) and translated in `src/easy_ci/locales/en.json`. The in-app documentation has one file per language in `frontend/src/components/docs/`. `npm --prefix frontend run i18n:check` and `tests/test_i18n.py` catch missing translations.
-- **Documentation** is updated when behaviour changes: in-app docs, README (English and French) and [CHANGELOG.md](CHANGELOG.md) under *Unreleased*.
+- **Documentation** is updated when behaviour changes: in-app docs, README (English and French) and both changelogs under *Unreleased* ([CHANGELOG.md](CHANGELOG.md) and [CHANGELOG.fr.md](CHANGELOG.fr.md)): they become the bilingual release notes.
 - **No new network destinations** or data collection: tokens are only sent to their own platform, and nothing is pushed without an explicit user action. Discuss any change to this in an issue first.
 - The PR does **one thing**; unrelated refactors belong in separate PRs.
 
@@ -133,6 +133,6 @@ Merci de votre intérêt ! Signalements de bugs, corrections de documentation, t
 1. Pour un bug ou une idée, ouvrez une [issue](https://github.com/rodolphe37/easy-ci/issues/new/choose) (en français ou en anglais). Pour une modification importante, discutons de l'approche avant de coder. Les failles de sécurité se signalent en privé ([SECURITY.md](SECURITY.md)).
 2. Installez l'environnement : Python 3.11+, Node.js 20+, Git, puis `pip install -e ".[dev]"` et `npm --prefix frontend ci` (voir ci-dessus). Le **mode démo** permet de tout tester sans compte.
 3. Avant la pull request, lancez `pytest`, `ruff check src tests scripts packaging`, `npm --prefix frontend run typecheck` et `npm --prefix frontend run i18n:check`.
-4. Ajoutez des tests, vérifiez l'interface en thème clair et sombre (capture dans la PR), ajoutez les textes de l'interface en français et en anglais (`frontend/src/i18n/locales/*.json`, `tr()` et `src/easy_ci/locales/en.json` côté moteur), mettez à jour la documentation intégrée, les README et le [CHANGELOG](CHANGELOG.md) (*Unreleased*).
+4. Ajoutez des tests, vérifiez l'interface en thème clair et sombre (capture dans la PR), ajoutez les textes de l'interface en français et en anglais (`frontend/src/i18n/locales/*.json`, `tr()` et `src/easy_ci/locales/en.json` côté moteur), mettez à jour la documentation intégrée, les README et les deux journaux, [CHANGELOG.md](CHANGELOG.md) et [CHANGELOG.fr.md](CHANGELOG.fr.md) (*Unreleased*) : ils forment les notes de version bilingues.
 5. Respectez les principes du projet : aucune nouvelle destination réseau ni collecte de données, rien n'est envoyé sans action explicite de l'utilisateur, génération de pipelines déterministe (sans IA).
 6. Messages de commit au format [Conventional Commits](https://www.conventionalcommits.org/fr/) (`feat:`, `fix:`, `docs:`…), une PR par sujet.

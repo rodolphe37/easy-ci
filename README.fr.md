@@ -284,7 +284,7 @@ Les [issues](https://github.com/rodolphe37/easy-ci/issues) permettent d'en discu
 
 ## Contribuer
 
-Toutes les contributions sont bienvenues — signalements de bugs, corrections de documentation, traductions, nouveaux détecteurs de stack ou nouvelles plateformes. Consultez [CONTRIBUTING.md](CONTRIBUTING.md) pour démarrer ; ce projet applique un [code de conduite](CODE_OF_CONDUCT.md). Les évolutions sont listées dans le [CHANGELOG](CHANGELOG.md).
+Toutes les contributions sont bienvenues — signalements de bugs, corrections de documentation, traductions, nouveaux détecteurs de stack ou nouvelles plateformes. Consultez [CONTRIBUTING.md](CONTRIBUTING.md) pour démarrer ; ce projet applique un [code de conduite](CODE_OF_CONDUCT.md). Les évolutions sont listées dans le [journal des modifications](CHANGELOG.fr.md).
 
 Besoin d'aide ? Voir [SUPPORT.md](SUPPORT.md).
 

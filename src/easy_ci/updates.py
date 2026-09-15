@@ -64,7 +64,9 @@ def parse_latest_release(payload: Any, current_version: str) -> dict[str, Any] |
         "version": latest,
         "url": payload.get("html_url") or RELEASES_URL,
         "published_at": payload.get("published_at"),
-        "notes": notes[:4000],
+        # Notes bilingues (bloc français puis anglais) : une limite trop basse couperait le bloc anglais,
+        # que l'interface ne pourrait plus extraire. 30 000 caractères laissent une marge confortable.
+        "notes": notes[:30000],
     }
 
 

@@ -35,6 +35,30 @@ def test_changelog_lists_current_version():
     assert "## [Unreleased]" in changelog and f"## [{__version__}]" in changelog
 
 
+def test_french_changelog_matches_english():
+    headings = re.compile(r"^## \[([^\]]+)\]", re.M)
+    english, french = ((ROOT / name).read_text(encoding="utf-8") for name in ("CHANGELOG.md", "CHANGELOG.fr.md"))
+    assert headings.findall(french) == headings.findall(english)
+    # Même nombre d'entrées par version : une entrée ajoutée dans une seule langue est repérée.
+    assert [section.count("\n- ") for section in headings.split(french)[2::2]] == [section.count("\n- ") for section in headings.split(english)[2::2]]
+
+
+def test_release_notes_are_bilingual(tmp_path):
+    notes = _load(ROOT / "scripts" / "release_notes.py")
+    body = notes.release_notes(__version__, "owner/repo")
+    french, english = body.split("<!-- lang:fr -->\n")[1].split("<!-- /lang -->")[0], body.split("<!-- lang:en -->\n")[1].split("<!-- /lang -->")[0]
+    assert french.startswith("## Nouveautés") and "## Téléchargements" in french and "raw.githubusercontent.com/owner/repo/main/packaging/macos/install.sh" in french
+    assert english.startswith("## What's new") and "## Downloads" in english and "brew tap owner/easy-ci" in english
+    assert "What's Changed" not in body and "New Contributors" not in body
+
+    (tmp_path / "CHANGELOG.md").write_text("## [Unreleased]\n\n### Added\n\n- Beta\n\n## [1.0.0] - 2026-01-01\n\n### Added\n\n- One\n\n[1.0.0]: https://example.org/compare/v0.9.0...v1.0.0\n")
+    (tmp_path / "CHANGELOG.fr.md").write_text("## [Unreleased]\n\n### Ajouté\n\n- Bêta\n")
+    assert "- Beta" in notes.release_notes("1.1.0-beta.1", "owner/repo", tmp_path)
+    assert "**Full changelog**: https://example.org/compare/v0.9.0...v1.0.0" in notes.language_block("en", "1.0.0", (tmp_path / "CHANGELOG.md").read_text(), "owner/repo")
+    with pytest.raises(ValueError, match=r"CHANGELOG\.fr\.md"):
+        notes.release_notes("1.0.0", "owner/repo", tmp_path)
+
+
 def test_bump_cask_updates_version_and_checksums():
     bump = _load(ROOT / "packaging" / "homebrew" / "bump_cask.py").bump
     original = (ROOT / "Casks" / "easy-ci.rb").read_text()

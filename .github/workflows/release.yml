@@ -64,6 +64,17 @@ jobs:
             echo "prerelease=$prerelease"
           } >> "$GITHUB_OUTPUT"
 
+      # Notes bilingues tirées de CHANGELOG.fr.md et CHANGELOG.md : échoue avant la compilation si la
+      # section de la version manque dans l'un des deux journaux.
+      - name: Notes de version (CHANGELOG.fr.md et CHANGELOG.md)
+        run: python3 scripts/release_notes.py "${{ steps.version.outputs.version }}" --repository "${{ github.repository }}" > release-notes.md
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-notes
+          path: release-notes.md
+          retention-days: 1
+
   build:
     needs: prepare
     uses: ./.github/workflows/build.yml
@@ -84,6 +95,11 @@ jobs:
           path: release-assets
           merge-multiple: true
 
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-notes
+          path: release-notes
+
       - name: Empreintes SHA-256
         working-directory: release-assets
         run: |
@@ -95,32 +111,7 @@ jobs:
           target_commitish: ${{ github.sha }}
           name: Easy CI ${{ needs.prepare.outputs.version }}
           prerelease: ${{ needs.prepare.outputs.prerelease }}
-          generate_release_notes: true
-          body: |
-            ## Téléchargements
-
-            | Système | Fichier |
-            |---|---|
-            | macOS Apple Silicon (M1 et suivants) | `EasyCI-macOS-ARM64.zip` |
-            | macOS Intel | `EasyCI-macOS-X64.zip` |
-            | Windows 10 / 11 | `EasyCI-Windows-X64.zip` |
-            | Linux x64 | `EasyCI-Linux-X64.zip` |
-
-            ## Installation en une commande
-
-            ```bash
-            # macOS (ou : brew tap rodolphe37/easy-ci && brew install --cask easy-ci)
-            curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/packaging/macos/install.sh | bash
-            # Linux
-            curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/packaging/linux/install.sh | bash
-            ```
-
-            ```powershell
-            # Windows (PowerShell)
-            irm https://raw.githubusercontent.com/${{ github.repository }}/main/packaging/windows/install.ps1 | iex
-            ```
-
-            Déjà installé ? Easy CI signale la nouvelle version et affiche la commande de mise à jour. Applications non signées : avec un téléchargement manuel, clic droit › **Ouvrir** au premier lancement sur macOS, **Informations complémentaires › Exécuter quand même** sur Windows. Git est nécessaire pour les projets locaux.
+          body_path: release-notes/release-notes.md
           files: |
             release-assets/EasyCI-*.zip
             release-assets/SHA256SUMS.txt

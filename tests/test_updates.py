@@ -17,6 +17,8 @@ def test_parse_latest_release():
     assert parse_latest_release({**release, "prerelease": True}, "0.1.0") is None
     assert parse_latest_release({"message": "Not Found"}, "0.1.0") is None
     assert parse_latest_release(["unexpected"], "0.1.0") is None
+    bilingual = "<!-- lang:fr -->\n" + "- entrée\n" * 800 + "<!-- /lang -->\n\n<!-- lang:en -->\n## What's new\n<!-- /lang -->"
+    assert parse_latest_release({**release, "body": bilingual}, "0.2.9")["notes"] == bilingual
 
 
 def test_install_method_and_instructions(tmp_path, monkeypatch):

@@ -31,7 +31,8 @@ def main() -> None:
             sys.exit(f"Version introuvable dans {path.relative_to(ROOT)} : format inattendu.")
         path.write_text(text)
         print(f"{path.relative_to(ROOT)} → {version}")
-    print(f"\nPensez à déplacer les entrées « Unreleased » de CHANGELOG.md sous [{version}].")
+    print(f"\nPensez à déplacer les entrées « Unreleased » de CHANGELOG.md et CHANGELOG.fr.md sous [{version}] :")
+    print("elles forment les notes bilingues de la GitHub Release (scripts/release_notes.py).")
     print(f"\nPuis :\n  git commit -am \"chore: version {version}\"\n  git tag v{version}\n  git push origin main v{version}")
 
 
