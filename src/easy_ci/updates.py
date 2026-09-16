@@ -23,7 +23,7 @@ from typing import Any
 import httpx
 
 from easy_ci import __version__
-from easy_ci.i18n import tr
+from easy_ci.i18n import N_, tr
 
 log = logging.getLogger(__name__)
 
@@ -35,6 +35,14 @@ INSTALL_SCRIPT_LINUX = f"https://raw.githubusercontent.com/{REPOSITORY}/main/pac
 INSTALL_SCRIPT_WINDOWS = f"https://raw.githubusercontent.com/{REPOSITORY}/main/packaging/windows/install.ps1"
 REQUEST_TIMEOUT = 8.0
 CACHE_SECONDS = 6 * 3600  # l'API GitHub non authentifiée est limitée à 60 requêtes par heure
+
+# Motifs d'échec, traduits au moment de l'affichage et non au moment de l'appel : le résultat
+# étant gardé six heures, un message traduit y serait resté figé dans la langue de l'époque.
+_ERRORS = {
+    "not_found": N_("Aucune version publique trouvée (dépôt privé ou pas encore de version)."),
+    "rate_limited": N_("Limite de requêtes GitHub atteinte : nouvel essai plus tard."),
+    "unreachable": N_("Vérification impossible (connexion à GitHub)."),
+}
 
 
 def parse_version(version: str) -> tuple[int, ...]:
@@ -96,10 +104,10 @@ def upgrade_instructions(system: str | None = None, method: str | None = None) -
         return [{"label": tr("Depuis les sources"), "command": "git pull && pip install -e . && npm --prefix frontend run build"}]
     if system == "Darwin":
         brew = {"label": "Homebrew", "command": "brew upgrade --cask easy-ci"}
-        script = {"label": "Script d'installation", "command": f"curl -fsSL {INSTALL_SCRIPT_MACOS} | bash"}
+        script = {"label": tr("Script d'installation"), "command": f"curl -fsSL {INSTALL_SCRIPT_MACOS} | bash"}
         return [brew, script] if method == "homebrew" else [script, brew]
     if system == "Linux":
-        return [{"label": "Script d'installation", "command": f"curl -fsSL {INSTALL_SCRIPT_LINUX} | bash"}]
+        return [{"label": tr("Script d'installation"), "command": f"curl -fsSL {INSTALL_SCRIPT_LINUX} | bash"}]
     if system == "Windows":
         return [{"label": "PowerShell", "command": f"irm {INSTALL_SCRIPT_WINDOWS} | iex"}]
     return []
@@ -114,35 +122,38 @@ class UpdateChecker:
 
     def check(self, force: bool = False) -> dict[str, Any]:
         with self._lock:
-            if not force and self._cached and time.time() - self._cached[0] < CACHE_SECONDS:
-                return self._cached[1]
-            result = self._fetch()
-            self._cached = (time.time(), result)
-            return result
+            if force or not self._cached or time.time() - self._cached[0] >= CACHE_SECONDS:
+                self._cached = (time.time(), self._fetch())
+            checked_at, raw = self._cached
+        return self._render(raw, checked_at)
 
     def _fetch(self) -> dict[str, Any]:
-        base: dict[str, Any] = {
-            "current_version": self.current_version,
-            "checked_at": time.time(),
-            "available": False,
-            "latest": None,
-            "error": None,
-            "releases_url": RELEASES_URL,
-            "install_method": install_method(),
-            "instructions": upgrade_instructions(),
-        }
+        """Appel réseau seul : renvoie un motif d'échec ou la version publiée, sans texte traduit."""
         headers = {"Accept": "application/vnd.github+json", "User-Agent": f"EasyCI/{self.current_version} (update-check)"}
         try:
             with self._client_factory() as client:
                 response = client.get(LATEST_RELEASE_API_URL, headers=headers)
             if response.status_code == 404:
-                return {**base, "error": tr("Aucune version publique trouvée (dépôt privé ou pas encore de version).")}
+                return {"error": "not_found", "latest": None}
             if response.status_code in (403, 429):
-                return {**base, "error": tr("Limite de requêtes GitHub atteinte : nouvel essai plus tard.")}
+                return {"error": "rate_limited", "latest": None}
             response.raise_for_status()
             payload = response.json()
         except (httpx.HTTPError, ValueError) as exc:
             log.info("Vérification des mises à jour impossible : %s", exc)
-            return {**base, "error": tr("Vérification impossible (connexion à GitHub).")}
-        latest = parse_latest_release(payload, self.current_version)
-        return {**base, "available": latest is not None, "latest": latest}
+            return {"error": "unreachable", "latest": None}
+        return {"error": None, "latest": parse_latest_release(payload, self.current_version)}
+
+    def _render(self, raw: dict[str, Any], checked_at: float) -> dict[str, Any]:
+        """Habille le résultat brut dans la langue courante (l'interface peut en changer entre deux appels)."""
+        error = raw.get("error")
+        return {
+            "current_version": self.current_version,
+            "checked_at": checked_at,
+            "available": raw.get("latest") is not None,
+            "latest": raw.get("latest"),
+            "error": tr(_ERRORS[error]) if error else None,
+            "releases_url": RELEASES_URL,
+            "install_method": install_method(),
+            "instructions": upgrade_instructions(),
+        }

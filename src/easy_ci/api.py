@@ -37,7 +37,7 @@ from easy_ci.local.demo import DemoLocalProjects
 from easy_ci.local.git import SUBPROCESS_FLAGS
 from easy_ci.local.service import LocalProjectsService
 from easy_ci.notifications import Notifier
-from easy_ci.providers import GITHUB, GITLAB, PROVIDER_INFO, PROVIDERS, provider_info, repo_key, split_repo_key
+from easy_ci.providers import GITHUB, GITLAB, PROVIDER_INFO, PROVIDERS, ProviderHosts, provider_info, repo_key, split_repo_key
 from easy_ci.refs import parse_repository_reference
 from easy_ci.stats import COMPLETED_RUN_STATES, compute_stats
 from easy_ci.storage import CredentialStore, SettingsStore
@@ -100,14 +100,16 @@ class Api:
         self._restore_errors: dict[str, str] = {}
         self._demo: DemoService | None = None
         self._lock = threading.RLock()
-        self._local = LocalProjectsService(self._settings, gitlab_hosts=self._gitlab_hosts)
+        self._local = LocalProjectsService(self._settings, hosts=self._account_hosts)
         self._demo_local: DemoLocalProjects | None = None
         self._updates = update_checker or UpdateChecker()
         self._notifier = notifier or Notifier()
         # Jobs des exécutions terminées (immuables) : les statistiques ne les téléchargent qu'une fois.
         # Écarts entre deux commits (immuables) : une comparaison rouverte ne rappelle pas la plateforme.
-        self._commits_cache: OrderedDict[tuple[int, str, str, str], dict[str, Any]] = OrderedDict()
-        self._attempts_cache: OrderedDict[tuple[int, str, str, int], list[dict[str, Any]]] = OrderedDict()
+        # Clé par fournisseur, jamais par id() d'objet : une adresse mémoire est réutilisée après
+        # libération, et le cache d'un compte déconnecté aurait pu resservir au suivant.
+        self._commits_cache: OrderedDict[tuple[str, str, str, str], dict[str, Any]] = OrderedDict()
+        self._attempts_cache: OrderedDict[tuple[str, str, str, int], list[dict[str, Any]]] = OrderedDict()
 
         def repo(method: str) -> Callable[..., Any]:
             return lambda provider, full_name, **kwargs: getattr(self._service(provider), method)(full_name, **kwargs)
@@ -206,8 +208,9 @@ class Api:
     def _local_projects(self) -> Any:
         return self._demo_local if self._demo is not None and self._demo_local is not None else self._local
 
-    def _gitlab_hosts(self) -> tuple[str, ...]:
-        return tuple(a.host for a in self._accounts.values() if a.provider == GITLAB and a.host)
+    def _account_hosts(self) -> ProviderHosts:
+        """Instances auto-hébergées des comptes connectés : fournisseur → adresses (GitLab aujourd'hui)."""
+        return {a.provider: (a.host,) for a in self._accounts.values() if a.host}
 
     def clone_repository(self, key: str, parent: str, protocol: str = "https") -> dict[str, Any]:
         provider, _ = split_repo_key(key)
@@ -298,7 +301,7 @@ class Api:
 
     def _service(self, provider: str) -> Any:
         if provider not in PROVIDERS:
-            raise EasyCIError(f"Fournisseur inconnu : {provider}")
+            raise EasyCIError(tr("Fournisseur inconnu : {provider}", provider=provider))
         if self._demo is not None:
             return self._demo
         account = self._accounts.get(provider)
@@ -352,7 +355,7 @@ class Api:
 
     def connect_account(self, provider: str, credentials: dict[str, Any]) -> dict[str, Any]:
         if provider not in PROVIDERS:
-            raise EasyCIError(f"Fournisseur inconnu : {provider}")
+            raise EasyCIError(tr("Fournisseur inconnu : {provider}", provider=provider))
         cleaned = {key: str(value).strip() for key, value in credentials.items() if value is not None and str(value).strip()}
         required, message = _REQUIRED_FIELDS[provider]
         if any(field not in cleaned for field in required):
@@ -369,6 +372,12 @@ class Api:
             self._restore_errors.pop(provider, None)
             return self._session()
 
+    def _forget_cached_data(self) -> None:
+        """Les caches portent sur un compte : ils sont vidés dès qu'un compte change."""
+        with self._lock:
+            self._commits_cache.clear()
+            self._attempts_cache.clear()
+
     def _open_account(self, provider: str, credentials: dict[str, str], persisted: bool) -> None:
         service = self._factories[provider](credentials)
         try:
@@ -379,6 +388,7 @@ class Api:
         previous = self._accounts.get(provider)
         if previous is not None:
             previous.service.close()
+            self._forget_cached_data()
         self._accounts[provider] = Account(provider, service, user, persisted, credentials.get("host"))
 
     def disconnect_account(self, provider: str) -> dict[str, Any]:
@@ -386,6 +396,7 @@ class Api:
             account = self._accounts.pop(provider, None)
             if account is not None:
                 account.service.close()
+                self._forget_cached_data()
             self._credentials.clear(provider)
             self._restore_errors.pop(provider, None)
             return self._session()
@@ -406,6 +417,7 @@ class Api:
                 account.service.close()
             self._accounts.clear()
             self._restore_errors.clear()
+            self._forget_cached_data()
             self._demo = DemoService()
             self._demo_local = DemoLocalProjects(self._demo)
             return self._session()
@@ -422,6 +434,7 @@ class Api:
 
     def _close_demo(self) -> None:
         if self._demo is not None:
+            self._forget_cached_data()
             self._demo.close()
             self._demo = None
             self._demo_local = None
@@ -452,8 +465,7 @@ class Api:
         return repositories
 
     def add_repository(self, reference: str, provider: str | None = None) -> dict[str, Any]:
-        gitlab_hosts = tuple(a.host for a in self._accounts.values() if a.provider == GITLAB and a.host)
-        provider, full_name = parse_repository_reference(reference, provider, gitlab_hosts)
+        provider, full_name = parse_repository_reference(reference, provider, self._account_hosts())
         service = self._service(provider)
         try:
             repository = service.get_repository(full_name)
@@ -491,7 +503,7 @@ class Api:
         failures = 0
 
         def load(run: dict[str, Any]) -> tuple[str, list[dict[str, Any]] | None]:
-            key = (id(service), full_name, str(run["id"]), int(run.get("run_attempt") or 1))
+            key = (provider, full_name, str(run["id"]), int(run.get("run_attempt") or 1))
             with self._lock:
                 cached = self._attempts_cache.get(key)
             if cached is not None:
@@ -547,7 +559,7 @@ class Api:
         base_sha, head_sha = base["run"].get("head_sha"), head_run.get("head_sha")
         if base_sha and head_sha and base_sha != head_sha:
             try:
-                commits = self._compare_commits(service, full_name, base_sha, head_sha)
+                commits = self._compare_commits(provider, service, full_name, base_sha, head_sha)
             except (NotFoundError, ForbiddenError, NetworkError) as exc:
                 # Commit supprimé (force push), dépôt inaccessible… : la comparaison des jobs reste utile.
                 log.info("Comparaison des commits %s...%s indisponible : %s", base_sha, head_sha, exc)
@@ -571,8 +583,8 @@ class Api:
                 return found, "default_branch"
         return None, "none"
 
-    def _compare_commits(self, service: Any, full_name: str, base_sha: str, head_sha: str) -> dict[str, Any]:
-        key = (id(service), full_name, base_sha, head_sha)
+    def _compare_commits(self, provider: str, service: Any, full_name: str, base_sha: str, head_sha: str) -> dict[str, Any]:
+        key = (provider, full_name, base_sha, head_sha)
         with self._lock:
             cached = self._commits_cache.get(key)
         if cached is not None:

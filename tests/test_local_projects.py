@@ -76,7 +76,7 @@ def workspace(tmp_path):
     ],
 )
 def test_match_remote(url, expected):
-    assert match_remote(url, ("https://gitlab.example.org",)) == expected
+    assert match_remote(url, {"gitlab": ("https://gitlab.example.org",)}) == expected
 
 
 def test_parse_and_clone_urls():
@@ -86,6 +86,23 @@ def test_parse_and_clone_urls():
         "ssh": "git@gitlab.example.org:g/s/p.git",
     }
     assert clone_urls("bitbucket", "w/r")["ssh"] == "git@bitbucket.org:w/r.git"
+    assert clone_urls("github", "acme/app")["https"] == "https://github.com/acme/app.git"
+
+
+def test_clone_urls_on_a_self_hosted_instance():
+    """L'instance fournie s'applique quel que soit le fournisseur, pas seulement GitLab."""
+    assert clone_urls("gitea", "org/app", "https://git.exemple.fr/") == {
+        "https": "https://git.exemple.fr/org/app.git",
+        "ssh": "git@git.exemple.fr:org/app.git",
+    }
+
+
+def test_match_remote_on_a_self_hosted_instance():
+    """Un fournisseur auto-hébergé se déclare dans le tableau des hôtes, sans code dédié."""
+    hosts = {"gitea": ("https://git.exemple.fr",)}
+    assert match_remote("git@git.exemple.fr:org/app.git", hosts) == ("gitea", "org/app")
+    assert match_remote("https://git.exemple.fr/org/app.git", hosts) == ("gitea", "org/app")
+    assert match_remote("https://git.exemple.fr/org/app.git") is None
 
 
 def test_scan_discovers_clones_and_skips_heavy_folders(workspace):
@@ -229,3 +246,21 @@ def test_api_routes_demo_local_projects(tmp_path):
     diff = api.call("get_local_ci_diff", {"key": "gitlab:platform/backend/billing-service", "path": ".gitlab-ci.yml"})["data"]
     assert "+  cache:" in diff["diff"]
     assert api.call("open_local_project", {"key": "github:acme/storefront", "target": "folder"})["ok"] is False
+
+
+def test_settings_survive_an_interrupted_write(tmp_path):
+    """Une coupure pendant l'écriture ne doit plus réinitialiser toutes les préférences."""
+    from easy_ci.storage import SettingsStore
+
+    store = SettingsStore(tmp_path / "settings.json")
+    store.update({"favorites": ["github:acme/app"], "local_roots": [str(tmp_path)], "theme": "dark"})
+
+    # L'écriture passe par un fichier temporaire : c'est lui qui serait tronqué, jamais la cible.
+    leftovers = list(tmp_path.glob(".settings.json.*"))
+    assert not leftovers, f"fichier temporaire laissé derrière : {leftovers}"
+    (tmp_path / ".settings.json.easy-ci.tmp").write_text('{"favorites": ["gith')
+
+    reloaded = store.load()
+    assert reloaded["favorites"] == ["github:acme/app"]
+    assert reloaded["local_roots"] == [str(tmp_path)]
+    assert reloaded["theme"] == "dark"

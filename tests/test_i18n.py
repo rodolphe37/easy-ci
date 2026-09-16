@@ -88,9 +88,21 @@ def test_api_messages_follow_request_language(tmp_path):
         i18n.set_language("fr")
 
 
+# Un texte français ne porte pas toujours d'accent : « Script d'installation » et
+# « YAML invalide : … » sont passés entre les mailles pendant plusieurs versions. On repère donc
+# aussi l'élision (d', l', qu'…) et l'espace avant « : ; ! ? », propre à la typographie française.
+# Limite assumée : une phrase courte sans aucun de ces marqueurs (« Ressource introuvable. »)
+# passe toujours. Seule une relecture l'attrape — ces motifs réduisent le risque, ils ne l'annulent pas.
+_FRENCH_MARKERS = (
+    re.compile(r"[éèêàùâîôûçÉÈÀ«»]"),
+    re.compile(r"\b(?:[cdjlmnst]|qu)'[a-zA-Zà-ÿ]"),
+    # Restreint aux phrases (majuscule initiale) : sans cela, « docker push {image}:{tag} » ressort.
+    re.compile(r"^[A-ZÀ-Ý].*[a-zà-ÿ] +[:;!?](?:\s|$)"),
+)
+
+
 def test_no_untranslated_french_in_python():
     """Aucun texte visible en français hors tr()/N_() (docstrings, logs et outils de développement exclus)."""
-    french = re.compile(r"[éèêàùâîôûçÉÈÀ«»]")
     excluded = {"__main__.py", "devserver.py", "i18n.py", "selfcheck.py", "demo_projects.py"}
     offenders = []
     for path in PACKAGE.rglob("*.py"):
@@ -120,6 +132,6 @@ def test_no_untranslated_french_in_python():
                 text = "".join(part.value for part in node.values if isinstance(part, ast.Constant))
             else:
                 continue
-            if french.search(text) and not exempt(node):
+            if any(marker.search(text) for marker in _FRENCH_MARKERS) and not exempt(node):
                 offenders.append(f"{path.relative_to(ROOT)}:{node.lineno}: {text[:80]!r}")
     assert not offenders, "\n".join(offenders)

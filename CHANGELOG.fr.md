@@ -6,6 +6,18 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-09-16
+
+### Corrigé
+
+- Les préférences pouvaient être entièrement perdues : si l'application était interrompue pendant l'enregistrement (plantage, batterie), `settings.json` restait tronqué et le démarrage suivant réinitialisait en silence les favoris, les dépôts suivis, les dossiers liés, les racines et le thème. L'écriture est désormais atomique, et un fichier illisible est signalé dans les journaux.
+- Éditeur CI : un fichier YAML dont une ancre se référence elle-même (`jobs: &j` / `build: *j`) affichait « Erreur inattendue » au lieu d'un diagnostic, et des alias très imbriqués figeaient la validation plusieurs secondes à chaque frappe (14 s pour 22 niveaux, désormais immédiat).
+- Les exécutions étaient ordonnées en comparant les horodatages comme du texte, ce qui est faux dès que le décalage horaire change — sur un GitLab auto-hébergé, au passage à l'heure d'hiver, la référence de comparaison et le graphique des statistiques sortaient dans le mauvais ordre.
+- L'ajout d'un dépôt depuis une URL SSH comportant un port (`ssh://git@hôte:2222/groupe/projet.git`) produisait un nom de dépôt erroné, sur les trois plateformes ; les miroirs SSH des plateformes (`ssh.github.com`, `altssh.gitlab.com`, `altssh.bitbucket.org`) sont maintenant reconnus, comme ils l'étaient déjà pour les remotes locaux.
+- Textes du moteur restés en français dans l'interface anglaise : le préfixe de toutes les erreurs de syntaxe YAML de l'éditeur, les erreurs réseau et « fournisseur inconnu », et le libellé *Script d'installation* de la fenêtre de mise à jour.
+- La vérification des mises à jour conservait son résultat six heures, textes déjà traduits compris : changer de langue laissait la formulation précédente jusqu'à l'expiration du cache.
+- Mémoire : le cache des réponses de l'API grossissait sans limite sur une session longue, et des entrées de cache identifiées par l'adresse mémoire d'un objet pouvaient survivre à une déconnexion et resservir au compte suivant.
+
 ## [0.5.0] - 2026-09-15
 
 ### Ajouté
@@ -90,7 +102,8 @@ Première version publique.
 - Documentation intégrée, thèmes clair et sombre, fenêtre native avec icônes de l'application pour macOS, Windows et Linux.
 - CI/CD du projet : lint et tests sous Linux, macOS et Windows, applications PyInstaller autonomes pour macOS (Apple Silicon et Intel), Windows et Linux, GitHub Releases automatisées avec empreintes SHA-256.
 
-[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/rodolphe37/easy-ci/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/rodolphe37/easy-ci/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/rodolphe37/easy-ci/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/rodolphe37/easy-ci/compare/v0.3.0...v0.4.0

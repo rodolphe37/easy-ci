@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from urllib.parse import urlparse
 
-from easy_ci.providers import BITBUCKET, GITHUB, GITLAB
+from easy_ci.providers import GITLAB, ProviderHosts, clone_base_url, hostname, provider_for_host
 
 _SCP_LIKE = re.compile(r"^(?:[^@/]+@)?([^:/]+):(?!//)(.+)$")  # git@github.com:owner/repo.git
 
@@ -33,19 +33,14 @@ def parse_remote_url(url: str) -> tuple[str, str] | None:
     return host.lower().removeprefix("www."), path
 
 
-def match_remote(url: str, gitlab_hosts: tuple[str, ...] = ()) -> tuple[str, str] | None:
+def match_remote(url: str, hosts: ProviderHosts | None = None) -> tuple[str, str] | None:
     """URL de remote → (fournisseur, chemin complet du dépôt) si l'hébergeur est connu."""
     parsed = parse_remote_url(url)
     if parsed is None:
         return None
     host, path = parsed
-    if host in ("github.com", "ssh.github.com"):
-        provider = GITHUB
-    elif host in ("bitbucket.org", "altssh.bitbucket.org"):
-        provider = BITBUCKET
-    elif host in ("gitlab.com", "altssh.gitlab.com") or host in {_hostname(h) for h in gitlab_hosts}:
-        provider = GITLAB
-    else:
+    provider = provider_for_host(host, hosts)
+    if provider is None:
         return None
     segments = path.split("/")
     if provider != GITLAB:
@@ -55,16 +50,7 @@ def match_remote(url: str, gitlab_hosts: tuple[str, ...] = ()) -> tuple[str, str
     return provider, "/".join(segments)
 
 
-def _hostname(host: str) -> str:
-    value = host if "://" in host else f"https://{host}"
-    return (urlparse(value).hostname or "").lower().removeprefix("www.")
-
-
 def clone_urls(provider: str, full_name: str, host: str | None = None) -> dict[str, str]:
-    """URL de clonage HTTPS et SSH d'un dépôt."""
-    if provider == GITLAB:
-        hostname = _hostname(host or "https://gitlab.com")
-        base = (host or "https://gitlab.com").rstrip("/")
-        return {"https": f"{base}/{full_name}.git", "ssh": f"git@{hostname}:{full_name}.git"}
-    hostname = "bitbucket.org" if provider == BITBUCKET else "github.com"
-    return {"https": f"https://{hostname}/{full_name}.git", "ssh": f"git@{hostname}:{full_name}.git"}
+    """URL de clonage HTTPS et SSH d'un dépôt, sur l'instance `host` le cas échéant."""
+    base = clone_base_url(provider, host)
+    return {"https": f"{base}/{full_name}.git", "ssh": f"git@{hostname(base)}:{full_name}.git"}

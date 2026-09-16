@@ -13,6 +13,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from easy_ci.providers import time_key
 from easy_ci.stats import FAILURE, SUCCESS, job_outcome
 
 ALLOWED_FAILURE = "allowed_failure"
@@ -34,13 +35,13 @@ _CI_CONFIG = re.compile(r"^(\.github/workflows/[^/]+\.ya?ml|\.github/actions/.+|
 def pick_baseline(head: dict[str, Any], runs: list[dict[str, Any]]) -> dict[str, Any] | None:
     """Exécution de référence parmi `runs` (dans n'importe quel ordre), antérieure à `head`."""
     wanted = (SUCCESS, FAILURE) if head.get("state") == SUCCESS else (SUCCESS,)
-    created = head.get("created_at") or ""
+    created = time_key(head.get("created_at"))
     earlier = [
         run
         for run in runs
-        if str(run.get("id")) != str(head.get("id")) and run.get("state") in wanted and (run.get("created_at") or "") < created
+        if str(run.get("id")) != str(head.get("id")) and run.get("state") in wanted and time_key(run.get("created_at")) < created
     ]
-    return max(earlier, key=lambda run: run.get("created_at") or "", default=None)
+    return max(earlier, key=lambda run: time_key(run.get("created_at")), default=None)
 
 
 def commit_range(

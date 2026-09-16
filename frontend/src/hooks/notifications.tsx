@@ -4,7 +4,7 @@ import i18n from "@/i18n";
 import { api } from "@/lib/api";
 import { runPath } from "@/lib/providers";
 import type { NotificationResult, RepoScan, Repository, Run, Settings } from "@/lib/types";
-import { firstLine } from "@/lib/utils";
+import { firstLine, timeKey } from "@/lib/utils";
 import { useScans } from "./scans";
 import { useSettings } from "./session";
 
@@ -53,7 +53,7 @@ export function detectPipelineEvents(seen: Map<string, Seen>, repo: Repository, 
       continue;
     }
     // Rien de nouveau, ou une exécution plus ancienne que la référence (relance d'une vieille exécution en cours).
-    if (previous.token === token || done.created_at < previous.createdAt) continue;
+    if (previous.token === token || timeKey(done.created_at) < timeKey(previous.createdAt)) continue;
 
     seen.set(key, { runId: done.id, token, createdAt: done.created_at, outcome: outcome ?? previous.outcome });
     if (outcome === "failure" && previous.outcome !== "failure") {

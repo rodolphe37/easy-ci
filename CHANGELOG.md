@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-09-16
+
+### Fixed
+
+- Preferences could be lost entirely: if the app was interrupted while saving (crash, battery), `settings.json` was left truncated and the next start silently reset favorites, tracked repositories, local folder links, roots and theme. Settings are now written atomically, and an unreadable file is logged.
+- CI editor: a YAML file whose anchor references itself (`jobs: &j` / `build: *j`) reported “Unexpected error” instead of a diagnosis, and deeply nested aliases froze validation for several seconds on every keystroke (14 s for 22 levels, now instant).
+- Runs were ordered by comparing timestamps as text, which is wrong as soon as the UTC offset changes — on a self-hosted GitLab across a daylight-saving switch, the comparison baseline and the statistics chart came out in the wrong order.
+- Adding a repository from an SSH URL carrying a port (`ssh://git@host:2222/group/project.git`) derived a wrong repository name, on all three platforms; the platforms' SSH mirrors (`ssh.github.com`, `altssh.gitlab.com`, `altssh.bitbucket.org`) are now recognized, as they already were for local remotes.
+- Engine texts that stayed in French in the English interface: the prefix of every YAML syntax error in the editor, network and “unknown provider” errors, and the *Installation script* label in the update dialog.
+- The update check kept its result for six hours including its already-translated texts: switching language left the previous language's wording until the cache expired.
+- Memory: the API response cache grew without limit over a long session, and cache entries keyed by object identity could survive a disconnection and be served to the next account.
+
 ## [0.5.0] - 2026-09-15
 
 ### Added
@@ -90,11 +102,11 @@ First public version.
 - Built-in documentation, light and dark themes, native window with app icons for macOS, Windows and Linux.
 - Project CI/CD: lint and tests on Linux, macOS and Windows, standalone PyInstaller apps for macOS (Apple Silicon and Intel), Windows and Linux, automated GitHub Releases with SHA-256 checksums.
 
-[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/rodolphe37/easy-ci/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/rodolphe37/easy-ci/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/rodolphe37/easy-ci/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/rodolphe37/easy-ci/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/rodolphe37/easy-ci/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/rodolphe37/easy-ci/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/rodolphe37/easy-ci/releases/tag/v0.1.0
 [0.1.0]: https://github.com/rodolphe37/easy-ci/releases/tag/v0.1.0

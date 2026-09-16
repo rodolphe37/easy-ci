@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any, Protocol
+from urllib.parse import urlparse
 
 from easy_ci.i18n import N_, tr
 from easy_ci.state import NONE, aggregate_state
@@ -102,6 +104,51 @@ class ProviderService(Protocol):
     def get_workflow_file(self, full_name: str, path: str, ref: str | None = None) -> dict[str, Any]: ...
 
 
+# -- Hébergeurs -----------------------------------------------------------
+
+# Fournisseur → adresses des instances auto-hébergées connectées (« https://gitlab.exemple.fr »).
+# Seul GitLab est concerné aujourd'hui ; un fournisseur auto-hébergeable ajouté plus tard
+# n'a rien à brancher de plus : il lui suffit d'apparaître dans cette table à l'exécution.
+ProviderHosts = Mapping[str, tuple[str, ...]]
+
+# Alias d'hôtes en plus de « default_host » : miroirs SSH proposés par les plateformes.
+_HOST_ALIASES: dict[str, tuple[str, ...]] = {
+    GITHUB: ("ssh.github.com",),
+    GITLAB: ("altssh.gitlab.com",),
+    BITBUCKET: ("altssh.bitbucket.org",),
+}
+
+
+def hostname(value: str) -> str:
+    """« https://gitlab.exemple.fr/groupe » → « gitlab.exemple.fr ». Accepte une adresse sans schéma."""
+    url = value if "://" in value else f"https://{value}"
+    return (urlparse(url).hostname or "").lower().removeprefix("www.")
+
+
+_CANONICAL_HOSTS: dict[str, str] = {provider: hostname(info["default_host"]) for provider, info in PROVIDER_INFO.items()}
+
+
+def provider_for_host(host: str, hosts: ProviderHosts | None = None) -> str | None:
+    """Fournisseur hébergeant `host`, None si l'hébergeur est inconnu.
+
+    Les adresses publiques priment ; `hosts` ajoute les instances auto-hébergées des comptes
+    connectés, sans lesquelles un GitLab d'entreprise reste — volontairement — non reconnu.
+    """
+    name = hostname(host)
+    for provider in PROVIDERS:
+        if name == _CANONICAL_HOSTS[provider] or name in _HOST_ALIASES.get(provider, ()):
+            return provider
+    for provider, custom in (hosts or {}).items():
+        if any(name == hostname(value) for value in custom):
+            return provider
+    return None
+
+
+def clone_base_url(provider: str, host: str | None = None) -> str:
+    """Racine des URL de clonage : l'instance auto-hébergée si elle est connue, sinon l'adresse publique."""
+    return (host or PROVIDER_INFO[provider]["default_host"]).rstrip("/")
+
+
 def repo_key(provider: str, full_name: str) -> str:
     return f"{provider}:{full_name}"
 
@@ -122,6 +169,22 @@ def parse_time(value: str | None) -> datetime | None:
     if not value:
         return None
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+_EPOCH = datetime.min.replace(tzinfo=UTC)
+
+
+def time_key(value: str | None) -> datetime:
+    """Clé de tri chronologique d'un horodatage.
+
+    Comparer les chaînes ISO directement est faux dès que le décalage horaire change : GitLab
+    auto-hébergé renvoie l'heure locale de l'instance, décalage compris (« …T02:30:00+01:00 »).
+    Un horodatage absent ou illisible passe en premier, comme le faisait le tri par chaîne.
+    """
+    try:
+        return parse_time(value) or _EPOCH
+    except ValueError:
+        return _EPOCH
 
 
 def duration_between(start: str | None, end: str | None) -> int | None:

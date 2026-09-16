@@ -314,3 +314,36 @@ def test_compare_falls_back_to_default_branch_and_survives_missing_commits(tmp_p
     lonely.call("connect_account", {"provider": "github", "credentials": {"token": "t"}})
     empty = lonely.call("compare_runs", {"provider": "github", "full_name": "acme/app", "run_id": "2"})["data"]
     assert empty["base"] is None and empty["summary"] is None and empty["jobs"] == []
+
+
+# -- Ordre chronologique ------------------------------------------------------
+
+# GitLab auto-hébergé renvoie l'heure locale de l'instance, décalage compris : comparer les
+# chaînes ISO donnait le mauvais ordre au changement d'heure. Ici 02:50+02:00 précède 02:30+01:00.
+_DST_RUNS = [
+    {"id": "1", "state": "success", "created_at": "2026-10-25T02:50:00.000+02:00"},
+    {"id": "2", "state": "success", "created_at": "2026-10-25T02:30:00.000+01:00"},
+]
+
+
+def test_pick_baseline_orders_by_instant_not_by_text():
+    from easy_ci.compare import pick_baseline
+
+    head = {"id": "3", "state": "failure", "created_at": "2026-10-25T03:00:00.000+01:00"}
+    assert pick_baseline(head, _DST_RUNS)["id"] == "2"
+
+
+def test_stats_order_runs_by_instant_not_by_text():
+    from easy_ci.stats import compute_stats
+
+    head = {"id": "3", "state": "failure", "created_at": "2026-10-25T03:00:00.000+01:00"}
+    runs = [{**run, "run_number": i, "duration_s": 10} for i, run in enumerate([*_DST_RUNS, head], 1)]
+    assert [point["id"] for point in compute_stats(runs, {})["runs"]] == ["1", "2", "3"]
+
+
+def test_time_key_tolerates_missing_and_malformed_timestamps():
+    from easy_ci.providers import time_key
+
+    assert time_key(None) == time_key("") == time_key("pas une date")
+    assert time_key(None) < time_key("2020-01-01T00:00:00Z")
+    assert time_key("2020-01-01T00:00:00Z") == time_key("2020-01-01T01:00:00+01:00")

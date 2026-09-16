@@ -14,7 +14,7 @@ import { useSettings } from "@/hooks/session";
 import { api } from "@/lib/api";
 import { PROVIDER_IDS, PROVIDER_LABELS, ProviderIcon, repoPath } from "@/lib/providers";
 import type { ProviderId, Repository } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, timeKey } from "@/lib/utils";
 import { ListSkeleton, Page } from "./OverviewPage";
 
 type Filter = "all" | "failure" | "running" | "success" | "favorites" | "none";
@@ -220,7 +220,7 @@ function RepoRow({ entry }: { entry: RepoEntry }) {
   const workflows = (scan?.workflows ?? []).filter((wf) => !wf.dynamic || wf.latest_run);
   const mainHistory = [...(scan?.workflows ?? [])]
     .flatMap((wf) => wf.history)
-    .sort((a, b) => a.created_at.localeCompare(b.created_at))
+    .sort((a, b) => timeKey(a.created_at) - timeKey(b.created_at))
     .slice(-14);
 
   return (

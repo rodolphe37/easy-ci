@@ -13,6 +13,8 @@ from typing import Any
 import keyring
 from platformdirs import user_config_dir
 
+from easy_ci.providers import PROVIDERS
+
 log = logging.getLogger(__name__)
 
 APP_NAME = "Easy CI"
@@ -118,7 +120,7 @@ def _normalize_repo_lists(settings: dict[str, Any]) -> dict[str, Any]:
 def _with_provider_prefix(key: str) -> str:
     """Les préférences antérieures au multi-fournisseur ne stockaient que « propriétaire/dépôt » (GitHub)."""
     provider, sep, _ = key.partition(":")
-    return key if sep and provider in ("github", "gitlab", "bitbucket") else f"github:{key}"
+    return key if sep and provider in PROVIDERS else f"github:{key}"
 
 
 class SettingsStore:
@@ -129,7 +131,12 @@ class SettingsStore:
     def load(self) -> dict[str, Any]:
         try:
             stored = json.loads(self._path.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            stored = {}
         except (OSError, ValueError):
+            # Fichier illisible : on repart des valeurs par défaut plutôt que de bloquer le démarrage,
+            # mais on le signale — c'est la seule trace d'une préférence perdue.
+            log.warning("Préférences illisibles (%s) : valeurs par défaut utilisées.", self._path, exc_info=True)
             stored = {}
         settings = copy.deepcopy(DEFAULT_SETTINGS)
         settings.update({k: v for k, v in stored.items() if k in DEFAULT_SETTINGS and _same_kind(DEFAULT_SETTINGS[k], v)})
@@ -141,5 +148,9 @@ class SettingsStore:
             accepted = {k: v for k, v in changes.items() if k in DEFAULT_SETTINGS and _same_kind(DEFAULT_SETTINGS[k], v)}
             settings = _normalize_repo_lists({**settings, **accepted})
             self._path.parent.mkdir(parents=True, exist_ok=True)
-            self._path.write_text(json.dumps(settings, indent=2, ensure_ascii=False), encoding="utf-8")
+            # Écriture atomique : une coupure en cours d'écriture laissait un JSON tronqué, et
+            # toutes les préférences (favoris, dépôts suivis, dossiers liés) repartaient à zéro.
+            tmp = self._path.with_name(f".{self._path.name}.easy-ci.tmp")
+            tmp.write_text(json.dumps(settings, indent=2, ensure_ascii=False), encoding="utf-8")
+            os.replace(tmp, self._path)
             return settings

@@ -283,3 +283,44 @@ def test_api_pull_request_flow_in_demo(tmp_path):
 
     lint = api.call("lint_ci_remote", {"key": "gitlab:platform/backend/billing-service", "content": "test:\n  stage: nope\n  script: [x]\n"})["data"]
     assert lint["valid"] is False
+
+
+# -- Ancres YAML : cycles et alias imbriqués ---------------------------------
+
+
+def test_validation_survives_a_cyclic_yaml_anchor():
+    """Un alias qui se référence lui-même faisait remonter « maximum recursion depth exceeded »."""
+    from easy_ci.validation import validate
+
+    result = validate("github", "on: push\njobs: &j\n  build: *j\n")
+    assert result["valid"] is False
+    assert result["problems"], "l'utilisateur doit recevoir un diagnostic, pas une erreur interne"
+
+
+def test_validation_does_not_blow_up_on_nested_aliases():
+    """Alias imbriqués : le parcours était exponentiel (14 s pour 22 niveaux), il doit rester immédiat."""
+    import time
+
+    from easy_ci.validation import validate
+
+    levels = 40
+    document = "on: push\njobs: {}\na0: &a0 [x, x]\n" + "".join(f"a{i}: &a{i} [*a{i - 1}, *a{i - 1}]\n" for i in range(1, levels + 1))
+    started = time.monotonic()
+    validate("github", document)
+    assert time.monotonic() - started < 1.0
+
+
+def test_anchors_still_validate_and_report_problems():
+    """Non-régression : les ancres Bitbucket restent valides, et une expression ouverte est signalée."""
+    from easy_ci.validation import validate
+
+    bitbucket = (
+        "image: node:20\n"
+        "definitions:\n  steps:\n"
+        "    - step: &build\n        name: Build\n        script:\n          - npm ci\n"
+        "pipelines:\n  default:\n    - step: *build\n  branches:\n    main:\n      - step: *build\n"
+    )
+    assert validate("bitbucket", bitbucket)["valid"] is True
+
+    github = "on: push\njobs:\n  a: &a\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo ${{ github.sha\n  b: *a\n"
+    assert any("${{" in problem["message"] for problem in validate("github", github)["problems"])

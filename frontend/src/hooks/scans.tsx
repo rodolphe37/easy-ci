@@ -3,6 +3,7 @@ import { createContext, useContext, useMemo, useRef, type ReactNode } from "reac
 import { isActive } from "@/components/status";
 import { api } from "@/lib/api";
 import type { Account, ProviderId, RepoScan, Repository, Run } from "@/lib/types";
+import { timeKey } from "@/lib/utils";
 import { useSession, useSettings } from "./session";
 
 /** Limite le nombre de scans simultanés pour ménager le quota de chaque fournisseur. */
@@ -122,7 +123,7 @@ export function ScanProvider({ children }: { children: ReactNode }) {
       .flatMap((entry) =>
         (entry.scan?.recent_runs ?? []).map((run) => ({ ...run, provider: entry.repo.provider, repository: entry.repo.full_name, repoKey: entry.repo.key })),
       )
-      .sort((a, b) => b.created_at.localeCompare(a.created_at));
+      .sort((a, b) => timeKey(b.created_at) - timeKey(a.created_at));
 
     return {
       accounts,

@@ -21,7 +21,7 @@ from easy_ci.generation.files import DiskFiles
 from easy_ci.i18n import tr
 from easy_ci.local import git, opener
 from easy_ci.local.remotes import clone_urls, match_remote
-from easy_ci.providers import BITBUCKET, GITLAB, split_repo_key
+from easy_ci.providers import BITBUCKET, GITLAB, ProviderHosts, split_repo_key
 from easy_ci.storage import SettingsStore
 
 # Dossiers jamais parcourus lors de la détection (volumineux ou sans intérêt).
@@ -54,11 +54,11 @@ class LocalProjectsService:
     def __init__(
         self,
         settings: SettingsStore,
-        gitlab_hosts: Callable[[], tuple[str, ...]] = tuple,
+        hosts: Callable[[], ProviderHosts] = dict,
         folder_picker: Callable[[str], str | None] | None = None,
     ) -> None:
         self._settings = settings
-        self._gitlab_hosts = gitlab_hosts
+        self._hosts = hosts
         self._folder_picker = folder_picker
         self._lock = threading.Lock()
         # Résultat du dernier scan : clé de dépôt → dossiers trouvés.
@@ -155,7 +155,7 @@ class LocalProjectsService:
     def _match(self, remotes: dict[str, str]) -> str | None:
         ordered = sorted(remotes.items(), key=lambda item: (item[0] != "origin", item[0] != "upstream", item[0]))
         for _, url in ordered:
-            matched = match_remote(url, self._gitlab_hosts())
+            matched = match_remote(url, self._hosts())
             if matched:
                 return f"{matched[0]}:{matched[1]}"
         return None
@@ -404,7 +404,7 @@ class LocalProjectsService:
     def _push_remote(self, key: str, path: Path, state: dict[str, Any]) -> str:
         remotes = git.remote_urls(path)
         for name, url in sorted(remotes.items(), key=lambda item: item[0] != "origin"):
-            matched = match_remote(url, self._gitlab_hosts())
+            matched = match_remote(url, self._hosts())
             if matched and f"{matched[0]}:{matched[1]}".lower() == key.lower():
                 return name
         if state["upstream"]:

@@ -47,6 +47,17 @@ export function timeAgo(date: string | null | undefined, now = Date.now()): stri
   return "—";
 }
 
+/**
+ * Instant d'un horodatage ISO, pour comparer deux dates. Comparer les chaînes directement est
+ * faux dès que le décalage horaire change : GitLab auto-hébergé renvoie l'heure locale de
+ * l'instance, décalage compris. Une date absente ou illisible passe en premier.
+ */
+export function timeKey(date: string | null | undefined): number {
+  if (!date) return -Infinity;
+  const value = Date.parse(date);
+  return Number.isNaN(value) ? -Infinity : value;
+}
+
 export function formatDate(date: string | null | undefined): string {
   return date ? intl().date.format(new Date(date)) : "—";
 }

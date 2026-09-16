@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import threading
+from collections import OrderedDict
 from collections.abc import Callable
 from typing import Any
 
@@ -22,6 +23,10 @@ _RATE_LIMIT_HEADERS = [
     ("x-ratelimit-limit", "x-ratelimit-remaining", "x-ratelimit-reset"),
     ("ratelimit-limit", "ratelimit-remaining", "ratelimit-reset"),
 ]
+
+# Chaque entrée conserve la réponse complète : sans plafond, une session longue sur beaucoup de
+# dépôts accumulait indéfiniment des listes d'exécutions. Les plus anciennes sont oubliées.
+ETAG_CACHE_SIZE = 200
 
 
 class ApiClient:
@@ -44,7 +49,7 @@ class ApiClient:
             transport=transport,
             follow_redirects=True,
         )
-        self._etag_cache: dict[str, tuple[str, Any]] = {}
+        self._etag_cache: OrderedDict[str, tuple[str, Any]] = OrderedDict()
         self._lock = threading.Lock()
         self.rate_limit: dict[str, int] | None = None
 
@@ -125,6 +130,8 @@ class ApiClient:
         cache_key = url + "?" + "&".join(f"{k}={v}" for k, v in sorted((params or {}).items()))
         with self._lock:
             cached = self._etag_cache.get(cache_key)
+            if cached is not None:
+                self._etag_cache.move_to_end(cache_key)
         headers = {"If-None-Match": cached[0]} if cached else None
 
         response = self.request("GET", url, params=params, headers=headers)
@@ -137,6 +144,9 @@ class ApiClient:
         if etag:
             with self._lock:
                 self._etag_cache[cache_key] = (etag, data)
+                self._etag_cache.move_to_end(cache_key)
+                while len(self._etag_cache) > ETAG_CACHE_SIZE:
+                    self._etag_cache.popitem(last=False)
         return data, response
 
     # -- Interne ----------------------------------------------------------
@@ -185,5 +195,5 @@ class ApiClient:
         if status == 403:
             raise ForbiddenError(tr("Accès refusé par {label}. Vérifiez les permissions du token. ({detail})", label=self.label, detail=detail), status=status)
         if status == 404:
-            raise NotFoundError(detail or "Ressource introuvable.", status=status)
-        raise GitHubError(f"Erreur {self.label} {status} : {detail}", status=status)
+            raise NotFoundError(detail or tr("Ressource introuvable."), status=status)
+        raise GitHubError(tr("Erreur {label} {status} : {detail}", label=self.label, status=status, detail=detail), status=status)

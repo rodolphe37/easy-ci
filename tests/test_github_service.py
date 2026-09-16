@@ -188,3 +188,36 @@ def test_workflow_file_is_decoded_and_summarized():
     assert summary["triggers"] == [{"event": "push", "details": ["branches: main"]}]
     assert summary["jobs"][0] == {"id": "test", "name": "test", "stage": None, "runs_on": "ubuntu-latest", "needs": ["lint"], "steps": 1, "uses": None, "matrix": False}
     json.dumps(file)  # sérialisable pour le pont JS
+
+
+def test_etag_cache_is_bounded_and_keeps_the_most_recent():
+    """Le cache conservait toutes les réponses : sur une session longue, il grossissait sans fin."""
+    from easy_ci.http import ETAG_CACHE_SIZE, ApiClient
+
+    def handler(request):
+        return httpx.Response(200, json={"n": request.url.path}, headers={"ETag": f'W/"{request.url.path}"'})
+
+    client = ApiClient("https://example.test", label="T", transport=httpx.MockTransport(handler))
+    for index in range(ETAG_CACHE_SIZE + 50):
+        client.get_json(f"/repos/o/r{index}/actions/runs")
+
+    assert len(client._etag_cache) == ETAG_CACHE_SIZE
+    assert "/repos/o/r0/actions/runs?" not in client._etag_cache, "les plus anciennes sont oubliées"
+    assert f"/repos/o/r{ETAG_CACHE_SIZE + 49}/actions/runs?" in client._etag_cache
+
+
+def test_etag_cache_keeps_entries_that_are_reused():
+    """Éviction par ancienneté d'usage : une URL consultée en boucle ne doit pas être évincée."""
+    from easy_ci.http import ETAG_CACHE_SIZE, ApiClient
+
+    def handler(request):
+        return httpx.Response(200, json={"n": request.url.path}, headers={"ETag": f'W/"{request.url.path}"'})
+
+    client = ApiClient("https://example.test", label="T", transport=httpx.MockTransport(handler))
+    favourite = "/repos/o/favori/actions/runs"
+    client.get_json(favourite)
+    for index in range(ETAG_CACHE_SIZE):
+        client.get_json(f"/repos/o/r{index}/actions/runs")
+        client.get_json(favourite)
+
+    assert f"{favourite}?" in client._etag_cache

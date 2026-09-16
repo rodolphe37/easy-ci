@@ -62,7 +62,7 @@ def open_path(path: Path, target: str, editor_id: str | None = None) -> None:
         else:
             raise EasyCIError(tr("Action d'ouverture inconnue : {target}", target=target))
     except OSError as exc:
-        raise EasyCIError(f"Ouverture impossible : {exc}") from exc
+        raise EasyCIError(tr("Ouverture impossible : {error}", error=exc)) from exc
 
 
 def _spawn(args: list[str], **kwargs: Any) -> None:

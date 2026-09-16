@@ -11,6 +11,7 @@ from easy_ci.errors import EasyCIError
 from easy_ci.github.client import GitHubClient
 from easy_ci.github.service import GitHubService
 from easy_ci.gitlab.service import GitLabClient, GitLabService
+from easy_ci.providers import PROVIDERS, provider_for_host
 from easy_ci.refs import parse_repository_reference
 from easy_ci.storage import SettingsStore
 
@@ -149,17 +150,50 @@ def test_open_external_rejects_non_web_urls(api):
         ("https://gitlab.com/group/sub/project/-/pipelines", None, ("gitlab", "group/sub/project")),
         ("group/sub/project", "gitlab", ("gitlab", "group/sub/project")),
         ("git@gitlab.example.org:team/api.git", None, ("gitlab", "team/api")),
+        # Miroirs SSH des plateformes, déjà reconnus côté remotes locaux.
+        ("git@ssh.github.com:acme/app.git", None, ("github", "acme/app")),
+        ("git@altssh.bitbucket.org:workspace/repo.git", None, ("bitbucket", "workspace/repo")),
+        # URL « ssh:// » : le port ne doit pas être pris pour un morceau du chemin.
+        ("ssh://git@github.com/acme/app.git", None, ("github", "acme/app")),
+        ("ssh://git@github.com:22/acme/app.git", None, ("github", "acme/app")),
+        ("ssh://git@ssh.github.com:443/acme/app.git", None, ("github", "acme/app")),
+        ("ssh://git@gitlab.com:22/group/sub/project.git", None, ("gitlab", "group/sub/project")),
+        ("ssh://git@bitbucket.org:7999/workspace/repo.git", None, ("bitbucket", "workspace/repo")),
+        # Cas courant d'une instance auto-hébergée : SSH sur un port dédié.
+        ("ssh://git@gitlab.example.org:2222/team/api.git", None, ("gitlab", "team/api")),
         ("https://bitbucket.org/workspace/repo/src/main/", None, ("bitbucket", "workspace/repo")),
     ],
 )
 def test_parse_repository_reference(reference, provider, expected):
-    assert parse_repository_reference(reference, provider, ("https://gitlab.example.org",)) == expected
+    assert parse_repository_reference(reference, provider, {"gitlab": ("https://gitlab.example.org",)}) == expected
 
 
 @pytest.mark.parametrize("reference", ["pas un dépôt", "../..", "https://unknown.example/a/b", "a/b/c"])
 def test_parse_repository_reference_rejects_garbage(reference):
     with pytest.raises(EasyCIError):
         parse_repository_reference(reference)
+
+
+@pytest.mark.parametrize(
+    ("host", "hosts", "expected"),
+    [
+        ("github.com", None, "github"),
+        ("ssh.github.com", None, "github"),
+        ("www.gitlab.com", None, "gitlab"),
+        ("altssh.bitbucket.org", None, "bitbucket"),
+        ("git.exemple.fr", None, None),
+        ("gitlab.exemple.fr", {"gitlab": ("https://gitlab.exemple.fr",)}, "gitlab"),
+        # L'adresse publique prime sur une instance auto-hébergée mal déclarée.
+        ("github.com", {"gitlab": ("https://github.com",)}, "github"),
+        # Instances déclarées sans schéma, avec « www. » ou en majuscules.
+        ("gitlab.exemple.fr", {"gitlab": ("GitLab.Exemple.fr",)}, "gitlab"),
+        ("gitlab.exemple.fr", {"gitlab": ("https://www.gitlab.exemple.fr/",)}, "gitlab"),
+        # Le tableau n'est pas réservé à GitLab : tout fournisseur auto-hébergé s'y déclare.
+        ("git.exemple.fr", {"gitea": ("https://git.exemple.fr",)}, "gitea"),
+    ],
+)
+def test_provider_for_host(host, hosts, expected):
+    assert provider_for_host(host, hosts) == expected
 
 
 def test_add_and_remove_repository(tmp_path):
@@ -262,3 +296,41 @@ def test_demo_github_rerun_and_cancel():
     run, jobs = demo._materialize(deploy, time.time() + 3600)
     assert run["state"] == "cancelled"
     assert {j["state"] for j in jobs} <= {"cancelled", "skipped"}
+
+
+# -- Caches liés à un compte --------------------------------------------------
+
+
+def _fill_caches(api):
+    api._attempts_cache[("github", "acme/app", "1", 1)] = [{"name": "build"}]
+    api._commits_cache[("github", "acme/app", "aaa", "bbb")] = {"commits": []}
+
+
+def test_account_caches_are_keyed_by_provider_not_by_object_identity(api):
+    """id() est une adresse mémoire, réutilisée après libération : elle ne peut pas identifier un compte."""
+    api.call("connect_account", {"provider": "github", "credentials": {"token": "good"}})
+    api.call("get_run_stats", {"provider": "github", "full_name": "acme/app"})
+    assert all(isinstance(key[0], str) and key[0] in PROVIDERS for key in api._attempts_cache)
+
+
+@pytest.mark.parametrize(
+    "transition",
+    [
+        lambda api: api.call("disconnect_account", {"provider": "github"}),
+        lambda api: api.call("logout"),
+        lambda api: api.call("start_demo"),
+        lambda api: api.call("connect_account", {"provider": "github", "credentials": {"token": "good"}}),
+    ],
+)
+def test_account_caches_are_emptied_when_accounts_change(api, transition):
+    api.call("connect_account", {"provider": "github", "credentials": {"token": "good"}})
+    _fill_caches(api)
+    transition(api)
+    assert not api._attempts_cache and not api._commits_cache
+
+
+def test_leaving_the_demo_also_empties_the_caches(api):
+    api.call("start_demo")
+    _fill_caches(api)
+    api.call("logout")
+    assert not api._attempts_cache and not api._commits_cache

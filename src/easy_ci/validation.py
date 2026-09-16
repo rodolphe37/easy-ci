@@ -77,7 +77,7 @@ def validate(provider: str, content: str) -> dict[str, Any]:
             [
                 {
                     "severity": ERROR,
-                    "message": f"YAML invalide : {_translate_yaml_error(str(problem))}",
+                    "message": tr("YAML invalide : {detail}", detail=_translate_yaml_error(str(problem))),
                     "line": mark.line + 1 if mark else None,
                     "column": mark.column + 1 if mark else None,
                     "path": None,
@@ -124,14 +124,24 @@ def _translate_yaml_error(problem: str) -> str:
     return problem
 
 
-def _check_expressions(value: Any, report: _Report, path: tuple[Any, ...]) -> None:
-    """`${{ … }}` non refermé : GitHub rejette le fichier, GitLab/Bitbucket gardent le texte tel quel."""
+def _check_expressions(value: Any, report: _Report, path: tuple[Any, ...], seen: set[int] | None = None) -> None:
+    """`${{ … }}` non refermé : GitHub rejette le fichier, GitLab/Bitbucket gardent le texte tel quel.
+
+    Les ancres YAML (`&ancre` / `*alias`) partagent un même objet : sans `seen`, un alias cyclique
+    boucle à l'infini et des alias imbriqués sont reparcourus de façon exponentielle. On ne visite
+    donc chaque conteneur qu'une fois — un alias répété désigne le même contenu, déjà signalé.
+    """
+    if isinstance(value, (dict, list)):
+        seen = set() if seen is None else seen
+        if id(value) in seen:
+            return
+        seen.add(id(value))
     if isinstance(value, dict):
         for key, child in value.items():
-            _check_expressions(child, report, (*path, key))
+            _check_expressions(child, report, (*path, key), seen)
     elif isinstance(value, list):
         for index, child in enumerate(value):
-            _check_expressions(child, report, (*path, index))
+            _check_expressions(child, report, (*path, index), seen)
     elif isinstance(value, str) and value.count("${{") > value.count("}}"):
         report.error(tr("Expression « ${{ » non refermée par « }} »."), *path)
 

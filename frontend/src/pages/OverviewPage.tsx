@@ -10,7 +10,7 @@ import { useScans } from "@/hooks/scans";
 import { useSession } from "@/hooks/session";
 import { PROVIDER_LABELS, ProviderIcon, repoPath, runPath } from "@/lib/providers";
 import type { Repository, Run, ScannedWorkflow } from "@/lib/types";
-import { cn, firstLine } from "@/lib/utils";
+import { cn, firstLine, timeKey } from "@/lib/utils";
 
 interface WorkflowWithRepo {
   repo: Repository;
@@ -27,7 +27,7 @@ export function OverviewPage() {
   const latest: WorkflowWithRepo[] = withCi.flatMap((entry) =>
     entry.scan!.workflows.filter((wf) => wf.latest_run).map((wf) => ({ repo: entry.repo, workflow: wf, run: wf.latest_run! })),
   );
-  const failing = latest.filter((item) => item.run.state === "failure").sort((a, b) => b.run.created_at.localeCompare(a.run.created_at));
+  const failing = latest.filter((item) => item.run.state === "failure").sort((a, b) => timeKey(b.run.created_at) - timeKey(a.run.created_at));
   const active = latest.filter((item) => isActive(item.run.state));
   const completed = recentRuns.filter((run) => run.state === "success" || run.state === "failure");
   const successRate = completed.length ? Math.round((completed.filter((run) => run.state === "success").length / completed.length) * 100) : null;
@@ -163,7 +163,7 @@ export function OverviewPage() {
                       <span className="flex gap-[2px]">
                         {entry.scan!.workflows
                           .flatMap((wf) => wf.history)
-                          .sort((a, b) => a.created_at.localeCompare(b.created_at))
+                          .sort((a, b) => timeKey(a.created_at) - timeKey(b.created_at))
                           .slice(-10)
                           .map((h) => (
                             <span

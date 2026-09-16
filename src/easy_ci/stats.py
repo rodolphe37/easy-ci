@@ -15,6 +15,8 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any
 
+from easy_ci.providers import time_key
+
 SUCCESS, FAILURE, CANCELLED, SKIPPED = "success", "failure", "cancelled", "skipped"
 COMPLETED_RUN_STATES = (SUCCESS, FAILURE, CANCELLED)
 
@@ -77,7 +79,7 @@ def compute_stats(runs: list[dict[str, Any]], attempts_by_run: dict[str, list[di
     `workflows` : identifiant de workflow → nom, pour distinguer des jobs homonymes.
     """
     workflows = workflows or {}
-    completed = sorted((r for r in runs if r.get("state") in COMPLETED_RUN_STATES), key=lambda r: r.get("created_at") or "")
+    completed = sorted((r for r in runs if r.get("state") in COMPLETED_RUN_STATES), key=lambda r: time_key(r.get("created_at")))
 
     run_points = []
     run_durations: list[float] = []

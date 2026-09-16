@@ -7,13 +7,15 @@ from urllib.parse import urlparse
 
 from easy_ci.errors import EasyCIError
 from easy_ci.i18n import tr
-from easy_ci.providers import BITBUCKET, GITHUB, GITLAB
+from easy_ci.providers import GITHUB, GITLAB, ProviderHosts, provider_for_host
 
 _SEGMENT = re.compile(r"^[A-Za-z0-9_.-]+$")
-_SSH = re.compile(r"^(?:ssh://)?git@([^:/]+)[:/](.+?)(?:\.git)?/?$")
+# Forme « scp » uniquement (« git@hote:chemin ») : ici le « : » sépare l'hôte du chemin.
+# Les URL « ssh://… » passent par urlparse, qui sait, lui, qu'un « : » y introduit un port.
+_SSH = re.compile(r"^git@([^:/]+)[:/](.+?)(?:\.git)?/?$")
 
 
-def parse_repository_reference(reference: str, provider: str | None = None, gitlab_hosts: tuple[str, ...] = ()) -> tuple[str, str]:
+def parse_repository_reference(reference: str, provider: str | None = None, hosts: ProviderHosts | None = None) -> tuple[str, str]:
     """Renvoie (fournisseur, chemin complet).
 
     Accepte « propriétaire/dépôt » (GitLab : « groupe/sous-groupe/projet »), les URL https et ssh.
@@ -31,15 +33,10 @@ def parse_repository_reference(reference: str, provider: str | None = None, gitl
 
     if host:
         host = host.removeprefix("www.")
-        gitlab_names = {urlparse(h).hostname or h for h in gitlab_hosts}
-        if host == "github.com":
-            provider = GITHUB
-        elif host == "bitbucket.org":
-            provider = BITBUCKET
-        elif host == "gitlab.com" or host in gitlab_names:
-            provider = GITLAB
-        else:
+        matched = provider_for_host(host, hosts)
+        if matched is None:
             raise EasyCIError(tr("Hébergeur « {host} » non reconnu. Connectez d'abord l'instance GitLab correspondante.", host=host))
+        provider = matched
 
     provider = provider or GITHUB
     segments = [s for s in path.strip("/").removesuffix(".git").split("/") if s]

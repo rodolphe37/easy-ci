@@ -1,7 +1,7 @@
 import httpx
 import pytest
 
-from easy_ci import updates
+from easy_ci import i18n, updates
 from easy_ci.updates import UpdateChecker, install_method, is_newer, parse_latest_release, upgrade_instructions
 
 
@@ -53,9 +53,41 @@ def test_checker_reports_new_version_and_caches():
     checker = _checker(handler)
     result = checker.check()
     assert result["available"] is True and result["latest"]["version"] == "0.2.0" and result["error"] is None
-    assert checker.check() is result and len(calls) == 1
+    # Le résultat est reconstruit à chaque appel (la langue peut changer) mais sans nouvel appel réseau.
+    assert checker.check() == result and len(calls) == 1
     checker.check(force=True)
     assert len(calls) == 2
+
+
+def test_cached_result_follows_the_interface_language():
+    """Le résultat est gardé six heures : les textes doivent suivre la langue, pas celle du premier appel."""
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        return httpx.Response(500)
+
+    checker = _checker(handler)
+    try:
+        i18n.set_language("fr")
+        assert "Vérification impossible" in checker.check()["error"]
+        i18n.set_language("en")
+        english = checker.check()
+        assert len(calls) == 1, "aucun nouvel appel réseau"
+        assert english["error"] == "Check failed (connection to GitHub)."
+        assert all(instruction["label"] != "Script d'installation" for instruction in english["instructions"])
+    finally:
+        i18n.set_language("fr")
+
+
+def test_install_script_label_is_translated():
+    i18n.set_language("en")
+    try:
+        labels = [i["label"] for i in upgrade_instructions("Linux", "script")]
+        assert labels == ["Installation script"]
+        assert [i["label"] for i in upgrade_instructions("Darwin", "homebrew")] == ["Homebrew", "Installation script"]
+    finally:
+        i18n.set_language("fr")
 
 
 @pytest.mark.parametrize(
