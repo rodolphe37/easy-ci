@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-09-18
+
+### Fixed
+
+- Online demo (in the browser): real-time detection did not work, because the engine started threads that the browser does not provide. In demo mode, repositories are now checked without threads; the desktop app was not affected.
+
 ## [0.6.0] - 2026-09-18
 
 ### Added
@@ -114,7 +120,8 @@ First public version.
 - Built-in documentation, light and dark themes, native window with app icons for macOS, Windows and Linux.
 - Project CI/CD: lint and tests on Linux, macOS and Windows, standalone PyInstaller apps for macOS (Apple Silicon and Intel), Windows and Linux, automated GitHub Releases with SHA-256 checksums.
 
-[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/rodolphe37/easy-ci/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/rodolphe37/easy-ci/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/rodolphe37/easy-ci/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/rodolphe37/easy-ci/compare/v0.4.1...v0.5.0

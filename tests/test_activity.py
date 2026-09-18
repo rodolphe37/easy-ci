@@ -194,3 +194,16 @@ def test_api_poll_activity_in_demo_mode(tmp_path):
     assert response["ok"] is True
     assert set(response["data"]["fingerprints"]) == set(keys)
     assert api.call("poll_activity", {"repositories": keys})["data"]["probed"] == 0, "rythme de 5 s en démo"
+
+
+def test_demo_probes_without_threads(monkeypatch):
+    """La démo web tourne sous Pyodide, sans threads : aucune sonde ne doit en démarrer."""
+    import threading
+
+    def no_thread(*args, **kwargs):
+        raise RuntimeError("can't start new thread")
+
+    monkeypatch.setattr(threading.Thread, "start", no_thread)
+    github = FakeService()
+    watcher, _ = make_watcher({"github": github}, demo=True)
+    assert watcher.poll(["github:acme/a", "github:acme/b"])["probed"] == 2

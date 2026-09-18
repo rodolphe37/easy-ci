@@ -57,7 +57,7 @@ class ActivityWatcher:
         self._clock = clock
         self._probes: dict[str, _Probe] = {}
         self._lock = threading.Lock()
-        self._pool = ThreadPoolExecutor(max_workers=MAX_PARALLEL, thread_name_prefix="activity")
+        self._pool: ThreadPoolExecutor | None = None
 
     def reset(self) -> None:
         """Les empreintes portent sur un compte : elles sont oubliées quand les comptes changent."""
@@ -65,7 +65,13 @@ class ActivityWatcher:
             self._probes.clear()
 
     def close(self) -> None:
-        self._pool.shutdown(wait=False, cancel_futures=True)
+        if self._pool is not None:
+            self._pool.shutdown(wait=False, cancel_futures=True)
+
+    def _executor(self) -> ThreadPoolExecutor:
+        if self._pool is None:
+            self._pool = ThreadPoolExecutor(max_workers=MAX_PARALLEL, thread_name_prefix="activity")
+        return self._pool
 
     def poll(self, repositories: list[str]) -> dict[str, Any]:
         now = self._clock()
@@ -83,7 +89,9 @@ class ActivityWatcher:
             for provider, repos in by_provider.items():
                 due.extend((provider, key, full_name) for key, full_name in self._due(provider, repos, now))
 
-        results = self._pool.map(lambda item: (item[1], self._probe(item[0], item[2])), due)
+        probe = lambda item: (item[1], self._probe(item[0], item[2]))  # noqa: E731
+        # La démo n'appelle aucun réseau : sonder sur place, sans threads (indisponibles dans la démo web, sous Pyodide).
+        results = list(map(probe, due)) if self._demo() or len(due) < 2 else list(self._executor().map(probe, due))
         with self._lock:
             for key, fingerprint in results:
                 probe = self._probes.setdefault(key, _Probe())
