@@ -12,6 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Online demo (in the browser): real-time detection did not work, because the engine started threads that the browser does not provide. In demo mode, repositories are now checked without threads; the desktop app was not affected.
 
+### Changed
+
+- The Linux app is now built on Ubuntu 24.04 explicitly instead of the moving `ubuntu-latest` label, which switches to Ubuntu 26 on October 19, 2026: the binary keeps running on current distributions.
+
 ## [0.6.0] - 2026-09-18
 
 ### Added

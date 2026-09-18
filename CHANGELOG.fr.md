@@ -12,6 +12,10 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 - Démo en ligne (dans le navigateur) : la détection en temps réel ne fonctionnait pas, car le moteur démarrait des threads que le navigateur ne fournit pas. En mode démo, les dépôts sont désormais vérifiés sans threads ; l'application desktop n'était pas concernée.
 
+### Modifié
+
+- L'application Linux est désormais compilée explicitement sur Ubuntu 24.04 au lieu du label mouvant `ubuntu-latest`, qui passe à Ubuntu 26 le 19 octobre 2026 : l'exécutable continue de se lancer sur les distributions actuelles.
+
 ## [0.6.0] - 2026-09-18
 
 ### Ajouté
