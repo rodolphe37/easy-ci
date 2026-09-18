@@ -18,7 +18,7 @@ import {
   Workflow as WorkflowIcon,
   Zap,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { Link, useSearchParams } from "react-router";
 import i18n from "@/i18n";
 import { BranchChip, EventIcon, RunDuration, RunRow, TimeAgo } from "@/components/runs";
@@ -27,7 +27,6 @@ import { Tooltip } from "@/components/ui/overlays";
 import { Badge, Button, buttonClass, Card, EmptyState, SegmentedControl, Skeleton } from "@/components/ui/primitives";
 import { LocalProjectPanel } from "@/components/local/LocalProjectPanel";
 import { RunStatsPanel } from "@/components/stats/RunStatsPanel";
-import { YamlViewer } from "@/components/YamlViewer";
 import { useLocalStatus } from "@/hooks/local";
 import { useRepoEntry, useScans } from "@/hooks/scans";
 import { useSettings } from "@/hooks/session";
@@ -36,6 +35,9 @@ import { PROVIDER_LABELS, ProviderIcon, repoKey, repoPath, runPath, useRepoRef }
 import type { Repository, ScannedWorkflow, WorkflowFile } from "@/lib/types";
 import { cn, eventLabel, firstLine } from "@/lib/utils";
 import { ListSkeleton, Page } from "./OverviewPage";
+
+// CodeMirror n'est chargé qu'à l'ouverture d'un fichier : le démarrage de l'application reste léger.
+const YamlViewer = lazy(() => import("@/components/YamlViewer").then((m) => ({ default: m.YamlViewer })));
 
 type Tab = "workflows" | "runs" | "stats" | "files" | "local";
 
@@ -611,7 +613,9 @@ function WorkflowFileView({ file, providerLabel, repoRef }: { file: WorkflowFile
           </div>
         </div>
         <div className="h-[min(640px,65vh)] bg-log">
-          <YamlViewer content={file.content} highlightLine={summary.error_line} />
+          <Suspense fallback={null}>
+            <YamlViewer content={file.content} highlightLine={summary.error_line} />
+          </Suspense>
         </div>
       </Card>
     </>

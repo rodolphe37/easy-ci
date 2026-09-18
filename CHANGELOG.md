@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-18
+
+### Added
+
+- **Real-time detection**: a run that starts (push, pull request, schedule, re-run from the platform) now shows up in the app within seconds instead of waiting for the next refresh (up to 1 minute by default). Easy CI regularly compares a fingerprint of each repository's latest runs and only rescans the repositories that changed; the overview, the repository's run list and an open run page update on their own. The check reuses the scan request, so on GitHub it uses no quota as long as nothing changes; its pace adapts to the number of repositories and each platform's quota (slower on Bitbucket) and pauses below 20% of remaining quota. Can be turned off in *Settings › Synchronization*.
+
+### Changed
+
+- Smoother interface: the arrival of a scan no longer blocks the window (it froze for about 100 ms per repository scanned); pages are redrawn in the background and only when data actually changes, no longer at the start and end of every request.
+- “x minutes ago” labels and durations of finished runs are no longer redrawn every second: a label is refreshed at the pace of what it displays (seconds, then every 10 s, then every minute).
+- Faster startup: the CI editor, pipeline generator, run comparison and documentation are loaded on first visit (about 30% less code to load at launch).
+
 ## [0.5.1] - 2026-09-16
 
 ### Fixed
@@ -102,7 +114,8 @@ First public version.
 - Built-in documentation, light and dark themes, native window with app icons for macOS, Windows and Linux.
 - Project CI/CD: lint and tests on Linux, macOS and Windows, standalone PyInstaller apps for macOS (Apple Silicon and Intel), Windows and Linux, automated GitHub Releases with SHA-256 checksums.
 
-[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/rodolphe37/easy-ci/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/rodolphe37/easy-ci/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/rodolphe37/easy-ci/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/rodolphe37/easy-ci/compare/v0.4.0...v0.4.1

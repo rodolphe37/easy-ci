@@ -940,6 +940,12 @@ export const DOC_SECTIONS: DocSection[] = [
           est en cours sont suivis toutes les 8 secondes. Appuyez sur <Kbd>R</Kbd> pour tout actualiser immédiatement.
         </P>
         <P>
+          Avec la <Strong>détection en temps réel</Strong> (activée par défaut), une exécution qui démarre apparaît en quelques secondes, sans attendre
+          l'actualisation : Easy CI compare régulièrement l'empreinte des dernières exécutions de chaque dépôt et ne le rescanne que si elle change. Sur GitHub, ces
+          vérifications ne consomment pas de quota tant que rien ne change ; leur rythme s'espace avec le nombre de dépôts, davantage sur Bitbucket, et elles se
+          mettent en pause quand il reste moins de 20 % du quota.
+        </P>
+        <P>
           Chaque plateforme limite le nombre d'appels : <Strong>5 000 par heure</Strong> pour GitHub, environ <Strong>2 000 par minute</Strong> pour gitlab.com
           (variable sur une instance auto-hébergée), <Strong>1 000 par heure</Strong> pour Bitbucket. Easy CI limite les analyses simultanées, met en cache les
           pipelines terminés et utilise des requêtes conditionnelles. Les jauges <Strong>Quota</Strong> en bas de la barre latérale indiquent la consommation quand
@@ -982,7 +988,7 @@ export const DOC_SECTIONS: DocSection[] = [
           ["Dépôts suivis", "Dépôts ajoutés manuellement et dépôts masqués."],
           ["Projets locaux", "Dossiers de projets, détection des clones, récupération et mise à jour automatiques, éditeur de code."],
           ["Apparence", "Langue de l'interface (système, français ou anglais) et thème clair, sombre ou identique au système."],
-          ["Synchronisation", "Fréquence d'actualisation (30 s à 5 min, ou manuelle), affichage des dépôts sans CI et des dépôts archivés."],
+          ["Synchronisation", "Fréquence d'actualisation (30 s à 5 min, ou manuelle), détection en temps réel des exécutions qui démarrent, affichage des dépôts sans CI et des dépôts archivés."],
           ["Notifications", "Notifications des pipelines en échec ou repassés au vert, dépôts concernés (tous ou favoris), notification d'essai."],
           ["Mises à jour", "Version installée, vérification manuelle ou automatique des nouvelles versions, versions ignorées."],
         ]}

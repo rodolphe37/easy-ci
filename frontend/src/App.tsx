@@ -16,13 +16,9 @@ import { ApiError } from "@/lib/api";
 import { repoPath, runPath } from "@/lib/providers";
 import type { ProviderId } from "@/lib/types";
 import { ConnectPage } from "@/pages/ConnectPage";
-import { DocsPage } from "@/pages/DocsPage";
-import { EditorPage } from "@/pages/EditorPage";
-import { GeneratePage } from "@/pages/GeneratePage";
 import { OverviewPage } from "@/pages/OverviewPage";
 import { RepoPage } from "@/pages/RepoPage";
 import { ReposPage } from "@/pages/ReposPage";
-import { RunComparePage } from "@/pages/RunComparePage";
 import { RunPage } from "@/pages/RunPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 
@@ -31,6 +27,8 @@ const repoCrumbs: NonNullable<RouteHandle["crumb"]> = (params) => [
   { label: params.repo ?? "", to: repoPath((params.provider ?? "github") as ProviderId, params.repo ?? "") },
 ];
 
+// Pages rarement ouvertes au démarrage (éditeur CodeMirror, assistant, comparaison, documentation) :
+// chargées à la première visite, pour un lancement plus rapide.
 function createRouter() {
   return createHashRouter([
     {
@@ -47,7 +45,7 @@ function createRouter() {
         },
         {
           path: "repos/:provider/:repo/runs/:runId/compare",
-          element: <RunComparePage />,
+          lazy: () => import("@/pages/RunComparePage").then((m) => ({ Component: m.RunComparePage })),
           handle: {
             crumb: (params) => [
               ...repoCrumbs(params),
@@ -58,15 +56,15 @@ function createRouter() {
         },
         {
           path: "repos/:provider/:repo/edit",
-          element: <EditorPage />,
+          lazy: () => import("@/pages/EditorPage").then((m) => ({ Component: m.EditorPage })),
           handle: { crumb: (params) => [...repoCrumbs(params), { label: i18n.t("nav.editCi") }] } satisfies RouteHandle,
         },
         {
           path: "repos/:provider/:repo/generate",
-          element: <GeneratePage />,
+          lazy: () => import("@/pages/GeneratePage").then((m) => ({ Component: m.GeneratePage })),
           handle: { crumb: (params) => [...repoCrumbs(params), { label: i18n.t("nav.generate") }] } satisfies RouteHandle,
         },
-        { path: "docs", element: <DocsPage />, handle: { crumb: () => [{ label: i18n.t("nav.docs") }] } satisfies RouteHandle },
+        { path: "docs", lazy: () => import("@/pages/DocsPage").then((m) => ({ Component: m.DocsPage })), handle: { crumb: () => [{ label: i18n.t("nav.docs") }] } satisfies RouteHandle },
         { path: "settings", element: <SettingsPage />, handle: { crumb: () => [{ label: i18n.t("nav.settings") }] } satisfies RouteHandle },
         { path: "*", element: <Navigate to="/" replace /> },
       ],

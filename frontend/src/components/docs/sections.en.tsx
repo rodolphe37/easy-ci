@@ -937,6 +937,11 @@ export const DOC_SECTIONS: DocSection[] = [
           are followed every 8 seconds. Press <Kbd>R</Kbd> to refresh everything immediately.
         </P>
         <P>
+          With <Strong>real-time detection</Strong> (on by default), a run that starts shows up within seconds, without waiting for the refresh: Easy CI regularly
+          compares a fingerprint of each repository's latest runs and only rescans it when the fingerprint changes. On GitHub these checks use no quota as long as
+          nothing changes; their pace slows down with the number of repositories, more so on Bitbucket, and they pause when less than 20% of the quota is left.
+        </P>
+        <P>
           Each platform limits the number of calls: <Strong>5,000 per hour</Strong> for GitHub, about <Strong>2,000 per minute</Strong> for gitlab.com (varies on a
           self-managed instance), <Strong>1,000 per hour</Strong> for Bitbucket. Easy CI limits concurrent scans, caches finished pipelines and uses conditional
           requests. The <Strong>Quota</Strong> gauges at the bottom of the sidebar show consumption when the platform reports it.
@@ -978,7 +983,7 @@ export const DOC_SECTIONS: DocSection[] = [
           ["Tracked repositories", "Manually added repositories and hidden repositories."],
           ["Local projects", "Projects folders, clone detection, automatic fetch and update, code editor."],
           ["Appearance", "Interface language (system, French or English) and light, dark or system theme."],
-          ["Synchronization", "Refresh frequency (30 s to 5 min, or manual), showing repositories without CI and archived repositories."],
+          ["Synchronization", "Refresh frequency (30 s to 5 min, or manual), real-time detection of runs that start, showing repositories without CI and archived repositories."],
           ["Notifications", "Notifications for failing or recovered pipelines, repositories concerned (all or favorites), test notification."],
           ["Updates", "Installed version, manual or automatic checks for new versions, skipped versions."],
         ]}

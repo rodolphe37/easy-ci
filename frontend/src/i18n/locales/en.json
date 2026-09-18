@@ -1061,6 +1061,8 @@
       "refresh": "Automatic refresh",
       "refreshDescription": "How often repositories are checked. Running pipelines are always followed every few seconds.",
       "manual": "Manual",
+      "live": "Real-time detection",
+      "liveDescription": "A run that starts shows up within seconds, without waiting for the refresh. The pace adapts to each platform's quota (slower on Bitbucket).",
       "showNoCi": "Show repositories without CI",
       "showNoCiDescription": "Repositories without a workflow stay visible, at the end of the list.",
       "archived": "Include archived repositories",

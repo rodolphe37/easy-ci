@@ -25,6 +25,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "theme": "system",  # system | light | dark
     "language": "system",  # system | fr | en
     "refresh_interval": 60,  # secondes, 0 = manuel
+    "live_updates": True,  # détection des exécutions qui démarrent, en quelques secondes
     "favorites": [],  # clés « fournisseur:chemin »
     "added_repositories": [],  # dépôts suivis en plus de ceux découverts automatiquement
     "hidden_repositories": [],  # dépôts découverts que l'utilisateur ne veut pas voir

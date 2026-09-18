@@ -1,5 +1,5 @@
 import { ArrowRight, CircleCheckBig, FolderGit2, Inbox } from "lucide-react";
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import i18n from "@/i18n";
@@ -23,14 +23,22 @@ export function OverviewPage() {
   const { entries, recentRuns, isLoadingRepos, scanned, total, reposErrors, accounts } = useScans();
   const { data: session } = useSession();
 
-  const withCi = entries.filter((e) => e.scan?.has_ci);
-  const latest: WorkflowWithRepo[] = withCi.flatMap((entry) =>
-    entry.scan!.workflows.filter((wf) => wf.latest_run).map((wf) => ({ repo: entry.repo, workflow: wf, run: wf.latest_run! })),
-  );
-  const failing = latest.filter((item) => item.run.state === "failure").sort((a, b) => timeKey(b.run.created_at) - timeKey(a.run.created_at));
-  const active = latest.filter((item) => isActive(item.run.state));
-  const completed = recentRuns.filter((run) => run.state === "success" || run.state === "failure");
-  const successRate = completed.length ? Math.round((completed.filter((run) => run.state === "success").length / completed.length) * 100) : null;
+  const { withCi, failing, active } = useMemo(() => {
+    const withCi = entries.filter((e) => e.scan?.has_ci);
+    const latest: WorkflowWithRepo[] = withCi.flatMap((entry) =>
+      entry.scan!.workflows.filter((wf) => wf.latest_run).map((wf) => ({ repo: entry.repo, workflow: wf, run: wf.latest_run! })),
+    );
+    return {
+      withCi,
+      failing: latest.filter((item) => item.run.state === "failure").sort((a, b) => timeKey(b.run.created_at) - timeKey(a.run.created_at)),
+      active: latest.filter((item) => isActive(item.run.state)),
+    };
+  }, [entries]);
+  const { completed, successRate } = useMemo(() => {
+    const completed = recentRuns.filter((run) => run.state === "success" || run.state === "failure");
+    const successRate = completed.length ? Math.round((completed.filter((run) => run.state === "success").length / completed.length) * 100) : null;
+    return { completed, successRate };
+  }, [recentRuns]);
   const loading = isLoadingRepos || (total > 0 && scanned === 0);
 
   if (reposErrors.length && reposErrors.length === accounts.length) {

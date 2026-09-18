@@ -1061,6 +1061,8 @@
       "refresh": "Actualisation automatique",
       "refreshDescription": "Fréquence de vérification des dépôts. Les exécutions en cours sont toujours suivies toutes les quelques secondes.",
       "manual": "Manuelle",
+      "live": "Détection en temps réel",
+      "liveDescription": "Une exécution qui démarre apparaît en quelques secondes, sans attendre l'actualisation. Rythme adapté au quota de chaque plateforme (plus espacé sur Bitbucket).",
       "showNoCi": "Afficher les dépôts sans CI",
       "showNoCiDescription": "Les dépôts sans workflow restent visibles, en fin de liste.",
       "archived": "Inclure les dépôts archivés",

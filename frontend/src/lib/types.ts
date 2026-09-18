@@ -60,10 +60,17 @@ export interface Session {
   system_language: "fr" | "en";
 }
 
+/** Empreintes d'activité des dépôts (poll_activity) : un changement signale une exécution qui démarre ou avance. */
+export interface ActivityPoll {
+  fingerprints: Record<string, string>;
+  probed: number;
+}
+
 export interface Settings {
   theme: "system" | "light" | "dark";
   language: "system" | "fr" | "en";
   refresh_interval: number;
+  live_updates: boolean;
   favorites: string[];
   added_repositories: string[];
   hidden_repositories: string[];

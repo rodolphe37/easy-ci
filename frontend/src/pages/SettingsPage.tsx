@@ -87,6 +87,9 @@ export function SettingsPage() {
             ]}
           />
         </Row>
+        <Row title={i18n.t("settings.sync.live")} description={i18n.t("settings.sync.liveDescription")}>
+          <Switch label={i18n.t("settings.sync.live")} checked={settings?.live_updates ?? true} onChange={(live_updates) => update({ live_updates })} />
+        </Row>
         <Row title={i18n.t("settings.sync.showNoCi")} description={i18n.t("settings.sync.showNoCiDescription")}>
           <Switch
             label={i18n.t("settings.sync.showNoCi")}

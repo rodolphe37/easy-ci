@@ -6,6 +6,18 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-18
+
+### Ajouté
+
+- **Détection en temps réel** : une exécution qui démarre (push, pull request, planification, relance depuis la plateforme) apparaît désormais dans l'application en quelques secondes, au lieu d'attendre la prochaine actualisation (jusqu'à 1 minute par défaut). Easy CI compare régulièrement l'empreinte des dernières exécutions de chaque dépôt et ne rescanne que les dépôts qui ont changé ; la vue d'ensemble, la liste des exécutions du dépôt et la page d'une exécution ouverte se mettent à jour seules. La vérification reprend la requête du scan : sur GitHub, elle ne consomme pas de quota tant que rien ne change ; son rythme s'adapte au nombre de dépôts et au quota de chaque plateforme (plus espacé sur Bitbucket) et se met en pause sous 20 % de quota restant. Désactivable dans *Paramètres › Synchronisation*.
+
+### Modifié
+
+- Interface plus fluide : l'arrivée d'un scan ne bloque plus la fenêtre (elle se figeait environ 100 ms par dépôt analysé) ; les pages sont redessinées en arrière-plan, et seulement quand les données changent, plus au début et à la fin de chaque requête.
+- Les mentions « il y a x minutes » et les durées des exécutions terminées ne sont plus redessinées chaque seconde : chaque mention est rafraîchie au rythme de ce qu'elle affiche (à la seconde, puis toutes les 10 s, puis à la minute).
+- Démarrage plus rapide : l'éditeur CI, l'assistant de génération, la comparaison d'exécutions et la documentation sont chargés à la première visite (environ 30 % de code en moins à charger au lancement).
+
 ## [0.5.1] - 2026-09-16
 
 ### Corrigé
@@ -102,7 +114,8 @@ Première version publique.
 - Documentation intégrée, thèmes clair et sombre, fenêtre native avec icônes de l'application pour macOS, Windows et Linux.
 - CI/CD du projet : lint et tests sous Linux, macOS et Windows, applications PyInstaller autonomes pour macOS (Apple Silicon et Intel), Windows et Linux, GitHub Releases automatisées avec empreintes SHA-256.
 
-[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/rodolphe37/easy-ci/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/rodolphe37/easy-ci/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/rodolphe37/easy-ci/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/rodolphe37/easy-ci/compare/v0.4.0...v0.4.1

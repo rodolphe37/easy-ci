@@ -8,7 +8,7 @@ import { Avatar, Badge, Button, Kbd, Logo } from "@/components/ui/primitives";
 import { Tooltip } from "@/components/ui/overlays";
 import { useNow } from "@/hooks/useNow";
 import { useAutoFetch } from "@/hooks/local";
-import { useScans } from "@/hooks/scans";
+import { useScans, useScanStatus } from "@/hooks/scans";
 import { useUpdates } from "@/hooks/updates";
 import { useSession, useSessionActions, useSettings } from "@/hooks/session";
 import i18n from "@/i18n";
@@ -249,7 +249,8 @@ function SidebarFooter() {
 function Topbar({ onSearch }: { onSearch: () => void }) {
   const { t } = useTranslation();
   const matches = useMatches();
-  const { isRefreshing, refreshAll, lastUpdatedAt, scanned, total } = useScans();
+  const { refreshAll, scanned, total } = useScans();
+  const { isRefreshing, lastUpdatedAt } = useScanStatus();
   const { data: session } = useSession();
   const { logout } = useSessionActions();
   const now = useNow();

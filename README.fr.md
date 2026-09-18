@@ -67,7 +67,7 @@ Easy CI rassemble tout cela dans une application desktop : tous les pipelines de
 
 - **Toute votre CI au même endroit** — GitHub Actions, GitLab CI/CD (gitlab.com et auto-hébergé) et Bitbucket Pipelines, un compte par plateforme.
 - **Découverte automatique** de tous les dépôts et pipelines accessibles ; ajout d'autres dépôts par `owner/nom` ou URL, masquage, favoris.
-- **Statuts en direct** — exécutions en cours actualisées toutes les quelques secondes, historique coloré, taux de réussite et santé des dépôts.
+- **Statuts en direct** — une exécution qui démarre apparaît en quelques secondes (**détection en temps réel**, économe en quota), exécutions en cours actualisées toutes les quelques secondes, historique coloré, taux de réussite et santé des dépôts.
 - **Notifications système** quand un pipeline échoue ou repasse au vert — natives sur macOS, Windows et Linux, pour tous les dépôts ou seulement vos favoris.
 - **Statistiques des exécutions** dans le temps — taux de réussite, durées médiane et P90 avec leur tendance, et **jobs instables** (« flaky ») repérés quand ils échouent puis réussissent sur le même commit.
 
@@ -283,6 +283,7 @@ Réalisé :
 - [x] Notifications système quand un pipeline suivi échoue ou repasse au vert
 - [x] Statistiques des exécutions dans le temps (durées, jobs instables)
 - [x] Comparaison de deux exécutions : jobs, durées, commits et fichiers entre les deux
+- [x] Détection en temps réel des exécutions qui démarrent, interface plus fluide et démarrage plus rapide
 
 Prochaines idées — retours et contributions bienvenus :
 

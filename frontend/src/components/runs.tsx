@@ -1,7 +1,7 @@
 import { CalendarClock, GitBranch, GitCommitHorizontal, GitPullRequest, Hand, Tag, Timer, Upload } from "lucide-react";
-import type { ReactNode } from "react";
+import { memo, type ReactNode } from "react";
 import { Link } from "react-router";
-import { useNow } from "@/hooks/useNow";
+import { granularityFor, useNow } from "@/hooks/useNow";
 import { ProviderIcon, runPath } from "@/lib/providers";
 import type { ProviderId, Run } from "@/lib/types";
 import { cn, elapsedSeconds, eventLabel, formatDate, formatDuration, shortSha, timeAgo } from "@/lib/utils";
@@ -31,8 +31,8 @@ export function EventIcon({ event, className }: { event: string | null; classNam
 
 /** Durée d'une exécution : fixe si terminée, compteur en direct sinon. */
 export function RunDuration({ run, className }: { run: Pick<Run, "state" | "started_at" | "duration_s" | "updated_at">; className?: string }) {
-  const now = useNow();
   const active = isActive(run.state);
+  const now = useNow(active ? 1000 : Number.POSITIVE_INFINITY);
   const seconds = active ? (run.state === "queued" ? null : elapsedSeconds(run.started_at, null, now)) : run.duration_s;
   return (
     <span className={cn("inline-flex items-center gap-1 tabular", active && "text-fg", className)}>
@@ -43,7 +43,7 @@ export function RunDuration({ run, className }: { run: Pick<Run, "state" | "star
 }
 
 export function TimeAgo({ date, className }: { date: string | null | undefined; className?: string }) {
-  const now = useNow();
+  const now = useNow(granularityFor(date));
   return (
     <Tooltip content={date ? formatDate(date) : null}>
       <span className={cn("tabular whitespace-nowrap", className)}>{timeAgo(date, now)}</span>
@@ -71,7 +71,7 @@ export function BranchChip({ branch }: { branch: string | null }) {
 }
 
 /** Ligne d'exécution compacte, utilisée dans les listes d'activité et d'historique. */
-export function RunRow({
+export const RunRow = memo(function RunRow({
   run,
   provider,
   fullName,
@@ -139,4 +139,4 @@ export function RunRow({
       ) : null}
     </Link>
   );
-}
+});

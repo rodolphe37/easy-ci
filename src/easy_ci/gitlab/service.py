@@ -16,7 +16,7 @@ from easy_ci.errors import EasyCIError, ForbiddenError, NotFoundError
 from easy_ci.gitlab import normalize
 from easy_ci.http import ApiClient
 from easy_ci.i18n import tr
-from easy_ci.providers import GITLAB, RECENT_RUNS, build_scan, capabilities, empty_scan
+from easy_ci.providers import ACTIVITY_DEPTH, GITLAB, RECENT_RUNS, activity_fingerprint, build_scan, capabilities, empty_scan
 from easy_ci.state import FAILURE, QUEUED, RUNNING
 from easy_ci.workflow_yaml import summarize_gitlab_ci
 
@@ -100,7 +100,7 @@ class GitLabService:
         project = self._project(full_name)
         base = self._base(full_name)
         try:
-            raw_pipelines = self._client.get_json(f"{base}/pipelines", {"per_page": 30})
+            raw_pipelines = self._client.get_json(f"{base}/pipelines", _PIPELINES_PARAMS)
         except ForbiddenError:
             # CI/CD désactivé sur le projet ou droits insuffisants.
             return empty_scan(full_name)
@@ -120,6 +120,14 @@ class GitLabService:
             "dynamic": remote_config,
         }
         return build_scan(full_name, [workflow], runs)
+
+    def run_activity(self, full_name: str) -> str:
+        """Empreinte des pipelines récents (même requête que le scan, qui profite de son ETag)."""
+        try:
+            raw_pipelines = self._client.get_json(f"{self._base(full_name)}/pipelines", _PIPELINES_PARAMS)
+        except (ForbiddenError, NotFoundError):
+            return activity_fingerprint([])
+        return activity_fingerprint((p.get("id"), p.get("status"), p.get("updated_at")) for p in raw_pipelines[:ACTIVITY_DEPTH])
 
     def list_runs(
         self,
@@ -348,6 +356,9 @@ class GitLabService:
         head = list(self._pool.map(enrich, raw_pipelines[:limit]))
         tail = [normalize.pipeline(raw, full_name) for raw in raw_pipelines[limit:]]
         return head + tail
+
+
+_PIPELINES_PARAMS = {"per_page": 30}
 
 
 def _count_diff_lines(diff: str | None) -> tuple[int | None, int | None]:

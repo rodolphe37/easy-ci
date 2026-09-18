@@ -19,7 +19,7 @@ from easy_ci.bitbucket.service import mark_commands
 from easy_ci.compare import commit_entry, commit_range, file_entry
 from easy_ci.errors import NotFoundError
 from easy_ci.i18n import N_, tr
-from easy_ci.providers import BITBUCKET, GITHUB, GITLAB, PROVIDER_INFO, build_scan, capabilities, empty_scan, repo_key
+from easy_ci.providers import ACTIVITY_DEPTH, BITBUCKET, GITHUB, GITLAB, PROVIDER_INFO, activity_fingerprint, build_scan, capabilities, empty_scan, repo_key
 from easy_ci.state import NEUTRAL, run_state
 from easy_ci.workflow_yaml import summarize
 
@@ -1358,6 +1358,10 @@ class DemoService:
             runs = [self._materialize(r, now)[0] for wf in workflows for r in wf.runs if r.start <= now]
         runs.sort(key=lambda r: r["created_at"], reverse=True)
         return build_scan(full_name, [self._workflow_dict(self._provider(full_name), wf) for wf in workflows], runs)
+
+    def run_activity(self, full_name: str) -> str:
+        runs = self.scan_repository(full_name).get("recent_runs", [])
+        return activity_fingerprint((r["id"], r["state"], r.get("run_attempt")) for r in runs[:ACTIVITY_DEPTH])
 
     def list_runs(self, full_name: str, workflow_id: str | None = None, branch: str | None = None, status: str | None = None, page: int = 1, per_page: int = 30) -> dict[str, Any]:
         now = time.time()

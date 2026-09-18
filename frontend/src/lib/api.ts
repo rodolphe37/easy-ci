@@ -1,5 +1,6 @@
 import i18n, { currentLanguage } from "@/i18n";
 import type {
+  ActivityPoll,
   Annotation,
   BranchSuggestion,
   CiFileContent,
@@ -136,6 +137,7 @@ export const api = {
   removeRepository: (key: string) => call<Settings>("remove_repository", { key }),
 
   scanRepository: (ref: RepoRef) => call<RepoScan>("scan_repository", ref),
+  pollActivity: (repositories: string[]) => call<ActivityPoll>("poll_activity", { repositories }),
   getRepository: (ref: RepoRef) => call<Repository>("get_repository", ref),
   listRuns: (ref: RepoRef, options: { workflow_id?: string; branch?: string; status?: string; page?: number } = {}) =>
     call<RunsPage>("list_runs", { ...ref, ...options }),

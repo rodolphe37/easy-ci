@@ -67,7 +67,7 @@ Easy CI brings all of that into a single desktop app: every pipeline of every re
 
 - **All your CI in one place** — GitHub Actions, GitLab CI/CD (gitlab.com and self-managed) and Bitbucket Pipelines, with one account per platform.
 - **Automatic discovery** of every repository and pipeline you have access to; add others by `owner/name` or URL, hide the ones you don't care about, star favorites.
-- **Live statuses** — running pipelines refreshed every few seconds, color-coded history, success rate and repository health at a glance.
+- **Live statuses** — a run that starts shows up within seconds (**real-time detection**, gentle on platform quotas), running pipelines refreshed every few seconds, color-coded history, success rate and repository health at a glance.
 - **Desktop notifications** when a pipeline fails or gets back to green — native on macOS, Windows and Linux, for all repositories or only your favorites.
 - **Run statistics** over time — success rate, median and P90 durations with their trend, and **unstable (flaky) jobs** detected when they fail then pass on the same commit.
 
@@ -283,6 +283,7 @@ Done:
 - [x] Desktop notifications when a watched pipeline fails or recovers
 - [x] Workflow run statistics (durations, flaky jobs) over time
 - [x] Compare two runs: jobs, durations, commits and files in between
+- [x] Real-time detection of runs that start, smoother and faster-starting interface
 
 Next ideas — feedback and contributions welcome:
 

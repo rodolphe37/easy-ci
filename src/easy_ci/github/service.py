@@ -11,7 +11,7 @@ from easy_ci.compare import commit_entry, commit_range, file_entry
 from easy_ci.errors import NotFoundError
 from easy_ci.github import normalize
 from easy_ci.github.client import GitHubClient
-from easy_ci.providers import GITHUB, build_scan, capabilities, empty_scan
+from easy_ci.providers import ACTIVITY_DEPTH, GITHUB, activity_fingerprint, build_scan, capabilities, empty_scan
 from easy_ci.workflow_yaml import summarize_workflow
 
 
@@ -56,9 +56,23 @@ class GitHubService:
         if not workflows:
             return empty_scan(full_name)
 
-        raw_runs = self._client.get_json(f"/repos/{full_name}/actions/runs", {"per_page": 100})
+        raw_runs = self._client.get_json(f"/repos/{full_name}/actions/runs", _RUNS_PARAMS)
         runs = [normalize.run(r) for r in raw_runs.get("workflow_runs", [])]
         return build_scan(full_name, workflows, runs)
+
+    def run_activity(self, full_name: str) -> str:
+        """Empreinte des exécutions récentes, pour détecter un démarrage sans scanner tout le dépôt.
+
+        Même requête que le scan : sa réponse (ETag) est partagée, et un 304 ne compte pas dans le quota GitHub.
+        """
+        try:
+            raw = self._client.get_json(f"/repos/{full_name}/actions/runs", _RUNS_PARAMS)
+        except NotFoundError:
+            return activity_fingerprint([])
+        return activity_fingerprint(
+            (r.get("id"), r.get("status"), r.get("conclusion"), r.get("run_attempt"), r.get("updated_at"))
+            for r in raw.get("workflow_runs", [])[:ACTIVITY_DEPTH]
+        )
 
     # -- Exécutions -------------------------------------------------------
 
@@ -179,6 +193,7 @@ class GitHubService:
         }
 
 
+_RUNS_PARAMS = {"per_page": 100}
 _COMPARE_FILES_LIMIT = 300  # GitHub ne liste pas plus de fichiers dans une comparaison
 _FILE_STATUSES = {"added": "added", "removed": "removed", "renamed": "renamed", "copied": "added"}
 

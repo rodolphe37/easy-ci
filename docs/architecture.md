@@ -64,6 +64,7 @@ The interface uses design tokens defined in `index.css` for the light and dark t
 ## Notifications and statistics
 
 - **Notifications** reuse the periodic repository scans: `hooks/notifications.tsx` compares the latest completed run of each workflow with the previous scan and reports transitions (failing, back to green). The first scan is a baseline, so nothing is reported at startup. The engine only displays the message (`notify`); scans keep refreshing while the window is in the background.
+- **Real-time detection** (`activity.py`, `useLiveActivity` in `hooks/scans.tsx`): every 5 seconds the UI sends the repositories that have CI and no run in progress (those are already refreshed every 8 seconds) to `poll_activity`. The engine only probes the repositories that are due, at a pace derived from each provider's quota (`PACES`, paused below 20% of remaining quota), with `run_activity`, which reuses the scan's runs request so GitHub answers 304 for free and the following scan hits the ETag cache. When a fingerprint changes, the UI invalidates that repository's scan, run list and run pages.
 - **Statistics** (`get_run_stats`) list the latest runs, fetch the jobs of every attempt (`list_job_attempts`: GitHub `filter=all`, GitLab `include_retried`), cache them for completed runs and summarise them in `stats.py`, which has no network access and is unit-tested.
 
 ## Local Git operations

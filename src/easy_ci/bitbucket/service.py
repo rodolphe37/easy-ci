@@ -15,7 +15,7 @@ from easy_ci.compare import MAX_COMMITS, MAX_FILES, commit_entry, commit_range, 
 from easy_ci.errors import EasyCIError, ForbiddenError, NotFoundError
 from easy_ci.http import ApiClient
 from easy_ci.i18n import tr
-from easy_ci.providers import BITBUCKET, RECENT_RUNS, build_scan, capabilities, empty_scan
+from easy_ci.providers import ACTIVITY_DEPTH, BITBUCKET, RECENT_RUNS, activity_fingerprint, build_scan, capabilities, empty_scan
 from easy_ci.state import FAILURE, QUEUED, RUNNING
 from easy_ci.workflow_yaml import summarize_bitbucket_pipelines
 
@@ -101,7 +101,7 @@ class BitbucketService:
     def scan_repository(self, full_name: str) -> dict[str, Any]:
         repo = self._repo(full_name)
         try:
-            data = self._client.get_json(f"/repositories/{full_name}/pipelines/", {"sort": "-created_on", "pagelen": 30})
+            data = self._client.get_json(f"/repositories/{full_name}/pipelines/", _PIPELINES_PARAMS)
         except (NotFoundError, ForbiddenError):
             data = {"values": []}
         raw_pipelines = data.get("values", [])
@@ -118,6 +118,17 @@ class BitbucketService:
             "dynamic": False,
         }
         return build_scan(full_name, [workflow], runs)
+
+    def run_activity(self, full_name: str) -> str:
+        """Empreinte des pipelines récents (même requête que le scan)."""
+        try:
+            data = self._client.get_json(f"/repositories/{full_name}/pipelines/", _PIPELINES_PARAMS)
+        except (NotFoundError, ForbiddenError):
+            return activity_fingerprint([])
+        return activity_fingerprint(
+            (p.get("uuid"), (p.get("state") or {}).get("name"), ((p.get("state") or {}).get("result") or {}).get("name"), p.get("completed_on"))
+            for p in data.get("values", [])[:ACTIVITY_DEPTH]
+        )
 
     def list_runs(
         self,
@@ -326,6 +337,7 @@ class BitbucketService:
         return head + [normalize.pipeline(raw, full_name) for raw in raw_pipelines[limit:]]
 
 
+_PIPELINES_PARAMS = {"sort": "-created_on", "pagelen": 30}
 _DIFFSTAT_STATUSES = {"added": "added", "removed": "removed", "renamed": "renamed"}
 
 

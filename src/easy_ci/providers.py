@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from collections import defaultdict
 from collections.abc import Mapping
 from datetime import UTC, datetime
@@ -95,6 +97,7 @@ class ProviderService(Protocol):
     def list_repositories(self) -> list[dict[str, Any]]: ...
     def get_repository(self, full_name: str) -> dict[str, Any]: ...
     def scan_repository(self, full_name: str) -> dict[str, Any]: ...
+    def run_activity(self, full_name: str) -> str: ...
     def list_runs(self, full_name: str, workflow_id: str | None = None, branch: str | None = None, status: str | None = None, page: int = 1) -> dict[str, Any]: ...
     def get_run(self, full_name: str, run_id: str) -> dict[str, Any]: ...
     def get_job_log(self, full_name: str, job_id: str) -> dict[str, Any]: ...
@@ -196,6 +199,15 @@ def duration_between(start: str | None, end: str | None) -> int | None:
 
 def empty_scan(full_name: str) -> dict[str, Any]:
     return {"full_name": full_name, "has_ci": False, "state": NONE, "workflows": [], "recent_runs": [], "last_run": None, "scanned_at": now_iso()}
+
+
+ACTIVITY_DEPTH = 20  # exécutions prises en compte dans l'empreinte d'activité
+
+
+def activity_fingerprint(items: Any) -> str:
+    """Empreinte courte des exécutions récentes : elle change dès qu'une exécution démarre, avance ou se termine."""
+    payload = json.dumps([list(item) for item in items], default=str, separators=(",", ":"))
+    return hashlib.sha1(payload.encode(), usedforsecurity=False).hexdigest()[:16]
 
 
 def build_scan(full_name: str, workflows: list[dict[str, Any]], runs: list[dict[str, Any]]) -> dict[str, Any]:

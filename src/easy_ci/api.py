@@ -21,6 +21,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from easy_ci import __version__
+from easy_ci.activity import ActivityWatcher
 from easy_ci.bitbucket.service import BitbucketClient, BitbucketService
 from easy_ci.compare import build_comparison, pick_baseline
 from easy_ci.demo import DemoService
@@ -110,6 +111,7 @@ class Api:
         # libération, et le cache d'un compte déconnecté aurait pu resservir au suivant.
         self._commits_cache: OrderedDict[tuple[str, str, str, str], dict[str, Any]] = OrderedDict()
         self._attempts_cache: OrderedDict[tuple[str, str, str, int], list[dict[str, Any]]] = OrderedDict()
+        self._activity = ActivityWatcher(self._service, demo=lambda: self._demo is not None)
 
         def repo(method: str) -> Callable[..., Any]:
             return lambda provider, full_name, **kwargs: getattr(self._service(provider), method)(full_name, **kwargs)
@@ -136,6 +138,7 @@ class Api:
             "add_repository": self.add_repository,
             "remove_repository": self.remove_repository,
             "scan_repository": repo("scan_repository"),
+            "poll_activity": lambda repositories: self._activity.poll(list(repositories)),
             "get_repository": repo("get_repository"),
             "list_runs": repo("list_runs"),
             "get_run": lambda provider, full_name, run_id: self._service(provider).get_run(full_name, str(run_id)),
@@ -377,6 +380,7 @@ class Api:
         with self._lock:
             self._commits_cache.clear()
             self._attempts_cache.clear()
+        self._activity.reset()
 
     def _open_account(self, provider: str, credentials: dict[str, str], persisted: bool) -> None:
         service = self._factories[provider](credentials)
