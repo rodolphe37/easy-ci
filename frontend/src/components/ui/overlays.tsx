@@ -2,7 +2,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { X } from "lucide-react";
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import i18n from "@/i18n";
 import { cn } from "@/lib/utils";
 
@@ -94,6 +94,32 @@ export function MenuSeparator() {
 /* Fenêtre modale                                                             */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Rend le focus à l'élément actif avant l'ouverture d'une fenêtre. Radix ne le rend qu'à un
+ * Dialog.Trigger ; nos fenêtres s'ouvrent par un état React, sans Trigger, et le focus retombait
+ * sur le body. L'élément est mémorisé au rendu qui ouvre la fenêtre : un champ autoFocus prend le
+ * focus dès le commit, avant onOpenAutoFocus. À répandre sur DialogPrimitive.Content.
+ */
+export function useFocusReturn(open: boolean) {
+  const previous = useRef<HTMLElement | null>(null);
+  const wasOpen = useRef(false);
+  if (open && !wasOpen.current) {
+    const active = document.activeElement;
+    previous.current = active instanceof HTMLElement && active !== document.body ? active : null;
+  }
+  wasOpen.current = open;
+  return {
+    onCloseAutoFocus: (event: Event) => {
+      const element = previous.current;
+      previous.current = null;
+      if (element?.isConnected) {
+        event.preventDefault();
+        element.focus();
+      }
+    },
+  };
+}
+
 export function Modal({
   open,
   onOpenChange,
@@ -109,6 +135,7 @@ export function Modal({
   children: ReactNode;
   className?: string;
 }) {
+  const focusReturn = useFocusReturn(open);
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
@@ -118,6 +145,7 @@ export function Modal({
             "fixed top-1/2 left-1/2 z-50 w-[min(520px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-elevated shadow-pop outline-none animate-pop-in",
             className,
           )}
+          {...focusReturn}
         >
           <div className="flex items-start gap-3 border-b border-line px-5 py-4">
             <div className="min-w-0 flex-1">

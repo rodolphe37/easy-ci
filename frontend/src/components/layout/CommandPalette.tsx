@@ -1,9 +1,11 @@
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Command } from "cmdk";
 import { BookOpen, FolderGit2, Laptop, LayoutDashboard, LogOut, Monitor, Moon, Plus, RefreshCw, Settings, Sun } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { StatusIcon, stateLabel } from "@/components/status";
+import { useFocusReturn } from "@/components/ui/overlays";
 import { Kbd } from "@/components/ui/primitives";
 import { useScans } from "@/hooks/scans";
 import { useSession, useSessionActions, useSettings } from "@/hooks/session";
@@ -16,6 +18,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const { data: session } = useSession();
   const { update } = useSettings();
   const { logout } = useSessionActions();
+  const focusReturn = useFocusReturn(open);
 
   const run = (action: () => void) => {
     onOpenChange(false);
@@ -25,92 +28,98 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   // Les dépôts avec CI d'abord, puis les autres.
   const sorted = [...entries].sort((a, b) => Number(b.scan?.has_ci ?? false) - Number(a.scan?.has_ci ?? false));
 
+  // Équivalent de Command.Dialog, qui ne transmet pas onCloseAutoFocus à la fenêtre Radix.
   return (
-    <Command.Dialog
-      open={open}
-      onOpenChange={onOpenChange}
-      label={t("palette.label")}
-      overlayClassName="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] animate-fade-in"
-      contentClassName="fixed top-[14%] left-1/2 z-50 w-[min(640px,calc(100vw-48px))] -translate-x-1/2 overflow-hidden rounded-2xl bg-elevated shadow-pop animate-pop-in"
-    >
-      <Command.Input
-        placeholder={t("palette.placeholder")}
-        className="h-13 w-full border-b border-line bg-transparent px-4 text-[14.5px] text-fg outline-none placeholder:text-fg-subtle"
-      />
-      <Command.List className="scrollbar-thin max-h-[min(420px,60vh)] overflow-y-auto p-2">
-        <Command.Empty className="py-10 text-center text-[13px] text-fg-muted">{t("palette.empty")}</Command.Empty>
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] animate-fade-in" />
+        <DialogPrimitive.Content
+          aria-label={t("palette.label")}
+          className="fixed top-[14%] left-1/2 z-50 w-[min(640px,calc(100vw-48px))] -translate-x-1/2 overflow-hidden rounded-2xl bg-elevated shadow-pop animate-pop-in"
+          {...focusReturn}
+        >
+          <Command label={t("palette.label")}>
+            <Command.Input
+              placeholder={t("palette.placeholder")}
+              className="h-13 w-full border-b border-line bg-transparent px-4 text-[14.5px] text-fg outline-none placeholder:text-fg-subtle"
+            />
+            <Command.List className="scrollbar-thin max-h-[min(420px,60vh)] overflow-y-auto p-2">
+              <Command.Empty className="py-10 text-center text-[13px] text-fg-muted">{t("palette.empty")}</Command.Empty>
 
-        <Group heading={t("nav.repositories")}>
-          {sorted.map(({ repo, scan }) => (
-            <Item
-              key={repo.key}
-              value={`repo ${repo.provider} ${repo.full_name}`}
-              onSelect={() => run(() => navigate(repoPath(repo.provider, repo.full_name)))}
-              icon={<StatusIcon state={scan?.state ?? "none"} />}
-              hint={scan ? stateLabel(scan.state) : undefined}
-            >
-              <ProviderIcon provider={repo.provider} className="mr-1.5 inline size-3.5 align-[-2px]" />
-              <span className="text-fg-muted">{repo.owner}/</span>
-              <span className="font-medium">{repo.name}</span>
-            </Item>
-          ))}
-        </Group>
+              <Group heading={t("nav.repositories")}>
+                {sorted.map(({ repo, scan }) => (
+                  <Item
+                    key={repo.key}
+                    value={`repo ${repo.provider} ${repo.full_name}`}
+                    onSelect={() => run(() => navigate(repoPath(repo.provider, repo.full_name)))}
+                    icon={<StatusIcon state={scan?.state ?? "none"} />}
+                    hint={scan ? stateLabel(scan.state) : undefined}
+                  >
+                    <ProviderIcon provider={repo.provider} className="mr-1.5 inline size-3.5 align-[-2px]" />
+                    <span className="text-fg-muted">{repo.owner}/</span>
+                    <span className="font-medium">{repo.name}</span>
+                  </Item>
+                ))}
+              </Group>
 
-        <Group heading={t("palette.navigation")}>
-          <Item value="vue d'ensemble overview dashboard" icon={<LayoutDashboard />} onSelect={() => run(() => navigate("/"))}>
-            {t("nav.overview")}
-          </Item>
-          <Item value="dépôts repositories" icon={<FolderGit2 />} onSelect={() => run(() => navigate("/repos"))}>
-            {t("nav.repositories")}
-          </Item>
-          <Item value="paramètres settings" icon={<Settings />} onSelect={() => run(() => navigate("/settings"))}>
-            {t("nav.settings")}
-          </Item>
-          <Item value="documentation aide guide help docs token" icon={<BookOpen />} onSelect={() => run(() => navigate("/docs"))}>
-            {t("nav.docs")}
-          </Item>
-        </Group>
+              <Group heading={t("palette.navigation")}>
+                <Item value="vue d'ensemble overview dashboard" icon={<LayoutDashboard />} onSelect={() => run(() => navigate("/"))}>
+                  {t("nav.overview")}
+                </Item>
+                <Item value="dépôts repositories" icon={<FolderGit2 />} onSelect={() => run(() => navigate("/repos"))}>
+                  {t("nav.repositories")}
+                </Item>
+                <Item value="paramètres settings" icon={<Settings />} onSelect={() => run(() => navigate("/settings"))}>
+                  {t("nav.settings")}
+                </Item>
+                <Item value="documentation aide guide help docs token" icon={<BookOpen />} onSelect={() => run(() => navigate("/docs"))}>
+                  {t("nav.docs")}
+                </Item>
+              </Group>
 
-        <Group heading={t("palette.actions")}>
-          <Item value="ajouter un dépôt add repository" icon={<Plus />} onSelect={() => run(() => navigate("/settings#repositories"))}>
-            {t("addRepository.title")}
-          </Item>
-          <Item value="connecter un compte connect account gitlab bitbucket github" icon={<Plus />} onSelect={() => run(() => navigate("/settings"))}>
-            {t("palette.connectAccount")}
-          </Item>
-          <Item value="projets locaux dossiers clones git local projects folders" icon={<Laptop />} onSelect={() => run(() => navigate("/settings#local"))}>
-            {t("palette.localProjects")}
-          </Item>
-          <Item value="actualiser rafraîchir refresh" icon={<RefreshCw />} onSelect={() => run(() => void refreshAll())} shortcut="R">
-            {t("palette.refreshAll")}
-          </Item>
-          <Item value="thème clair light theme" icon={<Sun />} onSelect={() => run(() => update({ theme: "light" }))}>
-            {t("palette.themeLight")}
-          </Item>
-          <Item value="thème sombre dark theme" icon={<Moon />} onSelect={() => run(() => update({ theme: "dark" }))}>
-            {t("palette.themeDark")}
-          </Item>
-          <Item value="thème système auto system theme" icon={<Monitor />} onSelect={() => run(() => update({ theme: "system" }))}>
-            {t("palette.themeSystem")}
-          </Item>
-          <Item value="déconnexion logout quitter démo sign out leave demo" icon={<LogOut />} onSelect={() => run(() => logout.mutate())}>
-            {session?.mode === "demo" ? t("palette.leaveDemo") : t("palette.logoutAll")}
-          </Item>
-        </Group>
-      </Command.List>
-      <div className="flex items-center gap-4 border-t border-line px-4 py-2 text-[11.5px] text-fg-subtle">
-        <span className="flex items-center gap-1.5">
-          <Kbd>↑</Kbd>
-          <Kbd>↓</Kbd> {t("palette.hints.navigate")}
-        </span>
-        <span className="flex items-center gap-1.5">
-          <Kbd>↵</Kbd> {t("palette.hints.open")}
-        </span>
-        <span className="flex items-center gap-1.5">
-          <Kbd>Esc</Kbd> {t("palette.hints.close")}
-        </span>
-      </div>
-    </Command.Dialog>
+              <Group heading={t("palette.actions")}>
+                <Item value="ajouter un dépôt add repository" icon={<Plus />} onSelect={() => run(() => navigate("/settings#repositories"))}>
+                  {t("addRepository.title")}
+                </Item>
+                <Item value="connecter un compte connect account gitlab bitbucket github" icon={<Plus />} onSelect={() => run(() => navigate("/settings"))}>
+                  {t("palette.connectAccount")}
+                </Item>
+                <Item value="projets locaux dossiers clones git local projects folders" icon={<Laptop />} onSelect={() => run(() => navigate("/settings#local"))}>
+                  {t("palette.localProjects")}
+                </Item>
+                <Item value="actualiser rafraîchir refresh" icon={<RefreshCw />} onSelect={() => run(() => void refreshAll())} shortcut="R">
+                  {t("palette.refreshAll")}
+                </Item>
+                <Item value="thème clair light theme" icon={<Sun />} onSelect={() => run(() => update({ theme: "light" }))}>
+                  {t("palette.themeLight")}
+                </Item>
+                <Item value="thème sombre dark theme" icon={<Moon />} onSelect={() => run(() => update({ theme: "dark" }))}>
+                  {t("palette.themeDark")}
+                </Item>
+                <Item value="thème système auto system theme" icon={<Monitor />} onSelect={() => run(() => update({ theme: "system" }))}>
+                  {t("palette.themeSystem")}
+                </Item>
+                <Item value="déconnexion logout quitter démo sign out leave demo" icon={<LogOut />} onSelect={() => run(() => logout.mutate())}>
+                  {session?.mode === "demo" ? t("palette.leaveDemo") : t("palette.logoutAll")}
+                </Item>
+              </Group>
+            </Command.List>
+            <div className="flex items-center gap-4 border-t border-line px-4 py-2 text-[11.5px] text-fg-subtle">
+              <span className="flex items-center gap-1.5">
+                <Kbd>↑</Kbd>
+                <Kbd>↓</Kbd> {t("palette.hints.navigate")}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Kbd>↵</Kbd> {t("palette.hints.open")}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Kbd>Esc</Kbd> {t("palette.hints.close")}
+              </span>
+            </div>
+          </Command>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
 }
 

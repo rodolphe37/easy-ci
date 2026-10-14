@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-10-14
+
+### Fixed
+
+- Accessibility: closing a window (add a repository, publish, settings…) or the command palette now returns focus to the element that opened it, instead of the top of the page. Keyboard navigation resumes where it left off.
+
+### Changed
+
+- Interface dependencies updated (Radix UI, CodeMirror, TanStack Query, Vite, Lucide…), checked in the app: windows, menus, tooltips, the YAML editor and logs behave the same.
+
 ## [0.6.1] - 2026-09-18
 
 ### Fixed
@@ -124,7 +134,8 @@ First public version.
 - Built-in documentation, light and dark themes, native window with app icons for macOS, Windows and Linux.
 - Project CI/CD: lint and tests on Linux, macOS and Windows, standalone PyInstaller apps for macOS (Apple Silicon and Intel), Windows and Linux, automated GitHub Releases with SHA-256 checksums.
 
-[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/rodolphe37/easy-ci/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/rodolphe37/easy-ci/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/rodolphe37/easy-ci/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/rodolphe37/easy-ci/compare/v0.5.0...v0.5.1

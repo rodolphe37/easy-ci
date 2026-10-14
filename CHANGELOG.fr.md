@@ -6,6 +6,16 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-10-14
+
+### Corrigé
+
+- Accessibilité : fermer une fenêtre (ajout d'un dépôt, publication, paramètres…) ou la palette de commandes rend désormais le focus à l'élément qui l'a ouverte, au lieu du haut de la page. La navigation au clavier reprend là où elle s'était arrêtée.
+
+### Modifié
+
+- Dépendances de l'interface mises à jour (Radix UI, CodeMirror, TanStack Query, Vite, Lucide…), vérifiées dans l'application : fenêtres, menus, infobulles, éditeur YAML et journaux se comportent à l'identique.
+
 ## [0.6.1] - 2026-09-18
 
 ### Corrigé
@@ -124,7 +134,8 @@ Première version publique.
 - Documentation intégrée, thèmes clair et sombre, fenêtre native avec icônes de l'application pour macOS, Windows et Linux.
 - CI/CD du projet : lint et tests sous Linux, macOS et Windows, applications PyInstaller autonomes pour macOS (Apple Silicon et Intel), Windows et Linux, GitHub Releases automatisées avec empreintes SHA-256.
 
-[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/rodolphe37/easy-ci/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/rodolphe37/easy-ci/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/rodolphe37/easy-ci/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/rodolphe37/easy-ci/compare/v0.5.0...v0.5.1
