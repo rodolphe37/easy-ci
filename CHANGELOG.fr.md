@@ -6,6 +6,12 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Unreleased]
 
+## [0.6.3] - 2026-10-19
+
+### Modifié
+
+- Dépendances de l'interface mises à jour (Radix UI, React, TanStack Query, i18next, Lucide…), vérifiées dans l'application : les fenêtres et la palette de commandes rendent toujours le focus à l'élément qui les a ouvertes.
+
 ## [0.6.2] - 2026-10-14
 
 ### Corrigé
@@ -134,7 +140,8 @@ Première version publique.
 - Documentation intégrée, thèmes clair et sombre, fenêtre native avec icônes de l'application pour macOS, Windows et Linux.
 - CI/CD du projet : lint et tests sous Linux, macOS et Windows, applications PyInstaller autonomes pour macOS (Apple Silicon et Intel), Windows et Linux, GitHub Releases automatisées avec empreintes SHA-256.
 
-[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.6.2...HEAD
+[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.6.3...HEAD
+[0.6.3]: https://github.com/rodolphe37/easy-ci/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/rodolphe37/easy-ci/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/rodolphe37/easy-ci/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/rodolphe37/easy-ci/compare/v0.5.1...v0.6.0
