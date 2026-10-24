@@ -6,6 +6,12 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ## [Unreleased]
 
+## [0.6.4] - 2026-10-24
+
+### Sécurité
+
+- certifi 2026.10.19 ou plus récent est désormais exigé : les versions précédentes faisaient confiance aux racines emSign, dont huit autorités intermédiaires ont des clés privées compromises ([GHSA-6q48-6c7w-9gw2](https://github.com/advisories/GHSA-6q48-6c7w-9gw2)). Les applications autonomes embarquent le bundle de certificats corrigé.
+
 ## [0.6.3] - 2026-10-19
 
 ### Modifié

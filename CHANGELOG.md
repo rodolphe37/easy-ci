@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.6.4] - 2026-10-24
+
+### Security
+
+- certifi 2026.10.19 or later is now required: earlier releases trusted the emSign roots, eight of whose intermediate authorities have compromised private keys ([GHSA-6q48-6c7w-9gw2](https://github.com/advisories/GHSA-6q48-6c7w-9gw2)). The standalone apps bundle the fixed certificate store.
+
 ## [0.6.3] - 2026-10-19
 
 ### Changed
