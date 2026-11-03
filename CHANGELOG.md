@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.6.5] - 2026-11-03
+
+### Changed
+
+- Interface dependencies updated (TanStack Query, i18next, React Router, CodeMirror, Lucide, Vite…).
+
 ## [0.6.4] - 2026-10-24
 
 ### Security
