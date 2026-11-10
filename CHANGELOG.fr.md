@@ -158,7 +158,10 @@ Première version publique.
 - Documentation intégrée, thèmes clair et sombre, fenêtre native avec icônes de l'application pour macOS, Windows et Linux.
 - CI/CD du projet : lint et tests sous Linux, macOS et Windows, applications PyInstaller autonomes pour macOS (Apple Silicon et Intel), Windows et Linux, GitHub Releases automatisées avec empreintes SHA-256.
 
-[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.6.3...HEAD
+[Unreleased]: https://github.com/rodolphe37/easy-ci/compare/v0.6.6...HEAD
+[0.6.6]: https://github.com/rodolphe37/easy-ci/compare/v0.6.5...v0.6.6
+[0.6.5]: https://github.com/rodolphe37/easy-ci/compare/v0.6.4...v0.6.5
+[0.6.4]: https://github.com/rodolphe37/easy-ci/compare/v0.6.3...v0.6.4
 [0.6.3]: https://github.com/rodolphe37/easy-ci/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/rodolphe37/easy-ci/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/rodolphe37/easy-ci/compare/v0.6.0...v0.6.1
