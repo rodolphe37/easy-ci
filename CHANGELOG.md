@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.6.6] - 2026-11-10
+
+### Changed
+
+- Interface dependencies updated (TanStack Query, TanStack Virtual, i18next, Lucide, Tailwind CSS, Vite…).
+
 ## [0.6.5] - 2026-11-03
 
 ### Changed
